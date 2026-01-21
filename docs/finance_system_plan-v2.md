@@ -335,11 +335,20 @@ docker-compose up -d
 pnpm build            # 모든 모듈 코드가 자동 포함됨
 ```
 
----
+## 14. Scheduler 설계
 
-## 14. Core UI Component Library
+- Scheduler는 Backend Plugin으로 구현
+- 모듈은 작업만 등록
+- 통합 서비스와 연계 가능
 
-### 14.1 왜 필요한가?
+예시:
+- 월간 가계부 요약
+- 구독 결제일 체크
+- 외주 정산 알림
+- Google Drive 자동 백업
+- Slack 리포트 전송
+
+### 15.1 왜 필요한가?
 모듈 개발자가 UI/UX를 처음부터 만들 필요 없이, Core에서 제공하는 컴포넌트를 사용하여 빠르고 일관된 인터페이스를 구축할 수 있도록 지원
 
 **장점:**
@@ -349,7 +358,7 @@ pnpm build            # 모든 모듈 코드가 자동 포함됨
 - ✅ 다크모드 자동 지원
 - ✅ 접근성 자동 처리
 
-### 14.2 Core UI 구성
+### 15.2 Core UI 구성
 
 ```
 packages/core/ui/
@@ -379,7 +388,7 @@ packages/core/ui/
 └── index.ts
 ```
 
-### 14.3 사용 예시
+### 15.3 사용 예시
 
 ```typescript
 // 모듈에서 Core UI 사용
@@ -406,7 +415,7 @@ export default function CryptoList() {
 }
 ```
 
-### 14.4 고급 컴포넌트
+### 15.4 고급 컴포넌트
 
 **DataTable (정렬, 필터, 페이지네이션 내장):**
 ```typescript
@@ -433,9 +442,9 @@ export default function CryptoList() {
 />
 ```
 
-## 15. 모듈 마켓플레이스 & 관리 시스템
+## 16. 모듈 마켓플레이스 & 관리 시스템
 
-### 15.1 앱 내 모듈 관리 페이지
+### 16.1 앱 내 모듈 관리 페이지
 사용자가 UI를 통해 모듈을 관리할 수 있는 대시보드 제공:
 
 **기능:**
@@ -445,7 +454,7 @@ export default function CryptoList() {
 - 모듈 업데이트 확인 및 실행
 - 모듈 제거
 
-### 15.2 공식 웹사이트 (Marketplace + Docs)
+### 16.2 공식 웹사이트 (Marketplace + Docs)
 
 **웹사이트 구조:**
 ```
@@ -477,7 +486,7 @@ https://your-finance-system.dev/
 - ⭐ 인기 모듈 랭킹
 - 📈 다운로드 추이 차트
 
-### 15.3 공식 모듈 레지스트리
+### 16.3 공식 모듈 레지스트리
 
 **레지스트리 구조:**
 ```
@@ -523,7 +532,7 @@ github.com/your-org/module-registry
 }
 ```
 
-### 15.4 모듈 인증 프로세스
+### 16.4 모듈 인증 프로세스
 
 **제출 절차:**
 1. 개발자가 GitHub에 모듈 레포 생성
@@ -542,7 +551,7 @@ github.com/your-org/module-registry
 - 악성 코드 패턴 스캔
 - 필수 필드 검증
 
-### 15.5 모듈 설치 방식
+### 16.5 모듈 설치 방식
 
 **사용자 관점:**
 1. 공식 웹사이트 또는 앱 내 마켓플레이스에서 모듈 검색
@@ -566,7 +575,7 @@ Module Loader: 자동 감지 및 로드
 통계 서버: 다운로드 카운트 증가
 ```
 
-### 15.6 통계 수집 시스템
+### 16.6 통계 수집 시스템
 
 **다운로드 추적:**
 ```typescript
@@ -589,7 +598,7 @@ await fetch('https://your-finance-system.dev/api/track-install', {
 - 다운로드 추이 차트
 - 카테고리별 분포
 
-### 15.7 모듈 업데이트 & 제거
+### 16.7 모듈 업데이트 & 제거
 
 **업데이트:**
 - 레지스트리와 설치된 버전 비교
@@ -602,7 +611,7 @@ await fetch('https://your-finance-system.dev/api/track-install', {
 - modules/{name} 폴더 삭제
 - 자동으로 모듈 로더에서 제외
 
-### 15.8 모듈 ON/OFF 토글
+### 16.8 모듈 ON/OFF 토글
 
 ```json
 // module.json
@@ -616,9 +625,133 @@ await fetch('https://your-finance-system.dev/api/track-install', {
 - 비활성화된 모듈은 로드되지 않음
 - 재설치 없이 기능 켜고 끄기 가능
 
-## 16. GitHub 공개 정책
+## 17. 배포 및 업데이트 전략
 
-### 16.1 저장소 구조
+### 17.1 쉬운 Self-hosted 목표
+
+**핵심 원칙:**
+- Self-hosted를 극도로 간단하게 만들기
+- 일반 사용자도 쉽게 설치 가능
+- 자동 업데이트 지원
+- 호스팅 서비스 없음 (법적/운영 부담 제거)
+
+### 17.2 원클릭 배포 지원
+
+**Railway 템플릿:**
+```
+https://railway.app/template/your-finance-system
+
+클릭 한 번으로 자동 배포:
+- DB 자동 생성
+- 환경 변수 자동 설정
+- SSL 자동 적용
+- 도메인만 연결하면 완료
+```
+
+**Cloudflare 배포:**
+```
+GitHub 연결 → 자동 배포
+- DB: Cloudflare D1 (무료)
+- 파일: R2 (무료)
+- 함수: Workers (무료)
+무료로 개인 사용 가능
+```
+
+**Docker Compose 원클릭:**
+```bash
+git clone https://github.com/you/finance-system
+cd finance-system
+./setup.sh  # 자동 설정 스크립트
+docker-compose up -d
+```
+
+**setup.sh 자동 처리:**
+- .env 파일 생성
+- Google OAuth 설정 안내
+- DB 초기화
+- 관리자 계정 생성
+- 첫 모듈 설치
+
+### 17.3 CLI 설정 마법사
+
+```bash
+npx create-finance-system
+
+? 프로젝트 이름: my-finance
+? 데이터베이스: 
+  > SQLite (로컬, 간단)
+    PostgreSQL (권장)
+    Supabase (클라우드)
+? Google OAuth 설정하시겠습니까? (Y/n)
+? 관리자 이메일: user@example.com
+
+✓ 설치 완료!
+
+실행 방법:
+  cd my-finance
+  npm run dev
+```
+
+### 17.4 웹 기반 초기 설정
+
+첫 접속 시 웹 UI로 간단한 설정 마법사 제공:
+1. 관리자 계정 생성
+2. Google OAuth 설정 (선택)
+3. 데이터베이스 선택 (SQLite 자동 또는 직접 설정)
+4. 완료
+
+### 17.5 자동 업데이트 시스템
+
+**앱 내 업데이트 버튼:**
+```
+설정 → 시스템 → 업데이트 확인
+   ↓
+새 버전 발견 시 알림
+   ↓
+[자동 업데이트] 버튼 클릭
+   ↓
+백그라운드 처리:
+- git pull (또는 Docker image pull)
+- 의존성 업데이트
+- DB 마이그레이션
+- 자동 재시작
+```
+
+**Docker 자동 업데이트 (Watchtower):**
+```yaml
+services:
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 86400  # 매일 자동 체크
+```
+
+### 17.6 상업화 방어 전략
+
+**Self-hosted가 쉬워서 상업화 실익 없음:**
+- 원클릭 설치로 진입 장벽 제거
+- 자동 업데이트로 관리 부담 제거
+- 누가 호스팅 서비스 해봤자 돈 안 됨
+
+**브랜드 선점:**
+- 공식 웹사이트 (문서 + 마켓플레이스)
+- 공식 GitHub, Discord, YouTube
+- SEO 최적화로 검색 1위
+
+**빠른 혁신:**
+- 지속적인 업데이트
+- 포크는 항상 뒤처짐
+- 사용자들은 공식 버전 선택
+
+**커뮤니티 락인:**
+- Discord 커뮤니티
+- 공식 모듈 레지스트리
+- 포크해도 생태계 못 가져감
+
+## 18. GitHub 공개 정책
+
+### 18.1 저장소 구조
 ```
 github.com/your-org/
 ├── finance-system/              # 메인 프로젝트
@@ -629,18 +762,54 @@ github.com/your-org/
 └── module-example/             # 모듈 개발 템플릿
 ```
 
-### 16.2 공개 범위
-- 소스 전체 공개
+### 18.2 공개 범위
+- 소스 전체 공개 (MIT License)
 - 배포본 제공 ❌ (Self-hosted 전제)
 
-### 16.3 README 명시 사항
+### 18.3 프로젝트 철학
+
+**핵심 가치:**
+- ✅ 완전 무료 (기능 제한 없음)
+- ✅ Self-hosted 우선
+- ✅ 개인정보 보호
+- ✅ 커뮤니티 중심
+- ✅ 투명한 개발
+
+**하지 않는 것:**
+- ❌ 프리미엄 기능 없음
+- ❌ 유료 모듈 없음
+- ❌ 호스팅 서비스 없음
+- ❌ 구독 요금 없음
+- ❌ 광고 없음
+- ❌ 추적 없음
+
+### 18.4 후원 정책
+
+**선택적 후원:**
+- GitHub Sponsors 통해 자발적 후원 가능
+- 후원 여부와 관계없이 모든 기능 동일
+- 후원금은 개발 유지비로 사용 (도메인, 인프라 등)
+
+**후원자 혜택 (비기능적):**
+- README에 이름/로고 노출
+- Discord 특별 역할
+- 개발 로드맵 투표권
+- 조기 뉴스레터 구독
+
+**투명성:**
+- 월간 재정 보고서 공개
+- 수입/지출 투명하게 공개
+- 커뮤니티와 함께 의사결정
+
+### 18.5 README 명시 사항
 - 개인/소규모 내부용 프로젝트임을 명확히 고지
 - Self-hosted 전제
 - 기능 요청은 PR만 허용
 - 공식 웹사이트 링크
 - 커뮤니티 모듈 개발 가이드 제공
+- 후원 안내 (강제 아님)
 
-### 16.4 모듈 생태계
+### 18.6 모듈 생태계
 - 사용자들이 독립적으로 모듈 개발 가능
 - GitHub에 모듈을 공개하여 공유
 - 표준 module.json 형식 준수
@@ -650,7 +819,7 @@ github.com/your-org/
 
 ---
 
-## 17. 단계별 개발 계획
+## 19. 단계별 개발 계획
 
 ### Phase 1 (Core 기반)
 - Monorepo 세팅 (pnpm workspace)
@@ -673,12 +842,19 @@ github.com/your-org/
 - 모듈 설치/제거/업데이트 시스템
 - 통계 수집 시스템
 
-### Phase 4 (확장)
+### Phase 4 (배포 최적화)
+- CLI 설정 마법사 (npx create-finance-system)
+- Railway/Cloudflare 원클릭 템플릿
+- Docker 자동 설정 스크립트
+- 자동 업데이트 시스템
+- 웹 기반 초기 설정 UI
+
+### Phase 5 (확장)
 - Scheduler Plugin
 - TODO / Project / 외주 정산 모듈
 - AI 요약 자동화
 
-## 18. 프로젝트 목표 요약
+## 20. 프로젝트 목표 요약
 
 - ✔ 혼자 써도 가치 있는 시스템
 - ✔ 미래의 유지보수를 고려한 구조
@@ -692,6 +868,11 @@ github.com/your-org/
 - ✔ 공식 웹사이트를 통한 마켓플레이스 및 문서 제공
 - ✔ Core UI로 모듈 개발 진입 장벽 낮춤
 - ✔ 실시간 통계 및 커뮤니티 활성화
+- ✔ 쉬운 Self-hosted (원클릭 배포)
+- ✔ 자동 업데이트로 관리 부담 최소화
+- ✔ 완전 무료 (기능 제한 없음)
+- ✔ 선택적 후원으로 지속 가능한 개발
+- ✔ 투명한 운영 (재정 보고서 공개)
 
 ---
 
