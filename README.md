@@ -38,8 +38,8 @@ docker-compose up -d
 
 ## Documentation
 
-📚 [Official Documentation](https://docs.fieldstack.dev)
-🏪 [Marketplace](https://marketplace.fieldstack.dev)
+📚 [Official Documentation](https://docs.fieldstack.dev)<br>
+🏪 [Marketplace](https://marketplace.fieldstack.dev)<br>
 💬 [Community Discord](https://discord.gg/...)
 
 ---
