@@ -48,5 +48,5 @@ docker-compose up -d
 
 MIT License - see [LICENSE](LICENSE) for details
 
-**Copyright © 2025 Fieldstack Project Contributors**
+**Copyright © 2026 Fieldstack Project Contributors**<br>
 **Developed and maintained by PSquare DIVISION**
