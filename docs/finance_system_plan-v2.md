@@ -635,74 +635,151 @@ await fetch('https://your-finance-system.dev/api/track-install', {
 - 자동 업데이트 지원
 - 호스팅 서비스 없음 (법적/운영 부담 제거)
 
-### 17.2 원클릭 배포 지원
+### 17.2 웹 기반 설치 마법사 (시놀로지 스타일)
 
-**Railway 템플릿:**
+**설치 플로우:**
 ```
-https://railway.app/template/your-finance-system
+1. 프로젝트 다운로드/클론
+   ↓
+2. Docker Compose / npm install (기본만)
+   ↓
+3. 서버 실행 → 웹 브라우저 자동 열림
+   ↓
+4. 웹 설정 마법사 (모든 설정 여기서)
+   ↓
+5. "설치 시작" 버튼 클릭
+   ↓
+6. 백그라운드에서:
+   - DB 마이그레이션
+   - 의존성 설치
+   - 모듈 초기화
+   - 관리자 계정 생성
+   ↓
+7. 완료 → 로그인 화면
+```
 
-클릭 한 번으로 자동 배포:
-- DB 자동 생성
-- 환경 변수 자동 설정
-- SSL 자동 적용
-- 도메인만 연결하면 완료
+**사용자 경험:**
+- CLI 명령어 불필요
+- 모든 설정을 웹 UI에서 입력
+- 실시간 설치 진행 상황 확인
+- 에러 발생 시 즉시 알림 및 재시도
+
+### 17.3 설치 화면 구성
+
+**화면 1: 시작 화면**
+- 시스템 요구사항 표시
+- 소요 시간 안내 (약 10-15분)
+- 필요한 항목 미리보기
+
+**화면 2: 설정 입력 (한 페이지)**
+```
+1. 관리자 계정 (필수)
+   - 이름, 이메일, 비밀번호
+
+2. 데이터베이스 (필수)
+   - SQLite (권장, 자동 설정)
+   - PostgreSQL (고성능)
+   - Supabase (클라우드)
+
+3. AI 기능 (선택)
+   - Provider 선택 (Gemini, OpenAI, Claude, Ollama)
+   - API Key 입력
+   - API Key 발급 링크 제공
+
+4. Google 연동 (선택)
+   - OAuth Client ID/Secret
+   - 설정 가이드 링크 제공
+
+5. 모듈 선택 (선택)
+   - 가계부 (권장) ✓
+   - 구독 관리 (권장) ✓
+   - TODO
+   - 프로젝트 관리
+   - [모두 건너뛰기] 버튼
+   - 💡 모듈을 선택하지 않으면 튜토리얼 화면이 표시됩니다
 ```
 
-**Cloudflare 배포:**
-```
-GitHub 연결 → 자동 배포
-- DB: Cloudflare D1 (무료)
-- 파일: R2 (무료)
-- 함수: Workers (무료)
-무료로 개인 사용 가능
-```
+**화면 3: 설치 진행**
+- 단계별 진행 상황 표시
+  1. 설정 검증
+  2. 데이터베이스 연결
+  3. 데이터베이스 마이그레이션
+  4. 의존성 설치
+  5. 선택한 모듈 다운로드 및 설치
+  6. 관리자 계정 생성
+  7. 최종 설정
+- 실시간 로그 출력
+- 진행률 바 표시
+- WebSocket으로 실시간 업데이트
 
-**Docker Compose 원클릭:**
+**화면 4: 완료**
+- 설치된 항목 요약
+- 다음 단계 안내
+- "로그인하러 가기" 버튼
+
+### 17.4 설치 방법
+
+**Docker Compose:**
 ```bash
-git clone https://github.com/you/finance-system
+git clone https://github.com/your-org/finance-system.git
 cd finance-system
-./setup.sh  # 자동 설정 스크립트
 docker-compose up -d
+
+# 브라우저 자동 열림
+→ http://localhost:3000/install
 ```
 
-**setup.sh 자동 처리:**
-- .env 파일 생성
-- Google OAuth 설정 안내
-- DB 초기화
-- 관리자 계정 생성
-- 첫 모듈 설치
-
-### 17.3 CLI 설정 마법사
-
+**수동 설치:**
 ```bash
-npx create-finance-system
+git clone https://github.com/your-org/finance-system.git
+cd finance-system
+npm install
+npm run start
 
-? 프로젝트 이름: my-finance
-? 데이터베이스: 
-  > SQLite (로컬, 간단)
-    PostgreSQL (권장)
-    Supabase (클라우드)
-? Google OAuth 설정하시겠습니까? (Y/n)
-? 관리자 이메일: user@example.com
-
-✓ 설치 완료!
-
-실행 방법:
-  cd my-finance
-  npm run dev
+# 브라우저 자동 열림
+→ http://localhost:3000/install
 ```
 
-### 17.4 웹 기반 초기 설정
+**Railway/Cloudflare 배포:**
+1. GitHub 연결
+2. 자동 배포
+3. 첫 접속 시 /install로 자동 리다이렉트
+4. 웹 마법사로 설정 완료
 
-첫 접속 시 웹 UI로 간단한 설정 마법사 제공:
-1. 관리자 계정 생성
-2. Google OAuth 설정 (선택)
-3. 데이터베이스 선택 (SQLite 자동 또는 직접 설정)
-4. 완료
+### 17.5 설정 관리 (웹 UI)
 
-### 17.5 자동 업데이트 시스템
+**설정 페이지 구조:**
+```
+설정
+├── 일반 설정
+│   ├── 프로필
+│   ├── 언어
+│   └── 테마
+├── AI 설정
+│   ├── Provider 변경
+│   ├── API Key 관리
+│   └── 연결 테스트
+├── 데이터베이스
+│   ├── 연결 정보
+│   └── 연결 테스트
+├── 통합 서비스
+│   ├── Google (OAuth)
+│   ├── Notion, Slack, GitHub
+│   └── 커스텀 Webhook
+├── 모듈 관리
+└── 개발자 도구
+```
 
-**앱 내 업데이트 버튼:**
+**특징:**
+- 모든 설정을 웹 UI에서 변경 가능
+- 환경 변수 직접 수정 불필요
+- API Key 암호화 저장
+- 연결 테스트 기능 제공
+- 변경 사항 즉시 반영
+
+### 17.6 자동 업데이트 시스템
+
+**앱 내 업데이트:**
 ```
 설정 → 시스템 → 업데이트 확인
    ↓
@@ -727,10 +804,10 @@ services:
     command: --interval 86400  # 매일 자동 체크
 ```
 
-### 17.6 상업화 방어 전략
+### 17.7 상업화 방어 전략
 
 **Self-hosted가 쉬워서 상업화 실익 없음:**
-- 원클릭 설치로 진입 장벽 제거
+- 웹 기반 설치로 진입 장벽 제거
 - 자동 업데이트로 관리 부담 제거
 - 누가 호스팅 서비스 해봤자 돈 안 됨
 
