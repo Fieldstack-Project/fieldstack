@@ -59,51 +59,51 @@ npm run start
 ## 📚 문서
 
 ### 시작하기
-- [📦 빠른 설치](docs/deployment/installation.md)
-- [🧙 설치 마법사](docs/deployment/setup-wizard.md)
-- [⚙️ 설정 관리](docs/deployment/configuration.md)
+- [📦 빠른 설치](deployment/installation.md)
+- [🧙 설치 마법사](deployment/setup-wizard.md)
+- [⚙️ 설정 관리](deployment/configuration.md)
 
 ### 아키텍처
-- [🏗️ 전체 개요](docs/architecture/overview.md)
-- [📁 디렉터리 구조](docs/architecture/directory-structure.md)
-- [💡 핵심 원칙](docs/architecture/core-principles.md)
+- [🏗️ 전체 개요](architecture/overview.md)
+- [📁 디렉터리 구조](architecture/directory-structure.md)
+- [💡 핵심 원칙](architecture/core-principles.md)
 
 ### 기술 문서
-- [🔧 기술 스택](docs/technical/tech-stack.md)
-- [🗄️ 데이터베이스](docs/technical/database.md)
-- [🤖 AI 통합](docs/technical/ai-integration.md)
-- [🔐 인증](docs/technical/authentication.md)
-- [⏰ Scheduler](docs/technical/scheduler.md)
+- [🔧 기술 스택](technical/tech-stack.md)
+- [🗄️ 데이터베이스](technical/database.md)
+- [🤖 AI 통합](technical/ai-integration.md)
+- [🔐 인증](technical/authentication.md)
+- [⏰ Scheduler](technical/scheduler.md)
 
 ### 모듈 개발
-- [📦 모듈 시스템](docs/modules/system-design.md)
-- [🛠️ 개발 가이드](docs/modules/development-guide.md)
-- [🔌 통합 서비스](docs/modules/integrations.md)
-- [📋 기본 모듈](docs/modules/default-modules.md)
+- [📦 모듈 시스템](modules/system-design.md)
+- [🛠️ 개발 가이드](modules/development-guide.md)
+- [🔌 통합 서비스](modules/integrations.md)
+- [📋 기본 모듈](modules/default-modules.md)
 
 ### UI/UX
-- [🎨 Core Components](docs/ui/core-components.md)
-- [🖼️ 디자인 시스템](docs/ui/design-system.md)
+- [🎨 Core Components](ui/core-components.md)
+- [🖼️ 디자인 시스템](ui/design-system.md)
 
 ### 마켓플레이스
-- [🏪 개요](docs/marketplace/overview.md)
-- [📥 모듈 설치](docs/marketplace/installation.md)
-- [📝 레지스트리](docs/marketplace/registry.md)
-- [🌐 공식 웹사이트](docs/marketplace/website.md)
+- [🏪 개요](marketplace/overview.md)
+- [📥 모듈 설치](marketplace/installation.md)
+- [📝 레지스트리](marketplace/registry.md)
+- [🌐 공식 웹사이트](marketplace/website.md)
 
 ### 배포 & 운영
-- [🚀 배포 전략](docs/deployment/installation.md)
-- [🔄 자동 업데이트](docs/deployment/updates.md)
+- [🚀 배포 전략](deployment/installation.md)
+- [🔄 자동 업데이트](deployment/updates.md)
 
 ### 커뮤니티
-- [💭 프로젝트 철학](docs/community/philosophy.md)
-- [🤝 기여 가이드](docs/community/contributing.md)
-- [💝 후원](docs/community/sponsorship.md)
-- [📜 GitHub 정책](docs/community/github-policy.md)
+- [💭 프로젝트 철학](community/philosophy.md)
+- [🤝 기여 가이드](community/contributing.md)
+- [💝 후원](community/sponsorship.md)
+- [📜 GitHub 정책](community/github-policy.md)
 
 ### 로드맵
-- [🗓️ 개발 계획](docs/roadmap/development-plan.md)
-- [🎯 프로젝트 목표](docs/roadmap/goals.md)
+- [🗓️ 개발 계획](roadmap/development-plan.md)
+- [🎯 프로젝트 목표](roadmap/goals.md)
 
 ---
 
@@ -174,20 +174,10 @@ npm run start
 - ✅ 사적 이용 가능
 - ✅ 특허 사용 가능
 
-자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
+자세한 내용은 [LICENSE](../../LICENSE) 파일을 참고하세요.
 
 ---
 
-## 🙏 감사의 말
-
-이 프로젝트는 다음 오픈소스 프로젝트들에 영감을 받았습니다:
-
-- [Firefly III](https://github.com/firefly-iii/firefly-iii)
-- [Home Assistant](https://github.com/home-assistant/core)
-- [Ghost](https://github.com/TryGhost/Ghost)
-
----
-
-> "이 프로젝트는 완성된 서비스가 아니라,
-> 스스로에게 최적화된 도구를 만들기 위한 기반이자,
-> 커뮤니티가 함께 확장할 수 있는 플랫폼입니다."
+> "필요해서 만들기 시작했고,
+> 혼자 쓰기엔 아까워서 공유합니다.
+> 함께 만들어가는 도구가 되길 바랍니다."
