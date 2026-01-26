@@ -1,5 +1,6 @@
 ## 디렉터리 구조
 
+```
 my-finance-system/
 ├── .gitignore
 ├── .env.example
@@ -131,3 +132,4 @@ my-finance-system/
     ├── architecture.md
     ├── module-guide.md      # 모듈 개발 가이드
     └── deployment.md        # 배포 가이드
+```
