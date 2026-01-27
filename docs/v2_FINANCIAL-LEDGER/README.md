@@ -137,9 +137,9 @@ npm run start
 
 - **Backend**: TypeScript + Node.js
 - **Frontend**: React + TypeScript + Vite
-- **Database**: PostgreSQL / SQLite / Supabase / MongoDB
+- **Database**: PostgreSQL / SQLite / Supabase / MongoDB 외 모든 DB 종류 및 서비스
 - **Monorepo**: pnpm workspace
-- **AI**: Gemini / OpenAI / Claude / Ollama
+- **AI**: Gemini / OpenAI / Claude / Ollama 등 API를 등록할 수 있는 모든 AI 서비스
 - **Deployment**: Docker / Railway / Cloudflare
 
 ---
