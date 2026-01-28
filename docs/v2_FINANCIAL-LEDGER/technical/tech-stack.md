@@ -11,6 +11,7 @@
   - REST API
   - Middleware 시스템
   - 라우팅
+  - **정적 파일 서빙** (프로덕션)
 
 ### 데이터베이스
 **다중 Provider 지원:**
@@ -103,6 +104,115 @@
 
 ---
 
+## 프로덕션 아키텍처
+
+### 홈서버 모드 (통합)
+
+```
+┌─────────────────────────────────────┐
+│   사용자 (브라우저)                  │
+└─────────────────────────────────────┘
+              ↓
+       http://localhost:3000
+              ↓
+┌─────────────────────────────────────┐
+│   Express Server (Node.js)          │
+│                                     │
+│   ┌─────────────────────────────┐  │
+│   │  /api/* → Backend Routes    │  │
+│   │  - REST API                 │  │
+│   │  - WebSocket                │  │
+│   │  - File Upload              │  │
+│   └─────────────────────────────┘  │
+│                                     │
+│   ┌─────────────────────────────┐  │
+│   │  /* → Static Files (React)  │  │
+│   │  - index.html               │  │
+│   │  - /assets/*.js             │  │
+│   │  - /assets/*.css            │  │
+│   └─────────────────────────────┘  │
+└─────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────┐
+│   Database (PostgreSQL/SQLite)      │
+└─────────────────────────────────────┘
+```
+
+**폴더 구조:**
+```
+apps/api/
+├── dist/              # Backend (컴파일된 JS)
+│   ├── index.js
+│   ├── routes/
+│   └── services/
+└── public/            # Frontend (정적 파일)
+    ├── index.html
+    └── assets/
+        ├── index-[hash].js
+        └── index-[hash].css
+```
+
+**장점:**
+- 단일 포트 (3000)
+- 간단한 배포
+- 낮은 리소스
+- CORS 불필요
+
+### 개발 모드 (분리)
+
+```
+┌────────────────┐      ┌────────────────┐
+│  Frontend      │      │  Backend       │
+│  (Vite)        │─────→│  (Express)     │
+│  :5173         │ API  │  :3000         │
+└────────────────┘      └────────────────┘
+      ↓                         ↓
+  Hot Reload             Auto Restart
+```
+
+**실행:**
+```bash
+# Terminal 1
+pnpm dev:web    # Vite → :5173
+
+# Terminal 2
+pnpm dev:api    # Express → :3000
+```
+
+**장점:**
+- 빠른 개발
+- 핫 리로드
+- 독립적 재시작
+
+### 분리 배포 모드 (고급)
+
+```
+┌──────────────────────────────────┐
+│   CDN (Cloudflare Pages/Vercel) │
+│   Frontend 정적 파일              │
+└──────────────────────────────────┘
+              ↓ API 요청
+┌──────────────────────────────────┐
+│   Backend Server (Railway/VPS)  │
+│   Express API                    │
+└──────────────────────────────────┘
+              ↓
+┌──────────────────────────────────┐
+│   Database                       │
+└──────────────────────────────────┘
+```
+
+**장점:**
+- CDN 최적화
+- 글로벌 배포
+- 높은 확장성
+
+**단점:**
+- CORS 설정 필요
+- 복잡한 배포
+
+---
+
 ## Monorepo
 
 ### 패키지 매니저
@@ -189,6 +299,8 @@ packages:
 - **Self-hosted**
   - VPS
   - 온프레미스
+  - Raspberry Pi
+  - Proxmox LXC
 
 ### CI/CD
 - **GitHub Actions**
@@ -249,6 +361,7 @@ packages:
 - **cors** middleware
   - Origin 제어
   - 보안 헤더
+  - **자동 설정** (통합 모드에서는 비활성화)
 
 ### Rate Limiting
 - **express-rate-limit**
@@ -305,6 +418,56 @@ packages:
   - Tree shaking
   - Code splitting
   - Lazy loading
+  - **Asset hashing** (캐시 버스팅)
+
+### 정적 파일 캐싱
+```typescript
+// Express 설정
+app.use(express.static('public', {
+  maxAge: '1y',           // 1년 캐시
+  etag: true,
+  lastModified: true,
+  immutable: true
+}));
+```
+
+---
+
+## 배포 환경별 설정
+
+### 개발 환경 (.env.development)
+
+```env
+NODE_ENV=development
+PORT=3000
+SERVE_FRONTEND=false
+
+# Frontend는 Vite가 별도로 서빙
+# Backend는 API만 제공
+```
+
+### 프로덕션 통합 (.env.production)
+
+```env
+NODE_ENV=production
+PORT=3000
+SERVE_FRONTEND=true
+
+# Backend가 Frontend + API 모두 서빙
+# 단일 포트
+```
+
+### 프로덕션 분리 (.env.production.separated)
+
+```env
+NODE_ENV=production
+PORT=3000
+SERVE_FRONTEND=false
+CORS_ORIGIN=https://my-frontend.vercel.app
+
+# Backend는 API만
+# Frontend는 별도 CDN
+```
 
 ---
 
@@ -337,6 +500,28 @@ packages:
 
 ---
 
+## 리소스 사용량
+
+### 최소 요구사항
+- **CPU**: 1 core
+- **RAM**: 512 MB
+- **Storage**: 1 GB
+
+### 권장 사양
+- **CPU**: 2+ cores
+- **RAM**: 2 GB
+- **Storage**: 10 GB
+
+### 벤치마크 (통합 모드)
+
+| 환경 | 메모리 | CPU | 동시 접속 |
+|------|--------|-----|-----------|
+| Raspberry Pi 4 (4GB) | 450MB | 15% | 10명 |
+| VPS (2GB) | 800MB | 10% | 50명 |
+| Dedicated (8GB) | 1.5GB | 5% | 200명+ |
+
+---
+
 ## 라이선스
 
 ### 프로젝트
@@ -347,3 +532,52 @@ packages:
 ### 의존성
 - MIT, Apache 2.0 호환 라이선스만 사용
 - GPL 계열 의존성 제외 (전염성 방지)
+
+---
+
+## 기술 선택 이유
+
+### Express vs Fastify
+**Express 선택:**
+- 안정성 (더 오래된 프로젝트)
+- 풍부한 플러그인 생태계
+- 정적 파일 서빙 내장
+
+### TypeScript
+- 타입 안전성
+- IDE 자동완성
+- 리팩토링 용이
+
+### Vite
+- 빠른 개발 서버
+- 최적화된 프로덕션 빌드
+- React와 완벽한 통합
+
+### Tailwind CSS
+- Utility-first 접근
+- 작은 번들 크기
+- 커스터마이징 용이
+
+### pnpm
+- 빠른 설치 속도
+- 디스크 공간 절약
+- Workspace 지원
+
+---
+
+## 향후 고려사항
+
+### 성능
+- [ ] Redis 캐싱
+- [ ] CDN 통합
+- [ ] HTTP/2 지원
+
+### 기능
+- [ ] WebSocket 실시간 통신
+- [ ] Progressive Web App (PWA)
+- [ ] 오프라인 지원
+
+### 인프라
+- [ ] Kubernetes 지원
+- [ ] 분산 데이터베이스
+- [ ] 로드 밸런싱

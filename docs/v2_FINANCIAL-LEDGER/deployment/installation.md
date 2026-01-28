@@ -1,8 +1,79 @@
 # 배포 전략
 
+## 배포 모드
+
+Finance System은 **환경을 자동으로 감지**하여 최적의 모드로 실행됩니다.
+
+### 🏠 홈서버 모드 (권장)
+- **단일 서버**에서 Frontend + Backend 통합 실행
+- **단일 포트** (3000)로 모든 요청 처리
+- Docker 또는 직접 실행
+- Proxmox/TrueNAS와 동일한 방식
+
+**대상:**
+- 개인 홈서버
+- Raspberry Pi
+- NAS
+- VPS
+
+**장점:**
+- 간단한 설치
+- 낮은 리소스 (512MB RAM)
+- 쉬운 관리
+
+**작동 방식:**
+```
+사용자
+  ↓
+http://192.168.0.10:3000 (단일 포트)
+  ↓
+Express Server
+  ├─ /api/* → Backend API
+  └─ /* → Frontend (정적 파일)
+```
+
+### 🔧 개발 모드
+- Frontend와 Backend **분리 실행**
+- Frontend: Vite dev server (5173)
+- Backend: Node.js (3000)
+- 핫 리로드 지원
+
+**대상:**
+- 로컬 개발 환경
+- 모듈 개발자
+
+**작동 방식:**
+```
+Terminal 1: Frontend (Vite)
+http://localhost:5173
+  ↓
+Terminal 2: Backend (Express)
+http://localhost:3000/api
+```
+
+### 🚀 분리 배포 모드 (고급)
+- Frontend: CDN/Static Hosting (Vercel, Cloudflare Pages)
+- Backend: 별도 서버 (Railway, VPS)
+- CORS 설정 필요
+- 대규모 트래픽 대응
+
+**대상:**
+- 높은 트래픽
+- 글로벌 배포
+- CDN 최적화
+
+**작동 방식:**
+```
+https://my-app.vercel.app (Frontend)
+  ↓ (API 요청)
+https://api.my-app.com (Backend)
+```
+
+---
+
 ## 설치 방법
 
-### 1. Docker Compose (권장)
+### 1. Docker Compose (권장 - 홈서버 모드)
 
 가장 간단하고 빠른 설치 방법입니다.
 
@@ -26,12 +97,13 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "3000:3000"  # 단일 포트!
     volumes:
       - ./data:/app/data
       - ./modules:/app/modules
     environment:
       - NODE_ENV=production
+      - SERVE_FRONTEND=true  # Frontend 서빙 활성화
       - FIRST_RUN=true
     depends_on:
       - db
@@ -51,7 +123,7 @@ volumes:
   postgres_data:
 ```
 
-### 2. 수동 설치
+### 2. 수동 설치 (홈서버 모드)
 
 더 세밀한 제어가 필요한 경우 수동으로 설치합니다.
 
@@ -67,7 +139,7 @@ pnpm install
 cp .env.example .env
 # .env 파일 편집
 
-# 4. 빌드
+# 4. 빌드 (Frontend + Backend)
 pnpm build
 
 # 5. 서버 시작
@@ -77,7 +149,18 @@ pnpm start
 # → http://localhost:3000/install
 ```
 
-### 3. Railway 원클릭 배포
+**빌드 프로세스:**
+```bash
+pnpm build
+  ↓
+1. apps/web 빌드 (Vite) → apps/web/dist
+2. apps/api 빌드 (TypeScript) → apps/api/dist
+3. Frontend를 Backend로 복사 → apps/api/public
+  ↓
+결과: apps/api/dist + apps/api/public
+```
+
+### 3. Railway 원클릭 배포 (홈서버 모드)
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template/...)
 
@@ -101,7 +184,7 @@ pnpm start
 2. 첫 접속 시 `/install`로 자동 리다이렉트
 3. 웹 기반 설치 마법사 진행
 
-### 4. Cloudflare Pages + Workers
+### 4. Cloudflare Pages + Workers (분리 배포 모드)
 
 **Frontend (Cloudflare Pages):**
 ```bash
@@ -131,6 +214,8 @@ compatibility_date = "2025-01-21"
 
 [vars]
 ENVIRONMENT = "production"
+SERVE_FRONTEND = "false"  # Frontend는 Pages에서
+CORS_ORIGIN = "https://my-app.pages.dev"
 
 [[d1_databases]]
 binding = "DB"
@@ -141,6 +226,71 @@ database_id = "your-database-id"
 binding = "STORAGE"
 bucket_name = "finance-uploads"
 ```
+
+---
+
+## 개발 환경 설정 (개발 모드)
+
+### 1. 프로젝트 클론
+
+```bash
+git clone https://github.com/your-org/finance-system.git
+cd finance-system
+```
+
+### 2. 의존성 설치
+
+```bash
+# pnpm 설치 (없는 경우)
+npm install -g pnpm
+
+# 의존성 설치
+pnpm install
+```
+
+### 3. 개발 서버 실행
+
+```bash
+# 방법 1: 전체 실행 (병렬)
+pnpm dev
+# → Frontend (5173) + Backend (3000) 동시 실행
+
+# 방법 2: 개별 실행
+# Terminal 1: Backend
+pnpm dev:api
+# → http://localhost:3000
+
+# Terminal 2: Frontend
+pnpm dev:web
+# → http://localhost:5173
+```
+
+**.env.development:**
+```env
+NODE_ENV=development
+PORT=3000
+
+# 개발 모드에서는 Frontend 서빙 안 함
+# Vite가 별도로 서빙
+```
+
+**Frontend 개발 서버 설정:**
+```typescript
+// apps/web/vite.config.ts
+export default defineConfig({
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true
+      }
+    }
+  }
+})
+```
+
+---
 
 ## 시스템 요구사항
 
@@ -167,10 +317,14 @@ bucket_name = "finance-uploads"
 - ✅ Railway
 - ✅ Cloudflare (Pages + Workers + D1)
 - ✅ Self-hosted (온프레미스)
+- ✅ Raspberry Pi 4+ (4GB 권장)
+- ✅ Proxmox LXC 컨테이너
 
-## 프로덕션 배포
+---
 
-### Nginx 리버스 프록시
+## 프로덕션 배포 (홈서버 모드)
+
+### Nginx 리버스 프록시 (선택)
 
 ```nginx
 # /etc/nginx/sites-available/finance-system
@@ -243,9 +397,10 @@ After=network.target
 [Service]
 Type=simple
 User=finance
-WorkingDirectory=/opt/finance-system
+WorkingDirectory=/opt/finance-system/apps/api
 Environment="NODE_ENV=production"
-ExecStart=/usr/bin/pnpm start
+Environment="SERVE_FRONTEND=true"
+ExecStart=/usr/bin/node dist/index.js
 Restart=on-failure
 RestartSec=10
 
@@ -268,6 +423,8 @@ sudo systemctl status finance-system
 sudo systemctl restart finance-system
 ```
 
+---
+
 ## 환경 변수
 
 ### .env.example
@@ -277,6 +434,9 @@ sudo systemctl restart finance-system
 NODE_ENV=production
 PORT=3000
 HOST=0.0.0.0
+
+# === 배포 모드 ===
+SERVE_FRONTEND=true  # Frontend 서빙 여부 (기본: true)
 
 # === Database ===
 DB_PROVIDER=postgres
@@ -296,6 +456,9 @@ JWT_SECRET=your-secret-key-change-this
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=xxx
 
+# === CORS (분리 배포 시) ===
+# CORS_ORIGIN=https://my-frontend.com
+
 # === AI (Optional) ===
 AI_PROVIDER=gemini
 AI_API_KEY=xxx
@@ -309,6 +472,24 @@ ADMIN_EMAIL=admin@example.com
 # === First Run ===
 FIRST_RUN=true
 ```
+
+### 배포 모드별 환경 변수
+
+**홈서버 (통합 모드):**
+```env
+NODE_ENV=production
+SERVE_FRONTEND=true
+# CORS 불필요
+```
+
+**분리 배포 (Backend만):**
+```env
+NODE_ENV=production
+SERVE_FRONTEND=false
+CORS_ORIGIN=https://my-frontend.vercel.app
+```
+
+---
 
 ## 백업 전략
 
@@ -391,6 +572,8 @@ scheduler.register({
 });
 ```
 
+---
+
 ## 모니터링
 
 ### Health Check
@@ -403,6 +586,7 @@ router.get('/health', async (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    mode: process.env.SERVE_FRONTEND === 'true' ? 'integrated' : 'api-only',
     
     database: await checkDatabase(),
     modules: await checkModules(),
@@ -448,23 +632,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 ```
 
-### Uptime 모니터링 (선택)
-
-```yaml
-# docker-compose.monitoring.yml
-
-services:
-  uptime-kuma:
-    image: louislam/uptime-kuma:1
-    ports:
-      - "3001:3001"
-    volumes:
-      - uptime-kuma:/app/data
-    restart: unless-stopped
-
-volumes:
-  uptime-kuma:
-```
+---
 
 ## 성능 최적화
 
@@ -475,10 +643,10 @@ volumes:
 npm install -g pm2
 
 # PM2로 실행
-pm2 start npm --name "finance-system" -- start
+pm2 start apps/api/dist/index.js --name "finance-system"
 
 # 클러스터 모드 (멀티 코어 활용)
-pm2 start npm --name "finance-system" -i max -- start
+pm2 start apps/api/dist/index.js -i max --name "finance-system"
 
 # 부팅 시 자동 시작
 pm2 startup
@@ -490,32 +658,20 @@ pm2 save
 module.exports = {
   apps: [{
     name: 'finance-system',
-    script: 'npm',
-    args: 'start',
+    script: 'dist/index.js',
+    cwd: './apps/api',
     instances: 'max',
     exec_mode: 'cluster',
     env: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 3000,
+      SERVE_FRONTEND: 'true'
     }
   }]
 };
 ```
 
-### 데이터베이스 최적화
-
-```sql
--- 인덱스 생성
-CREATE INDEX idx_ledger_user_date ON ledger_entries(user_id, date DESC);
-CREATE INDEX idx_subscription_user ON subscriptions(user_id);
-
--- VACUUM (PostgreSQL)
-VACUUM ANALYZE;
-
--- 연결 풀 설정
--- max_connections = 100
--- shared_buffers = 256MB
-```
+---
 
 ## 보안 체크리스트
 
@@ -525,10 +681,12 @@ VACUUM ANALYZE;
 - [ ] 정기적인 백업 설정
 - [ ] 최신 버전 유지 (보안 패치)
 - [ ] Rate limiting 활성화
-- [ ] CORS 설정
+- [ ] CORS 설정 (분리 배포 시)
 - [ ] 강력한 JWT_SECRET 사용
 - [ ] 데이터베이스 암호 설정
 - [ ] Admin 계정 비밀번호 강화
+
+---
 
 ## 트러블슈팅
 
@@ -552,14 +710,17 @@ sudo systemctl status postgresql
 psql -U finance -d finance -h localhost
 ```
 
-**3. 모듈 로드 실패**
+**3. Frontend가 표시되지 않음**
 ```bash
-# 로그 확인
-tail -f logs/combined.log
+# 환경 변수 확인
+echo $SERVE_FRONTEND  # true여야 함
+echo $NODE_ENV        # production이어야 함
 
-# 모듈 재설치
-rm -rf modules/problem-module
-git clone <repository> modules/problem-module
+# public 폴더 확인
+ls -la apps/api/public  # 파일이 있어야 함
+
+# 다시 빌드
+pnpm build
 ```
 
 **4. 메모리 부족**
@@ -569,4 +730,94 @@ free -h
 
 # Node.js 메모리 제한 증가
 NODE_OPTIONS="--max-old-space-size=2048" npm start
+```
+
+---
+
+## 홈서버 배포 시나리오
+
+### Raspberry Pi 4
+
+```bash
+# 1. Docker 설치
+curl -fsSL https://get.docker.com | sh
+
+# 2. Finance System 설치
+git clone https://github.com/your-org/finance-system.git
+cd finance-system
+docker-compose up -d
+
+# 3. 접속
+# 내부망: http://raspberrypi.local:3000
+# 또는: http://192.168.0.100:3000
+```
+
+### Ubuntu Server (직접 실행)
+
+```bash
+# 1. Node.js 설치
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# 2. pnpm 설치
+npm install -g pnpm
+
+# 3. Finance System 설치
+git clone https://github.com/your-org/finance-system.git
+cd finance-system
+pnpm install
+pnpm build
+
+# 4. 실행
+cd apps/api
+node dist/index.js
+
+# 5. 접속
+# http://ubuntu-server.local:3000
+```
+
+### Proxmox LXC 컨테이너
+
+```bash
+# Proxmox에서 Ubuntu LXC 컨테이너 생성
+# 컨테이너 내부에서:
+
+apt update
+apt install -y git nodejs npm
+npm install -g pnpm
+
+git clone https://github.com/your-org/finance-system.git
+cd finance-system
+pnpm install && pnpm build
+
+cd apps/api
+node dist/index.js
+
+# Proxmox 호스트에서 접속
+# http://192.168.0.10:3000  # LXC IP
+```
+
+### 포트 포워딩 (외부 접속)
+
+```
+인터넷
+  ↓
+공유기 (Port Forward: 8080 → 3000)
+  ↓
+홈서버 (192.168.0.10:3000)
+  ↓
+Finance System
+```
+
+**설정 예시:**
+- 공유기 관리자 페이지 접속
+- 포트 포워딩 설정
+  - 외부 포트: 8080
+  - 내부 IP: 192.168.0.10
+  - 내부 포트: 3000
+
+**접속:**
+```
+내부망: http://192.168.0.10:3000
+외부망: http://내공인IP:8080
 ```
