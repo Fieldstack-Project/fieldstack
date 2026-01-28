@@ -40,7 +40,7 @@ docker-compose up -d
 
 📚 [Official Documentation](https://docs.fieldstack.dev)<br>
 🏪 [Marketplace](https://marketplace.fieldstack.dev)<br>
-💬 [Community Discord](https://discord.gg/...)
+💬 [Community Discord](https://discord.gg/5m4aHKmWgg)
 
 ---
 

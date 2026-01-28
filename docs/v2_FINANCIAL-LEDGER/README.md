@@ -3,7 +3,7 @@
 > 개인용 · 소수 지인용 self-hosted 내부 관리 시스템
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-pink)](https://github.com/sponsors/your-name)
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-pink)](https://github.com/sponsors/Fieldstack-Project)
 
 ---
 
@@ -146,10 +146,10 @@ npm run start
 
 ## 🤝 커뮤니티
 
-- 💬 [Discord](https://discord.gg/...)
-- 🐙 [GitHub Discussions](https://github.com/your-org/finance-system/discussions)
+- 💬 [Discord](https://discord.gg/5m4aHKmWgg)
+- 🐙 [GitHub Discussions](https://github.com/Fieldstack-Project/fieldstack/discussions)
 - 📺 [YouTube](https://youtube.com/@...)
-- 🐦 [Twitter/X](https://x.com/...)
+- 🐦 [Twitter/X](https://x.com/PSquare_Studio)
 
 ---
 
@@ -158,7 +158,7 @@ npm run start
 이 프로젝트가 도움이 되었다면 선택적으로 후원할 수 있습니다.
 
 **후원 방법:**
-- [GitHub Sponsors](https://github.com/sponsors/your-name)
+- [GitHub Sponsors](https://github.com/sponsors/Fieldstack-Project)
 - [Buy Me a Coffee](https://buymeacoffee.com/your-name)
 
 **중요**: 후원 여부와 관계없이 모든 기능은 동일합니다.
