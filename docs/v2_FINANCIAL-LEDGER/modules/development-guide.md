@@ -1,6 +1,16 @@
 # 모듈 개발 가이드
 
+> 📌 **핵심 아키텍처 결정:**  
+> → `architecture/decisions.md § 결정 #1: Module Loader` - 런타임 동적 로드 방식
+
+**최종 업데이트:** 2025-01-29
+
+---
+
 ## 시작하기
+
+> 📖 **모듈 시스템 개요:**  
+> → `modules/system-design.md`
 
 ### 1. 모듈 템플릿 복사
 
@@ -28,14 +38,16 @@ cd modules/my-module
 }
 ```
 
+---
+
 ## 프로젝트 구조
 
 ```
 modules/my-module/
-├── module.json
-├── README.md
+├── module.json          # 모듈 메타데이터
+├── README.md            # 모듈 설명
 ├── frontend/
-│   ├── index.tsx          # 메인 export
+│   ├── index.tsx       # Frontend 진입점
 │   ├── pages/
 │   │   ├── List.tsx
 │   │   ├── Detail.tsx
@@ -45,7 +57,7 @@ modules/my-module/
 │   └── hooks/
 │       └── useMyModule.ts
 ├── backend/
-│   ├── index.ts           # 메인 export
+│   ├── index.ts        # Backend 진입점
 │   ├── routes.ts
 │   ├── service.ts
 │   ├── schema.ts
@@ -55,6 +67,11 @@ modules/my-module/
 └── types/
     └── index.ts
 ```
+
+> 📖 **디렉터리 구조 전체:**  
+> → `architecture/directory-structure.md § modules/`
+
+---
 
 ## Backend 개발
 
@@ -126,6 +143,10 @@ export default router;
 ```
 
 ### service.ts
+
+> 📖 **DB 추상화 레이어:**  
+> → `technical/database.md`  
+> → `architecture/decisions.md § 결정 #3: DB 추상화`
 
 ```typescript
 // modules/my-module/backend/service.ts
@@ -264,6 +285,9 @@ export const schema = {
 
 ### index.ts (Backend Entry)
 
+> 📌 **핵심:** Module Loader가 이 파일을 런타임에 동적으로 Import합니다.  
+> → `architecture/decisions.md § 결정 #1: Module Loader`
+
 ```typescript
 // modules/my-module/backend/index.ts
 
@@ -306,9 +330,17 @@ async function runMigrations() {
 }
 ```
 
+> 📖 **Scheduler 사용법:**  
+> → `technical/scheduler.md`
+
+---
+
 ## Frontend 개발
 
 ### index.tsx (Frontend Entry)
+
+> 📌 **핵심:** Module Loader가 이 파일을 런타임에 동적으로 Import합니다.  
+> → `architecture/decisions.md § 결정 #1`
 
 ```typescript
 // modules/my-module/frontend/index.tsx
@@ -337,6 +369,9 @@ export const navigation = {
 ```
 
 ### pages/List.tsx
+
+> 📖 **Core UI 컴포넌트:**  
+> → `ui/core-components.md`
 
 ```typescript
 // modules/my-module/frontend/pages/List.tsx
@@ -515,6 +550,8 @@ export function useMyModule() {
 }
 ```
 
+---
+
 ## 타입 정의
 
 ```typescript
@@ -538,6 +575,8 @@ export interface CreateMyModuleItemDto {
 
 export interface UpdateMyModuleItemDto extends Partial<CreateMyModuleItemDto> {}
 ```
+
+---
 
 ## 테스트
 
@@ -590,6 +629,8 @@ describe('List Page', () => {
 });
 ```
 
+---
+
 ## 배포
 
 ### 1. GitHub에 업로드
@@ -622,11 +663,19 @@ git clone https://github.com/username/my-module modules/my-module
 
 ### 3. 공식 레지스트리에 등록
 
+> 📖 **레지스트리 제출:**  
+> → `marketplace/registry.md § 모듈 인증 프로세스`
+
 module-registry 저장소에 PR 제출
+
+---
 
 ## 모범 사례
 
 ### ✅ 해야 할 것
+
+> 📖 **Core UI 컴포넌트 사용:**  
+> → `ui/core-components.md`
 
 - Core UI 컴포넌트 사용
 - 타입 정의 명확하게
@@ -642,3 +691,40 @@ module-registry 저장소에 PR 제출
 - 하드코딩된 값
 - 다른 모듈의 DB 테이블 접근
 - 민감한 정보 로그 출력
+
+---
+
+## 📚 관련 문서
+
+### 아키텍처
+- 📌 `architecture/decisions.md § 결정 #1` - Module Loader 설계
+- 📖 `architecture/overview.md § Module Layer` - 모듈 레이어 설명
+- 📖 `architecture/directory-structure.md` - 디렉터리 구조
+
+### 기술
+- 📖 `technical/database.md` - DB 추상화 레이어
+- 📖 `technical/scheduler.md` - Scheduler 사용법
+- 📖 `modules/integrations.md` - 외부 서비스 통합
+
+### UI
+- 📖 `ui/core-components.md` - Core UI 컴포넌트
+- 📖 `ui/design-system.md` - 디자인 시스템
+
+### 마켓플레이스
+- 📖 `marketplace/registry.md` - 레지스트리 등록
+- 📖 `marketplace/installation.md` - 모듈 설치
+
+---
+
+## 🚀 다음 단계
+
+모듈 개발을 완료했다면:
+
+1. **테스트** - 철저한 테스트
+2. **문서화** - README.md 작성
+3. **등록** - 마켓플레이스에 제출
+4. **공유** - 커뮤니티에 소개
+
+> 💬 **도움이 필요하신가요?**  
+> → Discord: https://discord.gg/...  
+> → GitHub Discussions: https://github.com/.../discussions

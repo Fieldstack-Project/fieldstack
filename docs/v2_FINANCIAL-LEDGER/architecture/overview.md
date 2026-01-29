@@ -1,5 +1,12 @@
 # 아키텍처 개요
 
+> 📌 **핵심 결정 사항:**  
+> → `architecture/decisions.md` - 모든 아키텍처 결정의 근거
+
+**최종 업데이트:** 2025-01-29
+
+---
+
 ## 전체 아키텍처
 
 ```
@@ -8,7 +15,7 @@ Client (Web / App)
 Core Layer
  ├ Auth (Google OAuth + Whitelist)
  ├ DB Connector (Multi-provider)
- ├ Module Loader (자동 스캔)
+ ├ Module Loader (런타임 동적 로드) ← 📖 decisions.md #1
  ├ Event Bus
  ├ AI Abstraction
  └ Common UI Components
@@ -20,11 +27,38 @@ Modules (자동 로드)
 Plugins (Optional)
 ```
 
+> 📖 **Core 설계 원칙:**  
+> → `architecture/core-principles.md`
+
+> 📖 **디렉터리 구조:**  
+> → `architecture/directory-structure.md`
+
 ---
 
 ## 배포 아키텍처
 
-### 홈서버 모드 (권장)
+Finance System은 **환경을 자동으로 감지**하여 최적의 모드로 실행됩니다.
+
+> ⚠️ **중요:**  
+> 배포 모드는 `NODE_ENV`와 `SERVE_FRONTEND` 환경 변수로 자동 결정됩니다.  
+> 사용자가 수동으로 선택할 필요가 없습니다.
+
+### 📊 배포 모드 비교표
+
+| 특징 | 홈서버 (통합) | 개발 | 분리 배포 |
+|------|--------------|------|----------|
+| **대상** | 일반 사용자 | 개발자 | 대규모 |
+| **서버** | 1개 | 2개 | 2개+ |
+| **포트** | 3000 | 5173, 3000 | 다양 |
+| **복잡도** | ⭐ 낮음 | ⭐⭐ 낮음 | ⭐⭐⭐ 높음 |
+| **리소스** | 512MB | 1GB | 2GB+ |
+| **CORS** | ❌ 불필요 | ✅ 자동 | ⚙️ 설정 필요 |
+| **배포** | Docker 1개 | pnpm dev | 복잡 |
+| **확장성** | 중간 | - | 높음 |
+
+---
+
+### 모드 1: 홈서버 모드 (통합) - 권장 ⭐
 
 **Proxmox/TrueNAS와 동일한 방식**
 
@@ -64,23 +98,91 @@ Plugins (Optional)
 └─────────────────────────────────────────────┘
 ```
 
-**특징:**
+#### 작동 원리
+
+**환경 변수:**
+```env
+NODE_ENV=production
+SERVE_FRONTEND=true  # 기본값
+```
+
+**Express 서버 구현:**
+```typescript
+// apps/api/src/index.ts
+
+const isProd = process.env.NODE_ENV === 'production';
+const serveFrontend = process.env.SERVE_FRONTEND !== 'false';
+
+// API 라우트 (항상 활성화)
+app.use('/api', apiRoutes);
+
+// Frontend 서빙 (프로덕션 통합 모드)
+if (isProd && serveFrontend) {
+  const publicPath = path.join(__dirname, '../public');
+  
+  // 1. 정적 파일 서빙
+  app.use(express.static(publicPath, {
+    maxAge: '1y',
+    etag: true
+  }));
+  
+  // 2. SPA fallback (모든 non-API 요청)
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(publicPath, 'index.html'));
+    }
+  });
+  
+  console.log('🌐 Serving Frontend + API (Integrated)');
+}
+```
+
+#### 파일 구조
+
+```
+apps/api/
+├── dist/              # Backend (컴파일된 JS)
+│   ├── index.js
+│   ├── routes/
+│   └── services/
+└── public/            # Frontend (정적 파일) ← 빌드 시 자동 복사
+    ├── index.html
+    └── assets/
+        ├── index-[hash].js
+        ├── index-[hash].css
+        └── ...
+```
+
+> 📖 **빌드 프로세스 상세:**  
+> → `deployment/build-process.md`
+
+#### 특징
+
+✅ **장점:**
 - 단일 포트 (3000)
 - 단일 프로세스
 - 낮은 리소스 (512MB RAM)
 - 간단한 배포
+- CORS 불필요
 
-**파일 구조:**
-```
-/home/user/finance-system/
-├── data/                  # 사용자 데이터
-├── modules/              # 설치된 모듈
-└── apps/api/
-    ├── dist/             # Backend (JS)
-    └── public/           # Frontend (Static)
-```
+⚠️ **제한:**
+- 확장성 제한 (단일 서버)
+- CDN 최적화 불가
 
-### 개발 모드
+#### 권장 대상
+
+- 📱 개인 홈서버
+- 🏠 Raspberry Pi
+- 💻 NAS (Synology, TrueNAS)
+- 🖥️ VPS (1-2GB RAM)
+- 🔧 Proxmox LXC 컨테이너
+
+> 📖 **홈서버 배포 가이드:**  
+> → `deployment/installation.md § 1. Docker Compose`
+
+---
+
+### 모드 2: 개발 모드 (분리)
 
 ```
 ┌──────────────────┐          ┌──────────────────┐
@@ -95,21 +197,65 @@ Plugins (Optional)
     Hot Reload                  DB Connection
 ```
 
-**실행:**
-```bash
-# Terminal 1
-pnpm dev:web
+#### 작동 원리
 
-# Terminal 2
-pnpm dev:api
+**환경 변수:**
+```env
+NODE_ENV=development
+# SERVE_FRONTEND은 무시됨
 ```
 
-**특징:**
+**실행:**
+```bash
+# Terminal 1: Frontend
+pnpm dev:web
+# → http://localhost:5173
+
+# Terminal 2: Backend
+pnpm dev:api
+# → http://localhost:3000
+```
+
+**Vite Proxy 설정:**
+```typescript
+// apps/web/vite.config.ts
+export default defineConfig({
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true
+      }
+    }
+  }
+})
+```
+
+#### 특징
+
+✅ **장점:**
 - 빠른 개발
 - 독립적 재시작
-- 핫 리로드
+- 핫 리로드 (HMR)
+- CORS 자동 처리 (Vite proxy)
 
-### 분리 배포 모드 (고급)
+⚠️ **단점:**
+- 2개 터미널 필요
+- 프로덕션 환경 아님
+
+#### 권장 대상
+
+- 💻 로컬 개발 환경
+- 👨‍💻 모듈 개발자
+- 🐛 디버깅 작업
+
+> 📖 **개발 환경 설정:**  
+> → `deployment/installation.md § 2. 개발 환경`
+
+---
+
+### 모드 3: 분리 배포 모드 (고급)
 
 ```
 ┌─────────────────────────────────────┐
@@ -131,14 +277,51 @@ pnpm dev:api
 └─────────────────────────────────────┘
 ```
 
-**특징:**
+#### 작동 원리
+
+**Backend 환경 변수:**
+```env
+NODE_ENV=production
+SERVE_FRONTEND=false
+CORS_ORIGIN=https://my-app.vercel.app
+```
+
+**CORS 설정:**
+```typescript
+// apps/api/src/middleware/cors.ts
+app.use(cors({
+  origin: process.env.CORS_ORIGIN,
+  credentials: true
+}));
+```
+
+#### 특징
+
+✅ **장점:**
 - CDN 최적화
 - 높은 확장성
+- 글로벌 배포
+
+⚠️ **단점:**
 - CORS 설정 필요
+- 복잡한 배포
+- 2개 서비스 관리
+
+#### 권장 대상
+
+- 🌍 대규모 트래픽
+- 🚀 글로벌 서비스
+- 💼 엔터프라이즈
+
+> 📖 **분리 배포 가이드:**  
+> → `deployment/installation.md § 4. Cloudflare Pages + Workers`
 
 ---
 
 ## Core Layer
+
+> 📌 **설계 원칙:**  
+> → `architecture/core-principles.md § 2. Core / Module / Plugin 분리`
 
 ### 역할
 - 인프라 레이어 (절대 최소 변경)
@@ -147,33 +330,60 @@ pnpm dev:api
 
 ### 구성 요소
 
-**Auth**
-- Google OAuth 인증
-- Whitelist 기반 접근 제어
-- 세션 관리
+#### Auth
+> 📖 → `technical/authentication.md`
 
-**DB Connector**
-- 다양한 DB Provider 지원 (PostgreSQL, SQLite, Supabase, MongoDB)
-- 추상화 레이어로 모듈은 DB 종류를 신경쓰지 않음
-- 자동 마이그레이션
+- **Google OAuth 인증** - 일반 로그인
+- **Whitelist 기반 접근 제어** - 허용된 사용자만
+- **관리자 PIN** - 중요 설정 보호
 
-**Module Loader**
-- modules/ 폴더 자동 스캔
-- module.json 기반 로드
-- 활성화/비활성화 관리
-- 의존성 체크
+> 📌 **핵심 결정:**  
+> → `architecture/decisions.md § 결정 #2: 관리자 인증`
 
-**Event Bus**
-- 모듈 간 통신
-- 이벤트 발행/구독 패턴
-- 느슨한 결합
+#### DB Connector
+> 📖 → `technical/database.md`
 
-**AI Abstraction**
-- Provider 추상화 (Gemini, OpenAI, Claude, Ollama)
-- 사용자 API Key 관리
-- 통일된 인터페이스
+- **다양한 DB Provider 지원**
+  - PostgreSQL, SQLite, Supabase, MongoDB
+- **Query Builder 방식** 추상화
+- **자동 마이그레이션**
 
-**Common UI Components**
+> 📌 **핵심 결정:**  
+> → `architecture/decisions.md § 결정 #3: DB 추상화`
+
+#### Module Loader
+> 📖 → `modules/development-guide.md`
+
+- **런타임 동적 Import** - 서버 재시작 불필요
+- **VSCode 확장 방식** - 설치 후 자동 새로고침
+- **Hot Reload** - 개발 모드 지원
+
+> 📌 **핵심 결정:**  
+> → `architecture/decisions.md § 결정 #1: Module Loader`
+
+#### Event Bus
+
+- **모듈 간 통신**
+- **이벤트 발행/구독 패턴**
+- **느슨한 결합**
+
+```typescript
+// 예시: Subscription → Ledger 자동 기록
+eventBus.on('subscription:payment', async (data) => {
+  await createLedgerEntry(data);
+});
+```
+
+#### AI Abstraction
+> 📖 → `technical/ai-integration.md`
+
+- **Provider 추상화** (Gemini, OpenAI, Claude, Ollama)
+- **사용자 API Key 관리**
+- **통일된 인터페이스**
+
+#### Common UI Components
+> 📖 → `ui/core-components.md`
+
 - Button, Input, Table, Modal 등
 - Layout 컴포넌트
 - 공통 Hooks
@@ -182,6 +392,10 @@ pnpm dev:api
 ---
 
 ## Module Layer
+
+> 📖 **상세 가이드:**  
+> → `modules/system-design.md`  
+> → `modules/development-guide.md`
 
 ### 특징
 - 실제 기능 단위
@@ -199,12 +413,16 @@ modules/[module-name]/
 ```
 
 ### 생명주기
-1. 모듈 스캔
+1. 모듈 스캔 (Module Loader)
 2. module.json 검증
 3. 의존성 체크
 4. 활성화 상태 확인
-5. Frontend/Backend 로드
+5. Frontend/Backend 로드 (런타임 동적 Import)
 6. 라우트 등록
+7. WebSocket으로 Frontend 알림 → 자동 새로고침
+
+> 📌 **VSCode 방식 구현:**  
+> → `architecture/decisions.md § 결정 #1`
 
 ---
 
@@ -216,9 +434,11 @@ modules/[module-name]/
 - 깨져도 Core/Module에 영향 없음
 
 ### 예시
-- Scheduler: 정기 작업 실행
-- AI Assistant: 백그라운드 분석
-- Backup: 자동 백업
+> 📖 → `technical/scheduler.md`
+
+- **Scheduler**: 정기 작업 실행
+- **AI Assistant**: 백그라운드 분석
+- **Backup**: 자동 백업
 
 ---
 
@@ -255,7 +475,7 @@ modules/[module-name]/
          ↓
     Backend Service 실행
          ↓
-    DB 쿼리
+    DB 쿼리 (Query Builder)
          ↓
     JSON 응답 반환
 ```
@@ -268,82 +488,13 @@ Module A → Event Bus → Module B
 직접 import 금지, Event Bus로만 통신
 
 ### 4. 통합 서비스 사용
+> 📖 → `modules/integrations.md`
+
 ```
 Module → Core Integration → External API
                 ↓
          (Google, Notion, etc.)
 ```
-
----
-
-## 서버 구현 (홈서버 모드)
-
-### Express 서버 구조
-
-```typescript
-// apps/api/src/index.ts
-
-import express from 'express';
-import path from 'path';
-
-const app = express();
-const isDev = process.env.NODE_ENV === 'development';
-const serveFrontend = process.env.SERVE_FRONTEND !== 'false';
-
-// Middleware
-app.use(express.json());
-app.use(corsMiddleware);
-
-// API 라우트 (항상 활성화)
-app.use('/api', apiRoutes);
-
-// 프론트엔드 서빙 (프로덕션 통합 모드)
-if (!isDev && serveFrontend) {
-  const publicPath = path.join(__dirname, '../public');
-  
-  // 정적 파일
-  app.use(express.static(publicPath, {
-    maxAge: '1y',
-    etag: true
-  }));
-  
-  // SPA fallback
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(publicPath, 'index.html'));
-    }
-  });
-  
-  console.log('🌐 Serving Frontend + API (Integrated)');
-}
-
-app.listen(3000);
-```
-
-### 환경 감지
-
-```typescript
-// apps/api/src/config/env.ts
-
-export const config = {
-  // 환경
-  isDev: process.env.NODE_ENV === 'development',
-  isProd: process.env.NODE_ENV === 'production',
-  
-  // 프론트엔드 서빙 여부
-  serveFrontend: process.env.SERVE_FRONTEND !== 'false',
-  
-  // CORS (개발 환경 또는 분리 배포 시)
-  corsOrigin: process.env.NODE_ENV === 'development'
-    ? 'http://localhost:5173'
-    : process.env.CORS_ORIGIN || false,
-};
-```
-
-**자동 판단:**
-- `NODE_ENV=development` → 분리 모드 (CORS 활성화)
-- `NODE_ENV=production` → 통합 모드 (Frontend 서빙)
-- `SERVE_FRONTEND=false` → 강제 분리 모드
 
 ---
 
@@ -378,10 +529,13 @@ export const config = {
 
 ## 보안 모델
 
+> 📖 **상세 보안 정책:**  
+> → `technical/authentication.md § 보안 고려사항`
+
 ### 계층별 보안
 
 **Core Layer**
-- 인증/인가 처리
+- 인증/인가 처리 (OAuth + PIN)
 - API Key 암호화
 - 세션 관리
 
@@ -413,8 +567,9 @@ Finance System (:3000)
 ## 성능 고려사항
 
 ### 모듈 로딩
-- Lazy Loading
-- 사용하지 않는 모듈은 로드하지 않음
+- **Lazy Loading** - 필요한 모듈만 로드
+- **런타임 동적 Import** - 서버 재시작 불필요
+- **Hot Reload** - 개발 시 빠른 피드백
 
 ### 정적 파일 캐싱 (홈서버 모드)
 
@@ -428,6 +583,8 @@ app.use(express.static('public', {
 ```
 
 ### DB 최적화
+> 📖 → `technical/database.md § 성능 최적화`
+
 - Connection Pooling
 - 쿼리 최적화
 - 인덱싱
@@ -483,6 +640,9 @@ app.use((err, req, res, next) => {
 
 ## 업데이트 전략
 
+> 📖 **상세 가이드:**  
+> → `deployment/updates.md`
+
 ### Core 업데이트
 - 하위 호환성 유지
 - 주요 변경 시 마이그레이션 가이드
@@ -515,21 +675,6 @@ app.use((err, req, res, next) => {
 - Git tag 기반
 - DB 백업/복원
 - 자동 롤백 지원
-
----
-
-## 배포 시나리오별 비교
-
-| 특징 | 홈서버 | 개발 | 분리 배포 |
-|------|--------|------|----------|
-| **서버** | 1개 | 2개 | 2개+ |
-| **포트** | 3000 | 5173, 3000 | 다양 |
-| **복잡도** | 낮음 | 낮음 | 높음 |
-| **리소스** | 512MB | 1GB | 2GB+ |
-| **CORS** | 불필요 | 자동 | 설정 필요 |
-| **배포** | Docker 1개 | pnpm dev | 복잡 |
-| **확장성** | 중간 | - | 높음 |
-| **권장 대상** | 홈서버 | 개발자 | 대규모 |
 
 ---
 
@@ -632,6 +777,9 @@ services:
 
 ## 백업 전략
 
+> 📖 **상세 가이드:**  
+> → `deployment/installation.md § 백업 전략`
+
 ### 홈서버 백업
 
 ```bash
@@ -653,12 +801,40 @@ rclone copy backup_$(date +%Y%m%d).tar.gz gdrive:backups/
 
 ---
 
+## 📚 관련 문서
+
+### 아키텍처
+- 📌 `architecture/decisions.md` - 핵심 결정 사항
+- 📖 `architecture/core-principles.md` - 설계 원칙
+- 📖 `architecture/directory-structure.md` - 폴더 구조
+
+### 기술
+- 📖 `technical/tech-stack.md` - 기술 스택
+- 📖 `technical/database.md` - DB 추상화
+- 📖 `technical/authentication.md` - 인증 시스템
+- 📖 `technical/scheduler.md` - Scheduler
+
+### 배포
+- 📖 `deployment/installation.md` - 설치 가이드
+- 📖 `deployment/build-process.md` - 빌드 프로세스
+- 📖 `deployment/updates.md` - 자동 업데이트
+
+### 모듈
+- 📖 `modules/system-design.md` - 모듈 시스템
+- 📖 `modules/development-guide.md` - 개발 가이드
+
+---
+
 ## 결론
 
 Finance System은 **환경에 따라 자동으로 최적화**되는 유연한 아키텍처를 가지고 있습니다:
 
-- **홈서버**: Proxmox처럼 단일 서버로 간단하게
+- **홈서버**: Proxmox처럼 단일 서버로 간단하게 ⭐
 - **개발**: 빠른 개발을 위해 분리 실행
 - **프로덕션**: 필요에 따라 통합 또는 분리 배포
 
 사용자는 복잡한 설정 없이 **Docker 한 줄**로 시작할 수 있으며, 필요에 따라 고급 설정을 적용할 수 있습니다.
+
+> 💡 **추천:**  
+> 처음 시작하시는 분은 **홈서버 모드**로 시작하세요!  
+> → `deployment/installation.md § 1. Docker Compose`

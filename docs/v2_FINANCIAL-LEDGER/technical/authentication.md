@@ -1,5 +1,12 @@
 # 인증 및 접근 제어
 
+> 📌 **핵심 결정:**  
+> → `architecture/decisions.md § 결정 #2: 관리자 인증 (OAuth + PIN)`
+
+**최종 업데이트:** 2025-01-29
+
+---
+
 ## 인증 방식
 
 ### Google OAuth 2.0
@@ -15,35 +22,78 @@
 3. 리다이렉트 URI 등록: `{YOUR_DOMAIN}/auth/callback`
 4. Client ID와 Secret을 설정에 입력
 
-### 관리자 비밀번호
+---
 
-**용도:**
-- 관리자 등급의 설정 페이지 접근 시에만 사용
-- 중요한 시스템 설정 변경 시 추가 인증
-- 일반 로그인과는 별개
+## 관리자 인증 (PIN)
 
-**사용 시나리오:**
+> 💡 **왜 PIN을 선택했나요?**  
+> → `architecture/decisions.md § 결정 #2` - 설계 근거 참고
+
+### 개념
+
+**이중 인증 구조:**
+```
+일반 사용:
+  Google OAuth → 앱 접근
+
+관리자 설정 접근:
+  Google OAuth → 앱 접근
+       +
+  4~6자리 PIN → 관리자 설정 접근
+```
+
+### 용도
+
+**PIN이 필요한 페이지:**
+- ⚙️ 사용자 관리 (Whitelist 추가/제거)
+- 🗄️ 데이터베이스 설정 변경
+- 🔧 시스템 설정 변경
+- 📦 모듈 레지스트리 관리
+- 🔐 보안 설정
+
+**PIN이 불필요한 페이지:**
+- 👤 일반 설정 (프로필, 테마 등)
+- 📦 모듈 설치/제거 (사용자 본인)
+- 🤖 AI 설정 (본인 API Key)
+- 🔗 통합 서비스 설정 (본인 계정)
+
+### 사용 시나리오
+
 ```
 1. Google로 이미 로그인된 상태
    ↓
 2. 관리자 설정 페이지 접근 시도
    (예: 사용자 관리, DB 설정, 시스템 설정)
    ↓
-3. 관리자 비밀번호 입력 화면 표시
+3. PIN 입력 화면 표시
+   ┌─────────────────────────┐
+   │   🔒 관리자 인증         │
+   │                         │
+   │   PIN: [□][□][□][□]    │
+   │                         │
+   │   [취소]  [확인]        │
+   └─────────────────────────┘
    ↓
-4. 비밀번호 확인
+4. PIN 확인
    ↓
-5. 설정 페이지 접근 허용
+5. 설정 페이지 접근 허용 (30분간 유효)
 ```
 
-**생성 시점:**
-- 초기 설치 마법사에서 관리자 계정 생성 시 설정
-- 이메일과 함께 비밀번호 입력
+### PIN 요구사항
+
+**길이:**
+- 4~6자리 숫자
+- 권장: 6자리
 
 **보안:**
-- bcrypt로 해싱하여 저장
-- 세션에 임시 저장 (30분 유효)
-- 브라우저 닫으면 다시 입력 필요
+- 최소 4자리 (홈서버 환경에 적합)
+- 최대 6자리 (충분한 보안)
+- 연속된 숫자 금지 (예: 1234, 9876)
+- 반복된 숫자 금지 (예: 1111, 2222)
+
+**저장:**
+- PBKDF2 해싱 (100,000 iterations)
+- Salt 추가
 
 ---
 
@@ -63,13 +113,14 @@
    없으면 → 접근 거부
 ```
 
-### 데이터베이스 스키마:**
+### 데이터베이스 스키마
+
 ```sql
 CREATE TABLE allowed_users (
   id UUID PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   role VARCHAR(50) DEFAULT 'user',
-  password_hash VARCHAR(255),      -- 관리자 비밀번호 (bcrypt)
+  admin_pin_hash VARCHAR(255),      -- 관리자 PIN (PBKDF2)
   added_by UUID,
   added_at TIMESTAMP DEFAULT NOW(),
   last_login TIMESTAMP
@@ -80,12 +131,13 @@ CREATE TABLE admin_sessions (
   id UUID PRIMARY KEY,
   user_id UUID NOT NULL,
   expires_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id)
 );
 ```
 
 **역할 (Role):**
-- `admin` - 전체 권한
+- `admin` - 전체 권한 + PIN 설정 가능
 - `user` - 일반 사용자
 
 ---
@@ -140,7 +192,7 @@ CREATE TABLE admin_sessions (
 
 ---
 
-## 백엔드 구현
+## Backend 구현
 
 ### Express Middleware
 
@@ -186,7 +238,538 @@ export async function authMiddleware(req, res, next) {
 }
 ```
 
-### Google OAuth 콜백 처리
+### 관리자 PIN 인증
+
+> 💡 **구현 상세:**  
+> → `architecture/decisions.md § 결정 #2: 기술 구현`
+
+```typescript
+// packages/core/auth/admin-auth.ts
+
+import crypto from 'crypto';
+
+export class AdminAuthService {
+  // PIN 해싱
+  static async hashPin(pin: string, salt?: Buffer): Promise<{ hash: string; salt: string }> {
+    const pinSalt = salt || crypto.randomBytes(16);
+    
+    const hash = crypto.pbkdf2Sync(
+      pin,
+      pinSalt,
+      100000,  // iterations
+      64,      // keylen
+      'sha512'
+    );
+    
+    return {
+      hash: hash.toString('hex'),
+      salt: pinSalt.toString('hex')
+    };
+  }
+  
+  // PIN 검증
+  static async verifyPin(pin: string, storedHash: string): Promise<boolean> {
+    const [hash, salt] = storedHash.split(':');
+    
+    const { hash: computedHash } = await this.hashPin(
+      pin,
+      Buffer.from(salt, 'hex')
+    );
+    
+    return hash === computedHash;
+  }
+  
+  // 세션 생성 (30분 유효)
+  static async createSession(userId: string): Promise<string> {
+    const sessionId = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    
+    await db.adminSessions.upsert({
+      where: { user_id: userId },
+      update: { 
+        id: sessionId,
+        expires_at: expiresAt 
+      },
+      create: {
+        id: sessionId,
+        user_id: userId,
+        expires_at: expiresAt
+      }
+    });
+    
+    return sessionId;
+  }
+  
+  // 세션 검증
+  static async verifySession(sessionId: string): Promise<boolean> {
+    const session = await db.adminSessions.findUnique({
+      where: { id: sessionId }
+    });
+    
+    if (!session) return false;
+    if (session.expires_at < new Date()) {
+      // 만료된 세션 삭제
+      await db.adminSessions.delete({ where: { id: sessionId } });
+      return false;
+    }
+    
+    return true;
+  }
+}
+```
+
+### API 엔드포인트
+
+```typescript
+// apps/api/src/routes/admin.ts
+
+// PIN 설정 (초기 설정 시)
+router.post('/setup-pin', authMiddleware, async (req, res) => {
+  const { pin } = req.body;
+  
+  // 1. 관리자 권한 확인
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  
+  // 2. PIN 검증
+  if (!/^\d{4,6}$/.test(pin)) {
+    return res.status(400).json({ error: 'PIN must be 4-6 digits' });
+  }
+  
+  // 연속/반복 검증
+  if (/^(\d)\1+$/.test(pin) || /^(?:0123|1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|3210)/.test(pin)) {
+    return res.status(400).json({ error: 'PIN too simple' });
+  }
+  
+  // 3. PIN 해싱
+  const { hash, salt } = await AdminAuthService.hashPin(pin);
+  const storedHash = `${hash}:${salt}`;
+  
+  // 4. DB 저장
+  await db.allowedUsers.update({
+    where: { email: req.user.email },
+    data: { admin_pin_hash: storedHash }
+  });
+  
+  res.json({ success: true });
+});
+
+// PIN 인증
+router.post('/verify-pin', authMiddleware, async (req, res) => {
+  const { pin } = req.body;
+  
+  // 1. 관리자 권한 확인
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Not an admin' });
+  }
+  
+  // 2. PIN 조회
+  const allowedUser = await db.allowedUsers.findUnique({
+    where: { email: req.user.email }
+  });
+  
+  if (!allowedUser?.admin_pin_hash) {
+    return res.status(400).json({ error: 'PIN not set' });
+  }
+  
+  // 3. PIN 검증
+  const isValid = await AdminAuthService.verifyPin(
+    pin,
+    allowedUser.admin_pin_hash
+  );
+  
+  if (!isValid) {
+    // 감사 로그
+    await logFailedAttempt(req.user.id, req.ip);
+    return res.status(401).json({ error: 'Invalid PIN' });
+  }
+  
+  // 4. 세션 생성
+  const sessionId = await AdminAuthService.createSession(req.user.id);
+  
+  res.json({ 
+    success: true,
+    sessionId 
+  });
+});
+
+// 관리자 설정 접근 미들웨어
+export async function requireAdminPin(req, res, next) {
+  // 1. 기본 인증 확인
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  
+  // 2. 세션 확인
+  const sessionId = req.headers['x-admin-session'];
+  
+  if (!sessionId) {
+    return res.status(401).json({ 
+      error: 'PIN required',
+      requirePin: true 
+    });
+  }
+  
+  // 3. 세션 검증
+  const valid = await AdminAuthService.verifySession(sessionId);
+  
+  if (!valid) {
+    return res.status(401).json({ 
+      error: 'Session expired',
+      requirePin: true 
+    });
+  }
+  
+  // 4. 통과
+  next();
+}
+
+// 사용 예시
+router.get('/users', authMiddleware, requireAdminPin, async (req, res) => {
+  // PIN 인증 후에만 접근 가능
+  const users = await db.allowedUsers.findMany();
+  res.json(users);
+});
+```
+
+---
+
+## Frontend 구현
+
+### PIN 입력 컴포넌트
+
+> 💡 **UI 구현 예시:**  
+> → `architecture/decisions.md § 결정 #2: UI 구현`
+
+```typescript
+// apps/web/src/components/PinInput.tsx
+
+import { useState, useRef, useEffect } from 'react';
+
+interface PinInputProps {
+  length?: number;  // 4 or 6
+  onComplete: (pin: string) => void;
+  error?: string;
+}
+
+export function PinInput({ length = 6, onComplete, error }: PinInputProps) {
+  const [pin, setPin] = useState<string[]>(Array(length).fill(''));
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  
+  const handleChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    
+    const newPin = [...pin];
+    newPin[index] = value.slice(-1);
+    setPin(newPin);
+    
+    // 자동 포커스 이동
+    if (value && index < length - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+    
+    // 완성 시 콜백
+    if (newPin.every(d => d) && newPin.join('').length === length) {
+      onComplete(newPin.join(''));
+    }
+  };
+  
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+  
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+  
+  return (
+    <div className="pin-input">
+      <div className="pin-boxes">
+        {pin.map((digit, i) => (
+          <input
+            key={i}
+            ref={el => inputRefs.current[i] = el}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleChange(i, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(i, e)}
+            className={`pin-box ${error ? 'error' : ''}`}
+            autoComplete="off"
+          />
+        ))}
+      </div>
+      {error && <p className="error-message">{error}</p>}
+    </div>
+  );
+}
+```
+
+### PIN 인증 모달
+
+```typescript
+// apps/web/src/components/AdminPinModal.tsx
+
+import { useState } from 'react';
+import { Modal } from '@core/ui';
+import { PinInput } from './PinInput';
+
+interface AdminPinModalProps {
+  open: boolean;
+  onSuccess: (sessionId: string) => void;
+  onCancel: () => void;
+}
+
+export function AdminPinModal({ open, onSuccess, onCancel }: AdminPinModalProps) {
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const handlePinComplete = async (pin: string) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/admin/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+      
+      if (response.ok) {
+        const { sessionId } = await response.json();
+        
+        // 세션 저장
+        sessionStorage.setItem('admin_session', sessionId);
+        
+        onSuccess(sessionId);
+      } else {
+        setError('PIN이 올바르지 않습니다');
+      }
+    } catch (err) {
+      setError('인증 중 오류가 발생했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <Modal open={open} onClose={onCancel}>
+      <div className="admin-pin-modal">
+        <div className="modal-icon">🔒</div>
+        <h2>관리자 인증</h2>
+        <p>관리자 설정에 접근하려면 PIN을 입력하세요.</p>
+        
+        <PinInput
+          length={6}
+          onComplete={handlePinComplete}
+          error={error}
+        />
+        
+        {loading && <p className="loading">인증 중...</p>}
+        
+        <div className="modal-actions">
+          <button onClick={onCancel}>취소</button>
+        </div>
+        
+        <p className="modal-note">
+          💡 이 인증은 30분간 유효합니다.
+        </p>
+      </div>
+    </Modal>
+  );
+}
+```
+
+### Protected Admin Route
+
+```typescript
+// apps/web/src/components/ProtectedAdminRoute.tsx
+
+export function ProtectedAdminRoute({ children }) {
+  const { user } = useAuth();
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    checkAdminSession();
+  }, []);
+  
+  const checkAdminSession = async () => {
+    if (user?.role !== 'admin') {
+      return;
+    }
+    
+    const sessionId = sessionStorage.getItem('admin_session');
+    
+    if (!sessionId) {
+      setShowPinModal(true);
+      setLoading(false);
+      return;
+    }
+    
+    // 세션 검증
+    try {
+      const response = await fetch('/api/admin/verify-session', {
+        headers: { 'X-Admin-Session': sessionId }
+      });
+      
+      if (response.ok) {
+        setVerified(true);
+      } else {
+        sessionStorage.removeItem('admin_session');
+        setShowPinModal(true);
+      }
+    } catch {
+      setShowPinModal(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handlePinSuccess = (sessionId: string) => {
+    setVerified(true);
+    setShowPinModal(false);
+  };
+  
+  if (loading) return <LoadingScreen />;
+  if (user?.role !== 'admin') return <Navigate to="/" />;
+  
+  if (!verified) {
+    return (
+      <>
+        <AdminPinModal
+          open={showPinModal}
+          onSuccess={handlePinSuccess}
+          onCancel={() => navigate(-1)}
+        />
+        <div className="admin-locked">
+          <p>관리자 인증이 필요합니다</p>
+        </div>
+      </>
+    );
+  }
+  
+  return children;
+}
+```
+
+---
+
+## 보안 고려사항
+
+> 📖 **전체 보안 정책:**  
+> → `architecture/decisions.md § 결정 #2: 보안`
+
+### Rate Limiting
+
+```typescript
+// 5회 실패 시 5분 잠금
+const rateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 5,
+  message: 'Too many failed attempts. Please try again later.',
+  skipSuccessfulRequests: true
+});
+
+router.post('/verify-pin', rateLimiter, async (req, res) => {
+  // ...
+});
+```
+
+### 감사 로그
+
+```typescript
+async function logFailedAttempt(userId: string, ip: string) {
+  await db.auditLog.create({
+    data: {
+      user_id: userId,
+      action: 'admin_pin_failed',
+      ip_address: ip,
+      timestamp: new Date()
+    }
+  });
+  
+  // 연속 실패 체크
+  const recentFailures = await db.auditLog.count({
+    where: {
+      user_id: userId,
+      action: 'admin_pin_failed',
+      timestamp: {
+        gte: new Date(Date.now() - 5 * 60 * 1000)
+      }
+    }
+  });
+  
+  if (recentFailures >= 5) {
+    await notifyAdmin({
+      subject: '⚠️ 관리자 PIN 접근 실패 다수 발생',
+      message: `User ${userId}가 5회 이상 PIN 인증 실패`
+    });
+  }
+}
+```
+
+### 세션 타임아웃
+
+```typescript
+// 30분 동안 미사용 시 자동 만료
+const SESSION_TIMEOUT = 30 * 60 * 1000;
+
+// 세션 생성/갱신 시 타임아웃 설정
+await db.adminSessions.update({
+  where: { id: sessionId },
+  data: {
+    expires_at: new Date(Date.now() + SESSION_TIMEOUT)
+  }
+});
+```
+
+### PIN 변경
+
+```typescript
+router.post('/change-pin', authMiddleware, requireAdminPin, async (req, res) => {
+  const { currentPin, newPin } = req.body;
+  
+  // 1. 현재 PIN 확인
+  const user = await db.allowedUsers.findUnique({
+    where: { email: req.user.email }
+  });
+  
+  const isValid = await AdminAuthService.verifyPin(
+    currentPin,
+    user.admin_pin_hash
+  );
+  
+  if (!isValid) {
+    return res.status(401).json({ error: 'Current PIN incorrect' });
+  }
+  
+  // 2. 새 PIN 해싱
+  const { hash, salt } = await AdminAuthService.hashPin(newPin);
+  
+  // 3. 업데이트
+  await db.allowedUsers.update({
+    where: { email: req.user.email },
+    data: { admin_pin_hash: `${hash}:${salt}` }
+  });
+  
+  // 4. 모든 세션 무효화
+  await db.adminSessions.deleteMany({
+    where: { user_id: req.user.id }
+  });
+  
+  res.json({ success: true });
+});
+```
+
+---
+
+## Google OAuth 콜백 처리
 
 ```typescript
 // apps/api/src/routes/auth.ts
@@ -264,720 +847,18 @@ router.get('/auth/callback', async (req, res) => {
 
 ---
 
-## 프론트엔드 구현
-
-### React Context
-
-```typescript
-// apps/web/src/contexts/AuthContext.tsx
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: () => void;
-  logout: () => void;
-}
-
-export const AuthContext = createContext<AuthContextType>(null);
-
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    checkAuth();
-  }, []);
-  
-  const checkAuth = async () => {
-    try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const login = () => {
-    window.location.href = '/auth/google';
-  };
-  
-  const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    setUser(null);
-    window.location.href = '/login';
-  };
-  
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-```
-
-### Protected Route
-
-```typescript
-// apps/web/src/components/ProtectedRoute.tsx
-
-export function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
-  
-  if (loading) {
-    return <LoadingScreen />;
-  }
-  
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-  
-  return children;
-}
-
-// 사용
-<Route 
-  path="/dashboard" 
-  element={
-    <ProtectedRoute>
-      <Dashboard />
-    </ProtectedRoute>
-  } 
-/>
-```
-
----
-
-## 사용자 관리
-
-### Whitelist 추가/제거
-
-**관리자만 가능:**
-
-```typescript
-// apps/api/src/routes/admin.ts
-
-router.post('/api/admin/users', requireAdmin, async (req, res) => {
-  const { email } = req.body;
-  
-  await db.allowedUsers.create({
-    data: {
-      email,
-      role: 'user',
-      added_by: req.user.id
-    }
-  });
-  
-  res.json({ success: true });
-});
-
-router.delete('/api/admin/users/:email', requireAdmin, async (req, res) => {
-  await db.allowedUsers.delete({
-    where: { email: req.params.email }
-  });
-  
-  res.json({ success: true });
-});
-```
-
-**UI:**
-```typescript
-// apps/web/src/pages/admin/Users.tsx
-
-function UserManagement() {
-  const [email, setEmail] = useState('');
-  
-  const handleAddUser = async () => {
-    await fetch('/api/admin/users', {
-      method: 'POST',
-      body: JSON.stringify({ email })
-    });
-    
-    // 목록 새로고침
-  };
-  
-  return (
-    <div>
-      <h2>허용된 사용자 관리</h2>
-      
-      <Input
-        type="email"
-        value={email}
-        onChange={setEmail}
-        placeholder="이메일 주소"
-      />
-      <Button onClick={handleAddUser}>추가</Button>
-      
-      <UserList />
-    </div>
-  );
-}
-```
-
----
-
-## 권한 체크
-
-### Role 기반 접근 제어
-
-```typescript
-// Middleware
-function requireRole(role: string) {
-  return (req, res, next) => {
-    if (req.user.role !== role) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    next();
-  };
-}
-
-// 사용
-router.get('/api/admin/stats', 
-  authMiddleware, 
-  requireRole('admin'), 
-  async (req, res) => {
-    // 관리자만 접근 가능
-  }
-);
-```
-
-### 프론트엔드 권한 체크
-
-```typescript
-// Hook
-function usePermission(permission: string) {
-  const { user } = useAuth();
-  return user?.role === 'admin' || user?.permissions?.includes(permission);
-}
-
-// 사용
-function AdminPanel() {
-  const canManageUsers = usePermission('manage_users');
-  
-  if (!canManageUsers) {
-    return <AccessDenied />;
-  }
-  
-  return <UserManagement />;
-}
-```
-
----
-
-## 보안 고려사항
-
-### CSRF 방지
-- SameSite Cookie 설정
-- CSRF Token 사용 (선택)
-
-### XSS 방지
-- 입력 검증
-- Output Escaping
-- Content Security Policy
-
-### Rate Limiting
-```typescript
-import rateLimit from 'express-rate-limit';
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15분
-  max: 100, // 최대 100 요청
-  message: 'Too many requests'
-});
-
-app.use('/api/', limiter);
-```
-
-### 세션 타임아웃
-- 일정 시간 미활동 시 자동 로그아웃
-- 활동 시 세션 연장
-
----
-
-## 초기 설정
-
-### 첫 관리자 계정
-
-**설치 마법사에서 자동 생성:**
-```typescript
-// 설치 시
-await db.allowedUsers.create({
-  data: {
-    email: adminEmail,
-    role: 'admin'
-  }
-});
-```
-
-**환경 변수로 추가 (개발용):**
-```env
-ADMIN_EMAIL=admin@example.com
-```
-
----
-
-## 관리자 비밀번호 시스템
-
-### 개념
-
-**이중 인증 구조:**
-```
-일반 사용:
-  Google OAuth → 앱 접근
-
-관리자 설정 접근:
-  Google OAuth → 앱 접근
-       +
-  관리자 비밀번호 → 관리자 설정 접근
-```
-
-### 관리자 설정 페이지
-
-**비밀번호 필요한 페이지:**
-- 사용자 관리 (Whitelist 추가/제거)
-- 데이터베이스 설정 변경
-- 시스템 설정 변경
-- 모듈 레지스트리 관리
-- 보안 설정
-
-**비밀번호 불필요한 페이지:**
-- 일반 설정 (프로필, 테마 등)
-- 모듈 설치/제거
-- AI 설정 (본인 API Key)
-- 통합 서비스 설정
-
----
-
-### Backend 구현
-
-#### 비밀번호 설정 (초기 설치 시)
-
-```typescript
-// apps/api/src/routes/install.ts
-
-router.post('/api/setup/admin', async (req, res) => {
-  const { email, password, name } = req.body;
-  
-  // 비밀번호 해싱
-  const passwordHash = await bcrypt.hash(password, 10);
-  
-  // 관리자 계정 생성
-  await db.allowedUsers.create({
-    data: {
-      email,
-      password_hash: passwordHash,
-      role: 'admin'
-    }
-  });
-  
-  res.json({ success: true });
-});
-```
-
-#### 관리자 인증 확인
-
-```typescript
-// apps/api/src/routes/admin.ts
-
-router.post('/api/admin/verify', authMiddleware, async (req, res) => {
-  const { password } = req.body;
-  
-  // 1. 관리자 권한 확인
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Not an admin' });
-  }
-  
-  // 2. 비밀번호 확인
-  const allowedUser = await db.allowedUsers.findUnique({
-    where: { email: req.user.email }
-  });
-  
-  const isValid = await bcrypt.compare(password, allowedUser.password_hash);
-  
-  if (!isValid) {
-    return res.status(401).json({ error: 'Invalid password' });
-  }
-  
-  // 3. 임시 세션 생성 (30분 유효)
-  const session = await db.adminSessions.create({
-    data: {
-      user_id: req.user.id,
-      expires_at: new Date(Date.now() + 30 * 60 * 1000)
-    }
-  });
-  
-  res.json({ 
-    success: true,
-    sessionId: session.id 
-  });
-});
-```
-
-#### 관리자 설정 접근 미들웨어
-
-```typescript
-// apps/api/src/middleware/adminAuth.ts
-
-export async function requireAdminPassword(req, res, next) {
-  // 1. 기본 인증 확인
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  
-  // 2. 관리자 세션 확인
-  const sessionId = req.headers['x-admin-session'];
-  
-  if (!sessionId) {
-    return res.status(401).json({ 
-      error: 'Admin password required',
-      requirePassword: true 
-    });
-  }
-  
-  // 3. 세션 검증
-  const session = await db.adminSessions.findUnique({
-    where: { id: sessionId }
-  });
-  
-  if (!session || session.expires_at < new Date()) {
-    // 만료된 세션
-    return res.status(401).json({ 
-      error: 'Session expired',
-      requirePassword: true 
-    });
-  }
-  
-  // 4. 통과
-  next();
-}
-
-// 사용
-router.get('/api/admin/users', 
-  authMiddleware, 
-  requireAdminPassword, 
-  async (req, res) => {
-    // 관리자 비밀번호 확인 후에만 접근 가능
-  }
-);
-```
-
----
-
-### Frontend 구현
-
-#### 관리자 비밀번호 입력 모달
-
-```typescript
-// apps/web/src/components/AdminPasswordModal.tsx
-
-interface AdminPasswordModalProps {
-  open: boolean;
-  onSuccess: (sessionId: string) => void;
-  onCancel: () => void;
-}
-
-export function AdminPasswordModal({ 
-  open, 
-  onSuccess, 
-  onCancel 
-}: AdminPasswordModalProps) {
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      const response = await fetch('/api/admin/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
-      });
-      
-      if (response.ok) {
-        const { sessionId } = await response.json();
-        
-        // 세션 ID 저장
-        sessionStorage.setItem('admin_session', sessionId);
-        
-        onSuccess(sessionId);
-      } else {
-        setError('비밀번호가 올바르지 않습니다');
-      }
-    } catch (err) {
-      setError('인증 중 오류가 발생했습니다');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <Modal open={open} onClose={onCancel}>
-      <div className="admin-password-modal">
-        <div className="modal-icon">🔒</div>
-        <h2>관리자 인증</h2>
-        <p>
-          관리자 설정에 접근하려면 비밀번호를 입력하세요.
-        </p>
-        
-        <Input
-          type="password"
-          value={password}
-          onChange={setPassword}
-          placeholder="관리자 비밀번호"
-          onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-          autoFocus
-        />
-        
-        {error && (
-          <Alert type="error">{error}</Alert>
-        )}
-        
-        <div className="modal-actions">
-          <Button variant="secondary" onClick={onCancel}>
-            취소
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleSubmit}
-            loading={loading}
-          >
-            확인
-          </Button>
-        </div>
-        
-        <p className="modal-note">
-          💡 이 인증은 30분간 유효합니다.
-        </p>
-      </div>
-    </Modal>
-  );
-}
-```
-
-#### Protected Admin Route
-
-```typescript
-// apps/web/src/components/ProtectedAdminRoute.tsx
-
-export function ProtectedAdminRoute({ children }) {
-  const { user } = useAuth();
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [verified, setVerified] = useState(false);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    checkAdminSession();
-  }, []);
-  
-  const checkAdminSession = async () => {
-    // 1. 관리자 권한 확인
-    if (user?.role !== 'admin') {
-      return;
-    }
-    
-    // 2. 세션 확인
-    const sessionId = sessionStorage.getItem('admin_session');
-    
-    if (!sessionId) {
-      setShowPasswordModal(true);
-      setLoading(false);
-      return;
-    }
-    
-    // 3. 세션 검증
-    try {
-      const response = await fetch('/api/admin/verify-session', {
-        headers: { 'X-Admin-Session': sessionId }
-      });
-      
-      if (response.ok) {
-        setVerified(true);
-      } else {
-        // 만료됨
-        sessionStorage.removeItem('admin_session');
-        setShowPasswordModal(true);
-      }
-    } catch {
-      setShowPasswordModal(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handlePasswordSuccess = (sessionId: string) => {
-    setVerified(true);
-    setShowPasswordModal(false);
-  };
-  
-  if (loading) {
-    return <LoadingScreen />;
-  }
-  
-  if (user?.role !== 'admin') {
-    return <Navigate to="/" />;
-  }
-  
-  if (!verified) {
-    return (
-      <>
-        <AdminPasswordModal
-          open={showPasswordModal}
-          onSuccess={handlePasswordSuccess}
-          onCancel={() => navigate(-1)}
-        />
-        <div className="admin-locked">
-          <p>관리자 인증이 필요합니다</p>
-        </div>
-      </>
-    );
-  }
-  
-  return children;
-}
-
-// 사용
-<Route 
-  path="/admin/users" 
-  element={
-    <ProtectedAdminRoute>
-      <UserManagement />
-    </ProtectedAdminRoute>
-  } 
-/>
-```
-
-#### API 클라이언트에 세션 추가
-
-```typescript
-// apps/web/src/services/api.ts
-
-export async function apiCall(url: string, options: RequestInit = {}) {
-  const sessionId = sessionStorage.getItem('admin_session');
-  
-  const headers = {
-    ...options.headers,
-    'Content-Type': 'application/json',
-  };
-  
-  // 관리자 API 호출 시 세션 ID 추가
-  if (url.includes('/admin/') && sessionId) {
-    headers['X-Admin-Session'] = sessionId;
-  }
-  
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
-  
-  // 401 에러 시 비밀번호 재입력 필요
-  if (response.status === 401) {
-    const data = await response.json();
-    if (data.requirePassword) {
-      sessionStorage.removeItem('admin_session');
-      // 비밀번호 모달 표시 로직
-    }
-  }
-  
-  return response;
-}
-```
-
----
-
-### 비밀번호 변경
-
-```typescript
-// apps/api/src/routes/admin.ts
-
-router.post('/api/admin/change-password', 
-  authMiddleware, 
-  requireAdminPassword,
-  async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
-    
-    // 1. 현재 비밀번호 확인
-    const allowedUser = await db.allowedUsers.findUnique({
-      where: { email: req.user.email }
-    });
-    
-    const isValid = await bcrypt.compare(
-      currentPassword, 
-      allowedUser.password_hash
-    );
-    
-    if (!isValid) {
-      return res.status(401).json({ 
-        error: 'Current password is incorrect' 
-      });
-    }
-    
-    // 2. 새 비밀번호 해싱
-    const newHash = await bcrypt.hash(newPassword, 10);
-    
-    // 3. 업데이트
-    await db.allowedUsers.update({
-      where: { email: req.user.email },
-      data: { password_hash: newHash }
-    });
-    
-    // 4. 모든 관리자 세션 무효화
-    await db.adminSessions.deleteMany({
-      where: { user_id: req.user.id }
-    });
-    
-    res.json({ success: true });
-  }
-);
-```
-
----
-
-### 보안 고려사항
-
-**세션 타임아웃:**
-- 30분 동안 미사용 시 자동 만료
-- 브라우저 닫으면 세션 삭제
-
-**비밀번호 요구사항:**
-- 최소 8자 이상
-- 영문, 숫자, 특수문자 조합 권장
-
-**Rate Limiting:**
-```typescript
-// 관리자 비밀번호 인증 시도 제한
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15분
-  max: 5, // 최대 5번 시도
-  message: 'Too many authentication attempts'
-});
-
-router.post('/api/admin/verify', limiter, async (req, res) => {
-  // ...
-});
-```
-
-**로깅:**
-```typescript
-// 관리자 설정 접근 시도 로깅
-await db.auditLog.create({
-  data: {
-    user_id: req.user.id,
-    action: 'admin_access_attempt',
-    success: isValid,
-    ip_address: req.ip,
-    timestamp: new Date()
-  }
-});
-```
+## 로그아웃
 
 ```typescript
 // Backend
-router.post('/api/auth/logout', authMiddleware, (req, res) => {
+router.post('/auth/logout', authMiddleware, async (req, res) => {
+  // 관리자 세션도 삭제
+  if (req.user.role === 'admin') {
+    await db.adminSessions.deleteMany({
+      where: { user_id: req.user.id }
+    });
+  }
+  
   res.clearCookie('auth_token');
   res.json({ success: true });
 });
@@ -985,6 +866,36 @@ router.post('/api/auth/logout', authMiddleware, (req, res) => {
 // Frontend
 const handleLogout = async () => {
   await fetch('/api/auth/logout', { method: 'POST' });
+  sessionStorage.removeItem('admin_session');
   window.location.href = '/login';
 };
 ```
+
+---
+
+## 📚 관련 문서
+
+- 📌 `architecture/decisions.md § 결정 #2` - PIN 방식 선택 근거
+- 📖 `deployment/setup-wizard.md` - 초기 관리자 설정
+- 📖 `community/github-policy.md` - 보안 정책
+
+---
+
+## FAQ
+
+### Q1. 왜 비밀번호가 아니라 PIN인가요?
+**A:** 홈서버 환경에서는 스마트폰 잠금처럼 간단한 PIN이 더 적합합니다. 복잡한 비밀번호는 자주 입력해야 하는 관리자 설정에 부담이 됩니다.
+
+> 📖 상세 이유: `architecture/decisions.md § 결정 #2`
+
+### Q2. PIN이 안전한가요?
+**A:** PBKDF2 + Rate Limiting으로 충분히 안전합니다. 5회 실패 시 5분 잠금되므로 브루트포스 공격이 어렵습니다.
+
+### Q3. PIN을 잊어버렸어요!
+**A:** 데이터베이스에서 직접 초기화해야 합니다. 백업 관리자 계정을 미리 만들어두는 것을 권장합니다.
+
+### Q4. 세션이 자주 만료돼요
+**A:** 30분 타임아웃은 보안을 위한 것입니다. 설정에서 조정 가능합니다 (권장하지 않음).
+
+### Q5. 일반 사용자도 PIN이 필요한가요?
+**A:** 아니요. PIN은 관리자 설정에만 필요합니다. 일반 사용자는 Google OAuth만으로 충분합니다.
