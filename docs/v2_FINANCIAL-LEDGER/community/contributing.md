@@ -9,7 +9,7 @@ Finance System에 기여해주셔서 감사합니다! 이 가이드는 어떻게
 ### 1. 코드 기여
 
 #### 버그 수정
-1. [이슈 검색](https://github.com/your-org/finance-system/issues)에서 `bug` 라벨 확인
+1. [이슈 검색](https://github.com/Fieldstack-Project/fieldstack/issues)에서 `bug` 라벨 확인
 2. 수정하고 싶은 버그 찾기
 3. 이슈에 "이 버그를 수정하겠습니다" 코멘트 남기기
 4. Fork & PR
@@ -86,11 +86,11 @@ Finance System에 기여해주셔서 감사합니다! 이 가이드는 어떻게
 
 ```bash
 # Fork 후
-git clone https://github.com/YOUR_USERNAME/finance-system.git
+git clone https://github.com/Fieldstack-Project/fieldstack.git
 cd finance-system
 
 # Upstream 추가
-git remote add upstream https://github.com/your-org/finance-system.git
+git remote add upstream https://github.com/Fieldstack-Project/fieldstack.git
 ```
 
 ### 2. 의존성 설치
@@ -391,7 +391,7 @@ export async function create(data: LedgerData, userId: string) {
 
 ```bash
 # module-registry 저장소 Fork
-git clone https://github.com/YOUR_USERNAME/module-registry.git
+git clone https://github.com/Fieldstack-Project/module-registry.git
 cd module-registry
 
 # submissions/ 폴더에 JSON 생성
@@ -530,9 +530,9 @@ README에 기여자로 표시됩니다.
 
 ## 연락처
 
-- Email: contribute@your-finance-system.dev
-- Discord: https://discord.gg/...
-- GitHub: https://github.com/your-org/finance-system
+- Email: contribute@fieldstack-pj.dev
+- Discord: https://discord.gg/5m4aHKmWgg
+- GitHub: https://github.com/Fieldstack-Project/fieldstack
 
 ---
 

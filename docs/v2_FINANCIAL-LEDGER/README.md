@@ -58,8 +58,8 @@ Fieldstack Project (구 Financial Ledger v2)는<br>
 ### Docker Compose (권장)
 
 ```bash
-git clone https://github.com/your-org/finance-system.git
-cd finance-system
+git clone https://github.com/Fieldstack-Project/fieldstack.git
+cd fieldstack
 docker-compose up -d
 
 # 브라우저 자동 열림
@@ -69,8 +69,8 @@ docker-compose up -d
 ### 수동 설치
 
 ```bash
-git clone https://github.com/your-org/finance-system.git
-cd finance-system
+git clone https://github.com/Fieldstack-Project/fieldstack.git
+cd fieldstack
 npm install
 npm run start
 
