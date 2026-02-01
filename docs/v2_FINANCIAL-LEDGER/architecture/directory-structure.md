@@ -3,7 +3,7 @@
 ## 전체 구조
 
 ```
-my-finance-system/
+fieldstack/
 ├── pnpm-workspace.yaml
 ├── package.json
 ├── tsconfig.json

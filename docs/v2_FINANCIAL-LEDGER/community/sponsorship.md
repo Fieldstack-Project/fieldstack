@@ -345,7 +345,7 @@ Buy Me a Coffee:  $100
 ```markdown
 ## 🙏 감사합니다
 
-Finance System은 여러분의 지원으로 만들어집니다.
+Fieldstack Project은 여러분의 지원으로 만들어집니다.
 
 후원해주신 모든 분들께 진심으로 감사드립니다!
 

@@ -3,7 +3,7 @@
 ## 저장소 구조
 
 ```
-github.com/your-org/
+github.com/Fieldstack-Project/
 ├── finance-system/              # 메인 프로젝트
 ├── module-registry/             # 인증된 모듈 레지스트리 (JSON)
 ├── website/                     # 공식 웹사이트 (Marketplace + Docs)
@@ -36,7 +36,7 @@ github.com/your-org/
 ```
 MIT License
 
-Copyright (c) 2025 Finance System Contributors
+Copyright (c) 2026 Fieldstack Project Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -73,7 +73,7 @@ SOFTWARE.
 
 ### 프로젝트 소개
 ```markdown
-# Finance System
+# Fieldstack Project
 
 > 개인용 · 소수 지인용 self-hosted 내부 관리 시스템
 
@@ -108,7 +108,7 @@ SOFTWARE.
 ### Docker Compose (권장)
 
 \`\`\`bash
-git clone https://github.com/your-org/finance-system.git
+git clone https://github.com/Fieldstack-Project/Fieldstack.git
 cd finance-system
 docker-compose up -d
 
@@ -119,7 +119,7 @@ docker-compose up -d
 ### 수동 설치
 
 \`\`\`bash
-git clone https://github.com/your-org/finance-system.git
+git clone https://github.com/Fieldstack-Project/Fieldstack.git
 cd finance-system
 npm install
 npm run start
@@ -140,8 +140,8 @@ npm run start
 ```markdown
 ## 🤝 커뮤니티
 
-- 💬 [Discord](https://discord.gg/...)
-- 🐙 [GitHub Discussions](https://github.com/your-org/finance-system/discussions)
+- 💬 [Discord](https://discord.gg/5m4aHKmWgg)
+- 🐙 [GitHub Discussions](https://github.com/Fieldstack-Project/Fieldstack/discussions)
 - 📺 [YouTube](https://youtube.com/@...)
 ```
 
@@ -364,7 +364,7 @@ MAJOR.MINOR.PATCH
 보안 취약점을 발견하셨다면:
 
 1. **공개적으로 이슈를 생성하지 마세요**
-2. security@your-finance-system.dev로 이메일 전송
+2. security@fieldstack.dev로 이메일 전송
 3. 또는 GitHub Security Advisories 사용
 
 ## 대응 시간
@@ -396,7 +396,7 @@ MAJOR.MINOR.PATCH
 - @contributor2 - 30+ commits
 
 ### All Contributors
-[전체 기여자 목록](https://github.com/your-org/finance-system/graphs/contributors)
+[전체 기여자 목록](https://github.com/Fieldstack-Project/Fieldstack/graphs/contributors)
 ```
 
 ### README에 표시

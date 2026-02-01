@@ -2,7 +2,7 @@
 
 ## 환영합니다! 🎉
 
-Finance System에 기여해주셔서 감사합니다! 이 가이드는 어떻게 기여할 수 있는지 설명합니다.
+Fieldstack Project에 기여해주셔서 감사합니다! 이 가이드는 어떻게 기여할 수 있는지 설명합니다.
 
 ## 기여 방법
 
@@ -530,7 +530,7 @@ README에 기여자로 표시됩니다.
 
 ## 연락처
 
-- Email: contribute@fieldstack-pj.dev
+- Email: contribute@fieldstack.dev
 - Discord: https://discord.gg/5m4aHKmWgg
 - GitHub: https://github.com/Fieldstack-Project/fieldstack
 
