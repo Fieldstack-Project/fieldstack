@@ -72,443 +72,49 @@ website/
 
 ## docusaurus.config.js
 
-```javascript
-module.exports = {
-  title: 'Finance System',
-  tagline: '개인용 모듈형 금융 & 생산성 시스템',
-  url: 'https://your-finance-system.dev',
-  baseUrl: '/',
-  
-  organizationName: 'your-org',
-  projectName: 'finance-system',
-  
-  themeConfig: {
-    navbar: {
-      title: 'Finance System',
-      logo: {
-        alt: 'Logo',
-        src: 'img/logo.svg',
-      },
-      items: [
-        {
-          type: 'doc',
-          docId: 'intro',
-          position: 'left',
-          label: '문서',
-        },
-        {
-          to: '/marketplace',
-          label: '마켓플레이스',
-          position: 'left',
-        },
-        {
-          to: '/blog',
-          label: '블로그',
-          position: 'left',
-        },
-        {
-          href: 'https://github.com/your-org/finance-system',
-          label: 'GitHub',
-          position: 'right',
-        },
-      ],
-    },
-    
-    footer: {
-      style: 'dark',
-      links: [
-        {
-          title: '문서',
-          items: [
-            { label: '시작하기', to: '/docs/intro' },
-            { label: '사용자 가이드', to: '/docs/user-guide' },
-            { label: '개발자 가이드', to: '/docs/developer' },
-          ],
-        },
-        {
-          title: '커뮤니티',
-          items: [
-            { label: 'Discord', href: 'https://discord.gg/...' },
-            { label: 'GitHub Discussions', href: 'https://github.com/...' },
-            { label: 'Twitter', href: 'https://twitter.com/...' },
-          ],
-        },
-        {
-          title: '더보기',
-          items: [
-            { label: '블로그', to: '/blog' },
-            { label: '마켓플레이스', to: '/marketplace' },
-            { label: 'GitHub', href: 'https://github.com/...' },
-          ],
-        },
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} Finance System. MIT License.`,
-    },
-    
-    // Algolia 검색
-    algolia: {
-      appId: 'YOUR_APP_ID',
-      apiKey: 'YOUR_SEARCH_API_KEY',
-      indexName: 'finance-system',
-    },
-    
-    // 다크모드
-    colorMode: {
-      defaultMode: 'light',
-      respectPrefersColorScheme: true,
-    },
-  },
-  
-  presets: [
-    [
-      '@docusaurus/preset-classic',
-      {
-        docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/your-org/finance-system/edit/main/website/',
-        },
-        blog: {
-          showReadingTime: true,
-          editUrl: 'https://github.com/your-org/finance-system/edit/main/website/blog/',
-        },
-        theme: {
-          customCss: require.resolve('./src/css/custom.css'),
-        },
-      },
-    ],
-  ],
-};
-```
+Docusaurus 설정 파일입니다. 사이트의 제목은 'Finance System', 태그라인은 개인용 모듈형 금융 및 생산성 시스템으로 설정합니다. URL과 기본 경로를 정의합니다.
+
+themeConfig에서 네비게이션 바를 설정합니다. 왼쪽에는 문서와 마켓플레이스, 블로그 링크를 배치하고, 오른쪽에는 GitHub 링크를 배치합니다.
+
+푸터는 세 컬럼으로 구성됩니다. 첫 번째 컬럼 '문서'에는 시작하기, 사용자 가이드, 개발자 가이드 링크가 있습니다. 두 번째 컬럼 '커뮤니티'에는 Discord, GitHub Discussions, Twitter 링크가 있습니다. 세 번째 컬럼 '더보기'에는 블로그, 마켓플레이스, GitHub 링크가 있습니다.
+
+Algolia 검색을 연동하여 앱 ID, 검색 API 키, 인덱스명을 설정합니다.
+
+다크모드는 기본값으로 라이트 모드를 사용하며, 사용자의 운영체제 환경 변수(prefers-color-scheme)를 존중합니다.
+
+presets에서 docs, blog, theme를 설정합니다. docs는 sidebars.js를 사용하고 GitHub에서 편집할 수 있도록 editUrl을 지정합니다. blog도 마찬가지로 읽기 시간 표시와 editUrl을 설정합니다.
 
 ## 홈페이지
 
-```tsx
-// src/pages/index.tsx
+Docusaurus의 Layout과 Link 컴포넌트를 사용하여 홈페이지를 구성합니다.
 
-import React from 'react';
-import Layout from '@theme/Layout';
-import Link from '@docusaurus/Link';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+상단 hero 섹션에는 'Finance System' 제목과 '완전 무료, Self-hosted, 모듈형 개인 금융 관리 시스템' 소개문을 표시합니다. 아래에는 '시작하기' 버튼(문서 페이지로 이동)과 '마켓플레이스 둘러보기' 버튼이 배치됩니다.
 
-export default function Home() {
-  const {siteConfig} = useDocusaurusContext();
-  
-  return (
-    <Layout
-      title={siteConfig.title}
-      description="개인용 모듈형 금융 & 생산성 시스템"
-    >
-      <header className="hero hero--primary">
-        <div className="container">
-          <h1 className="hero__title">
-            🏦 Finance System
-          </h1>
-          <p className="hero__subtitle">
-            완전 무료, Self-hosted, 모듈형 개인 금융 관리 시스템
-          </p>
-          <div className="buttons">
-            <Link
-              className="button button--secondary button--lg"
-              to="/docs/intro"
-            >
-              시작하기 →
-            </Link>
-            <Link
-              className="button button--outline button--lg"
-              to="/marketplace"
-            >
-              마켓플레이스 둘러보기
-            </Link>
-          </div>
-        </div>
-      </header>
-      
-      <main>
-        <section className="features">
-          <div className="container">
-            <div className="row">
-              <Feature
-                icon="💰"
-                title="완전 무료"
-                description="기능 제한 없음. 프리미엄도 없음. 영원히 무료."
-              />
-              <Feature
-                icon="🔒"
-                title="개인정보 보호"
-                description="Self-hosted. 모든 데이터는 당신의 서버에."
-              />
-              <Feature
-                icon="🧩"
-                title="모듈 시스템"
-                description="필요한 기능만 설치. 커뮤니티 모듈 지원."
-              />
-            </div>
-          </div>
-        </section>
-        
-        <section className="showcase">
-          <div className="container">
-            <h2>주요 모듈</h2>
-            <ModuleShowcase />
-          </div>
-        </section>
-      </main>
-    </Layout>
-  );
-}
-```
+main 영역은 두 섹션으로 구성됩니다. 첫 번째 'features' 섹션에는 Feature 컴포넌트를 3개 배치합니다: '완전 무료'(기능 제한 없음), '개인정보 보호'(Self-hosted, 모든 데이터는 본인 서버에), '모듈 시스템'(필요한 기능만 설치, 커뮤니티 모듈 지원). 두 번째 'showcase' 섹션에는 주요 모듈을 ModuleShowcase 컴포넌트로 표시합니다.
 
 ## 마켓플레이스 페이지
 
-```tsx
-// src/pages/marketplace/index.tsx
+Docusaurus의 Layout 안에 마켓플레이스 콘텐츠를 구성합니다.
 
-import React, { useState, useEffect } from 'react';
-import Layout from '@theme/Layout';
-import { ModuleCard } from '@site/src/components/ModuleCard';
-import { SearchBar } from '@site/src/components/SearchBar';
+컴포넌트가 마운트되면 GitHub의 module-registry 저장소에서 modules.json을 가져와 모듈 목록을 상태로 저장합니다.
 
-export default function Marketplace() {
-  const [modules, setModules] = useState([]);
-  const [category, setCategory] = useState('all');
-  const [search, setSearch] = useState('');
-  
-  useEffect(() => {
-    // 레지스트리에서 모듈 목록 가져오기
-    fetch('https://raw.githubusercontent.com/your-org/module-registry/main/modules.json')
-      .then(res => res.json())
-      .then(data => setModules(data.modules));
-  }, []);
-  
-  const filteredModules = modules
-    .filter(m => category === 'all' || m.category === category)
-    .filter(m => 
-      search === '' || 
-      m.displayName.toLowerCase().includes(search.toLowerCase()) ||
-      m.description.toLowerCase().includes(search.toLowerCase())
-    );
-  
-  return (
-    <Layout title="마켓플레이스">
-      <div className="container margin-vert--lg">
-        <h1>🏪 마켓플레이스</h1>
-        <p className="margin-bottom--lg">
-          총 {modules.length}개의 모듈 | 
-          커뮤니티 제작 모듈을 탐색하고 설치하세요
-        </p>
-        
-        <SearchBar 
-          value={search}
-          onChange={setSearch}
-          placeholder="모듈 검색..."
-        />
-        
-        <div className="category-tabs margin-vert--md">
-          <button 
-            className={category === 'all' ? 'active' : ''}
-            onClick={() => setCategory('all')}
-          >
-            전체
-          </button>
-          <button 
-            className={category === 'finance' ? 'active' : ''}
-            onClick={() => setCategory('finance')}
-          >
-            💰 금융
-          </button>
-          <button 
-            className={category === 'productivity' ? 'active' : ''}
-            onClick={() => setCategory('productivity')}
-          >
-            📊 생산성
-          </button>
-          <button 
-            className={category === 'utility' ? 'active' : ''}
-            onClick={() => setCategory('utility')}
-          >
-            🔧 유틸리티
-          </button>
-        </div>
-        
-        <div className="module-grid">
-          {filteredModules.map(module => (
-            <ModuleCard key={module.id} module={module} />
-          ))}
-        </div>
-      </div>
-    </Layout>
-  );
-}
-```
+모듈 목록은 카테고리와 검색 키워드로 필터링됩니다. 카테고리가 'all'이 아니면 해당 카테고리의 모듈만 표시하고, 검색 키워드가 있으면 모듈명이나 설명에 키워드가 포함된 것만 표시합니다.
+
+페이지 상단에는 제목과 전체 모듈 수를 표시합니다. SearchBar 컴포넌트에서 검색 키워드를 입력할 수 있고, 그 아래에는 카테고리 탭(전체, 금융, 생산성, 유틸리티)이 있습니다. 현재 선택된 카테고리 탭에 'active' 클래스가 추가됩니다. 필터링된 모듈 목록은 module-grid 안에 ModuleCard 컴포넌트로 하나씩 렌더링됩니다.
 
 ## 모듈 상세 페이지
 
-```tsx
-// src/pages/marketplace/[id].tsx
+모듈 상세 페이지입니다. URL의 파라미터에서 모듈 ID를 추출하고, 컴포넌트가 마운트되면 해당 모듈의 상세 JSON을 GitHub에서 가져옵니다. 데이터가 로드되지 않은 중에는 'Loading...'을 표시합니다.
 
-import React, { useState, useEffect } from 'react';
-import Layout from '@theme/Layout';
-import { useParams } from '@docusaurus/router';
+데이터가 로드되면 페이지를 여러 섹션으로 구성합니다. 상단 header에는 모듈 아이콘, 모듈명, 개발자명, 설치 버튼과 즐겨찾기 버튼이 표시됩니다. 그 아래에는 다운로드 수, 평점과 리뷰 수, 버전이 stat 카드로 표시됩니다.
 
-export default function ModuleDetail() {
-  const { id } = useParams();
-  const [module, setModule] = useState(null);
-  
-  useEffect(() => {
-    fetch(`https://raw.githubusercontent.com/your-org/module-registry/main/modules/${id}.json`)
-      .then(res => res.json())
-      .then(data => setModule(data));
-  }, [id]);
-  
-  if (!module) return <div>Loading...</div>;
-  
-  return (
-    <Layout title={module.displayName}>
-      <div className="container margin-vert--lg">
-        <div className="module-header">
-          <span className="module-icon">{module.icon}</span>
-          <div>
-            <h1>{module.displayName}</h1>
-            <p className="module-author">by {module.author.name}</p>
-          </div>
-          <div className="module-actions">
-            <button className="button button--primary button--lg">
-              📥 설치
-            </button>
-            <button className="button button--outline">
-              ⭐ 즐겨찾기
-            </button>
-          </div>
-        </div>
-        
-        <div className="module-stats">
-          <div className="stat">
-            <span className="stat-label">다운로드</span>
-            <span className="stat-value">{module.stats.downloads}</span>
-          </div>
-          <div className="stat">
-            <span className="stat-label">평점</span>
-            <span className="stat-value">
-              ⭐ {module.stats.rating} ({module.stats.reviewCount})
-            </span>
-          </div>
-          <div className="stat">
-            <span className="stat-label">버전</span>
-            <span className="stat-value">v{module.version}</span>
-          </div>
-        </div>
-        
-        <div className="module-content">
-          <section>
-            <h2>📸 스크린샷</h2>
-            <div className="screenshot-gallery">
-              {module.screenshots.map((screenshot, i) => (
-                <img 
-                  key={i}
-                  src={screenshot.url}
-                  alt={screenshot.title}
-                />
-              ))}
-            </div>
-          </section>
-          
-          <section>
-            <h2>📝 설명</h2>
-            <div dangerouslySetInnerHTML={{ __html: module.longDescription }} />
-          </section>
-          
-          <section>
-            <h2>✨ 주요 기능</h2>
-            <ul>
-              {module.features.map((feature, i) => (
-                <li key={i}>{feature}</li>
-              ))}
-            </ul>
-          </section>
-          
-          <section>
-            <h2>📋 요구사항</h2>
-            <ul>
-              <li>Core Version: {module.requirements.minCoreVersion}+</li>
-              <li>권한: {module.requirements.permissions.join(', ')}</li>
-            </ul>
-          </section>
-          
-          <section>
-            <h2>📈 변경 사항</h2>
-            {module.changelog.map((log, i) => (
-              <div key={i} className="changelog-item">
-                <h3>v{log.version} - {log.date}</h3>
-                <ul>
-                  {log.changes.map((change, j) => (
-                    <li key={j}>{change}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </section>
-        </div>
-      </div>
-    </Layout>
-  );
-}
-```
+본문은 총 5개 섹션으로 나뉩니다. 스크린샷 섹션에는 모듈의 스크린샷 이미지를 갤러리로 표시합니다. 설명 섹션에는 longDescription을 HTML로 렌더링합니다. 주요 기능 섹션에는 features 목록을 리스트로 표시합니다. 요구사항 섹션에는 최소 Core 버전과 필요한 권한을 표시합니다. 변경 사항 섹션에는 changelog를 버전별로 루프를 돌며 표시합니다.
 
 ## 통계 대시보드
 
-```tsx
-// src/pages/marketplace/stats.tsx
+통계 대시보드 페이지입니다. 컴포넌트가 마운트되면 GitHub의 downloads.json을 가져와 상태로 저장합니다. 데이터가 로드되지 않은 중에는 'Loading...'을 표시합니다.
 
-import React, { useState, useEffect } from 'react';
-import Layout from '@theme/Layout';
-import { LineChart, PieChart } from '@site/src/components/Charts';
-
-export default function Stats() {
-  const [stats, setStats] = useState(null);
-  
-  useEffect(() => {
-    fetch('https://raw.githubusercontent.com/your-org/module-registry/main/stats/downloads.json')
-      .then(res => res.json())
-      .then(data => setStats(data));
-  }, []);
-  
-  if (!stats) return <div>Loading...</div>;
-  
-  return (
-    <Layout title="통계">
-      <div className="container margin-vert--lg">
-        <h1>📊 마켓플레이스 통계</h1>
-        
-        <div className="stats-grid">
-          <div className="stat-card">
-            <h3>총 다운로드</h3>
-            <div className="big-number">{stats.total.toLocaleString()}</div>
-          </div>
-          <div className="stat-card">
-            <h3>전체 모듈</h3>
-            <div className="big-number">{Object.keys(stats.modules).length}</div>
-          </div>
-        </div>
-        
-        <section>
-          <h2>📈 인기 모듈 Top 10</h2>
-          <TopModulesChart data={stats.modules} />
-        </section>
-        
-        <section>
-          <h2>📊 카테고리별 분포</h2>
-          <CategoryPieChart data={stats.modules} />
-        </section>
-        
-        <section>
-          <h2>📅 월별 다운로드 추이</h2>
-          <DownloadsTrendChart data={stats} />
-        </section>
-      </div>
-    </Layout>
-  );
-}
-```
+데이터가 로드되면 상단에 두 개의 요약 카드를 표시합니다: 총 다운로드 횟수와 전체 모듈 수. 그 아래로 세 섹션이 구성됩니다. 첫 번째로 인기 모듈 Top 10을 TopModulesChart 컴포넌트로 차트로 표시합니다. 두 번째로 카테고리별 분포를 CategoryPieChart 컴포넌트로 파이 차트로 표시합니다. 세 번째로 월별 다운로드 추이를 DownloadsTrendChart 컴포넌트로 라인 차트로 표시합니다.
 
 ## 배포
 
@@ -564,25 +170,4 @@ Cloudflare Pages 대시보드에서:
 
 ## SEO 최적화
 
-```javascript
-// docusaurus.config.js
-
-module.exports = {
-  // ...
-  
-  metadata: [
-    {name: 'keywords', content: '가계부, 금융관리, self-hosted, 오픈소스'},
-    {name: 'description', content: '완전 무료 개인용 금융 관리 시스템'},
-  ],
-  
-  headTags: [
-    {
-      tagName: 'link',
-      attributes: {
-        rel: 'canonical',
-        href: 'https://your-finance-system.dev',
-      },
-    },
-  ],
-};
-```
+Docusaurus 설정 파일에 SEO 관련 옵션을 추가합니다. metadata에는 키워드(가계부, 금융관리, self-hosted, 오픈소스)와 설명(완전 무료 개인용 금융 관리 시스템)을 정의합니다. headTags에는 canonical URL을 link 태그로 추가하여 중복 콘텐츠 문제를 방지합니다.

@@ -44,557 +44,224 @@ Frontend: 라우트 등록 및 메뉴 추가
 
 ### 2. 수동 설치 (Git Clone)
 
-```bash
-# modules/ 폴더로 이동
-cd modules/
-
-# Git clone으로 설치
-git clone https://github.com/username/crypto-tracker
-
-# 또는 특정 버전 설치
-git clone -b v2.1.0 https://github.com/username/crypto-tracker
-
-# 의존성 설치 (필요시)
-cd crypto-tracker
-npm install
-```
+modules/ 폴더로 이동한 후, git clone 명령으로 원하는 모듈 저장소를 다운로드합니다. 특정 버전을 설치하려면 -b 옵션에 버전 태그를 지정합니다. 모듈에 의존성이 있으면 해당 폴더로 이동하여 npm install을 실행합니다.
 
 ## Backend 구현
 
 ### 모듈 설치 API
 
-```typescript
-// apps/api/src/routes/modules.ts
+Express Router를 사용하여 모듈 관리 엔드포인트를 정의합니다.
 
-import { Router } from 'express';
-import { installModule, uninstallModule, updateModule } from '../services/module-manager';
+POST /install 엔드포인트는 모듈 설치를 처리합니다. 요청 본문에서 moduleId를 받고 총 5단계를 거쳐 진행됩니다. 첫째로 레지스트리에서 모듈 정보를 조회합니다. 둘째로 요청자가 관리자 권한인지 확인하고, 아니면 403을 반환합니다. 셋째로 이미 설치되어 있는지 확인하고, 중복이면 400을 반환합니다. 넷째로 installModule 서비스를 호출하여 설치를 진행하며, onProgress 콜백을 활용하여 WebSocket으로 진행 퍼센트와 메시지를 실시간 전송합니다. 다섯째로 설치 완료 후 통계를 기록합니다.
 
-const router = Router();
+DELETE /:moduleId 엔드포인트는 모듈 제거를 처리합니다. 쿼리 파라미터의 preserveData 값에 따라 데이터 보존 여부를 결정하고, 성공 시 204를 반환합니다.
 
-// 모듈 설치
-router.post('/install', async (req, res) => {
-  const { moduleId } = req.body;
-  
-  try {
-    // 1. 레지스트리에서 모듈 정보 조회
-    const moduleInfo = await fetchModuleInfo(moduleId);
-    
-    // 2. 권한 확인
-    if (!hasPermission(req.user, 'admin')) {
-      return res.status(403).json({ error: 'Admin permission required' });
-    }
-    
-    // 3. 이미 설치되어 있는지 확인
-    if (await isInstalled(moduleId)) {
-      return res.status(400).json({ error: 'Module already installed' });
-    }
-    
-    // 4. 설치 시작
-    const result = await installModule(moduleInfo, {
-      onProgress: (progress) => {
-        // WebSocket으로 진행 상황 전송
-        io.emit('module:install:progress', {
-          moduleId,
-          progress: progress.percent,
-          message: progress.message
-        });
-      }
-    });
-    
-    // 5. 통계 전송
-    await trackInstall(moduleId);
-    
-    res.json(result);
-    
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 모듈 제거
-router.delete('/:moduleId', async (req, res) => {
-  try {
-    await uninstallModule(req.params.moduleId, {
-      preserveData: req.query.preserveData === 'true'
-    });
-    
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 모듈 업데이트
-router.post('/:moduleId/update', async (req, res) => {
-  try {
-    const result = await updateModule(req.params.moduleId);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-export default router;
-```
+POST /:moduleId/update 엔드포인트는 모듈 업데이트를 처리합니다. updateModule 서비스를 호출하여 업데이트를 실행하고 결과를 반환합니다.
 
 ### 모듈 매니저 서비스
 
-```typescript
-// apps/api/src/services/module-manager.ts
+installModule 함수는 모듈 설치의 전체 파이프라인을 관리합니다. 총 9단계로 구성되며, 각 단계마다 onProgress 콜백으로 진행 상황을 전달합니다.
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
-import fs from 'fs-extra';
+10%: Git clone으로 모듈 코드를 다운로드합니다. 특정 버전이 지정되면 해당 버전 태그로 체크아웃합니다.
+30%: module.json 파일을 읽어서 유효성을 검증합니다.
+50%: 보안 스캔을 실행합니다.
+60%: package.json이 있으면 npm install로 의존성을 설치합니다.
+70%: module.json에 빌드 설정이 있으면 npm run build를 실행합니다.
+80%: DB 마이그레이션을 실행합니다.
+90%: 백엔드 모듈을 동적으로 import하고, initialize 함수가 있으면 실행합니다.
+100%: 설치 완료 메시지를 전달하고 결과를 반환합니다.
 
-const execAsync = promisify(exec);
+설치 중 에러가 발생하면 생성된 폴더를 제거하여 롤백합니다.
 
-export async function installModule(
-  moduleInfo: ModuleInfo, 
-  options?: InstallOptions
-) {
-  const modulePath = path.join(process.cwd(), 'modules', moduleInfo.name);
-  
-  try {
-    // 1. Git clone
-    options?.onProgress?.({ percent: 10, message: '모듈 다운로드 중...' });
-    
-    await execAsync(
-      `git clone ${moduleInfo.repository} ${modulePath}`
-    );
-    
-    // 2. 특정 버전 체크아웃
-    if (moduleInfo.version) {
-      await execAsync(`git checkout v${moduleInfo.version}`, {
-        cwd: modulePath
-      });
-    }
-    
-    // 3. module.json 검증
-    options?.onProgress?.({ percent: 30, message: '모듈 검증 중...' });
-    
-    const moduleJson = await fs.readJson(
-      path.join(modulePath, 'module.json')
-    );
-    
-    validateModuleJson(moduleJson);
-    
-    // 4. 보안 검증
-    options?.onProgress?.({ percent: 50, message: '보안 검사 중...' });
-    
-    await securityScan(modulePath);
-    
-    // 5. 의존성 설치
-    options?.onProgress?.({ percent: 60, message: '의존성 설치 중...' });
-    
-    if (await fs.pathExists(path.join(modulePath, 'package.json'))) {
-      await execAsync('npm install', { cwd: modulePath });
-    }
-    
-    // 6. 빌드 (필요시)
-    if (moduleJson.build) {
-      options?.onProgress?.({ percent: 70, message: '빌드 중...' });
-      await execAsync('npm run build', { cwd: modulePath });
-    }
-    
-    // 7. DB 마이그레이션
-    options?.onProgress?.({ percent: 80, message: 'DB 마이그레이션 중...' });
-    
-    await runMigrations(modulePath);
-    
-    // 8. 모듈 초기화
-    options?.onProgress?.({ percent: 90, message: '초기화 중...' });
-    
-    const module = await import(path.join(modulePath, 'backend'));
-    if (module.initialize) {
-      await module.initialize();
-    }
-    
-    // 9. 완료
-    options?.onProgress?.({ percent: 100, message: '설치 완료!' });
-    
-    return {
-      success: true,
-      module: moduleJson
-    };
-    
-  } catch (error) {
-    // 실패 시 롤백
-    await fs.remove(modulePath);
-    throw error;
-  }
-}
+uninstallModule 함수는 모듈 제거를 처리합니다. 먼저 백엔드 모듈의 shutdown 함수를 호출하여 정상 종료합니다. preserveData 옵션이 false이면 해당 모듈의 데이터를 삭제합니다. 마지막으로 모듈 폴더를 제거합니다.
 
-export async function uninstallModule(
-  moduleId: string, 
-  options?: { preserveData?: boolean }
-) {
-  const modulePath = path.join(process.cwd(), 'modules', moduleId);
-  
-  // 1. 모듈 종료
-  const module = await import(path.join(modulePath, 'backend'));
-  if (module.shutdown) {
-    await module.shutdown();
-  }
-  
-  // 2. 데이터 삭제 (옵션)
-  if (!options?.preserveData) {
-    await cleanupModuleData(moduleId);
-  }
-  
-  // 3. 폴더 삭제
-  await fs.remove(modulePath);
-  
-  return { success: true };
-}
-
-export async function updateModule(moduleId: string) {
-  const modulePath = path.join(process.cwd(), 'modules', moduleId);
-  
-  // 1. 현재 버전 확인
-  const currentVersion = await getCurrentVersion(modulePath);
-  
-  // 2. 최신 버전 확인
-  const latestVersion = await getLatestVersion(moduleId);
-  
-  if (currentVersion === latestVersion) {
-    return { upToDate: true };
-  }
-  
-  // 3. Git pull
-  await execAsync('git pull', { cwd: modulePath });
-  
-  // 4. 새 버전 체크아웃
-  await execAsync(`git checkout v${latestVersion}`, { cwd: modulePath });
-  
-  // 5. 의존성 업데이트
-  await execAsync('npm install', { cwd: modulePath });
-  
-  // 6. DB 마이그레이션
-  await runMigrations(modulePath);
-  
-  // 7. 재시작 (핫 리로드)
-  await reloadModule(moduleId);
-  
-  return {
-    success: true,
-    previousVersion: currentVersion,
-    currentVersion: latestVersion
-  };
-}
-```
+updateModule 함수는 모듈 업데이트를 처리합니다. 현재 설치된 버전과 최신 버전을 비교합니다. 동일하면 upToDate: true를 반환합니다. 다르면 git pull로 코드를 가져온 후 최신 버전 태그로 체크아웃합니다. 의존성을 업데이트하고 DB 마이그레이션을 실행한 후, 핫 리로드로 모듈을 재시작합니다. 이전 버전과 현재 버전 정보를 반환합니다.
 
 ### 보안 검증
 
-```typescript
-// apps/api/src/services/security-scanner.ts
+securityScan 함수는 설치될 모듈의 소스 코드를 분석하여 보안 이슈를 탐지합니다.
 
-export async function securityScan(modulePath: string) {
-  const issues: string[] = [];
-  
-  // 1. 악성 코드 패턴 검사
-  const files = await getAllFiles(modulePath, ['.ts', '.tsx', '.js', '.jsx']);
-  
-  for (const file of files) {
-    const content = await fs.readFile(file, 'utf-8');
-    
-    // eval() 사용 금지
-    if (content.includes('eval(')) {
-      issues.push(`Forbidden: eval() found in ${file}`);
-    }
-    
-    // child_process 사용 금지
-    if (content.includes('child_process')) {
-      issues.push(`Forbidden: child_process found in ${file}`);
-    }
-    
-    // 외부 스크립트 로드 금지
-    if (content.match(/new Function|Function\(/)) {
-      issues.push(`Forbidden: dynamic function creation in ${file}`);
-    }
-  }
-  
-  // 2. module.json 권한 확인
-  const moduleJson = await fs.readJson(
-    path.join(modulePath, 'module.json')
-  );
-  
-  const usedPermissions = detectPermissions(files);
-  const declaredPermissions = moduleJson.permissions || [];
-  
-  for (const permission of usedPermissions) {
-    if (!declaredPermissions.includes(permission)) {
-      issues.push(`Undeclared permission: ${permission}`);
-    }
-  }
-  
-  // 3. 이슈 발견 시 실패
-  if (issues.length > 0) {
-    throw new Error(`Security issues found:\n${issues.join('\n')}`);
-  }
-}
-```
+첫째로 .ts, .tsx, .js, .jsx 확장자의 파일을 모두 조회하여 각 파일의 내용을 검사합니다. eval() 함수 사용, child_process 모듈 참조, new Function이나 Function()을 통한 동적 함수 생성이 발견되면 해당 파일명과 함께 위반 내용을 목록에 추가합니다.
+
+둘째로 module.json에 선언된 권한 목록과 실제 코드에서 사용되는 권한을 비교합니다. 선언되지 않은 권한이 사용된 경우 위반 목록에 추가합니다.
+
+검사 결과에 이슈가 하나라도 있으면 발견된 내용 전체를 에러로 발생시킵니다.
 
 ## Frontend 구현
 
 ### 모듈 설치 UI
 
-```typescript
-// apps/web/src/pages/Marketplace.tsx
+마켓플레이스 페이지입니다. useModules 훅에서 모듈 목록과 installModule 함수를 가져옵니다. installing 상태로 현재 설치 중인 모듈 ID를 추적하고, progress 상태로 진행 퍼센트를 관리합니다.
 
-import { useState } from 'react';
-import { PageLayout, Card, Button, Modal, Progress } from '@core/ui';
-import { useModules } from '../hooks/useModules';
+handleInstall 함수는 설치를 시작합니다. 해당 모듈 ID를 installing에 세팅하고 progress를 0으로 초기화한 후 installModule을 호출합니다. onProgress 콜백으로 퍼센트가 업데이트됩니다. 설치 완료 시 성공 알림을, 실패 시 에러 알림을 표시합니다.
 
-export default function Marketplace() {
-  const { modules, installModule } = useModules();
-  const [installing, setInstalling] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  
-  const handleInstall = async (moduleId: string) => {
-    setInstalling(moduleId);
-    setProgress(0);
-    
-    try {
-      await installModule(moduleId, {
-        onProgress: (p) => setProgress(p.percent)
-      });
-      
-      // 설치 완료 알림
-      notify.success('설치가 완료되었습니다!');
-    } catch (error) {
-      notify.error('설치에 실패했습니다');
-    } finally {
-      setInstalling(null);
-    }
-  };
-  
-  return (
-    <PageLayout title="마켓플레이스">
-      <div className="grid grid-cols-3 gap-4">
-        {modules.map(module => (
-          <Card key={module.id}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-3xl">{module.icon}</span>
-              <div>
-                <h3 className="font-semibold">{module.displayName}</h3>
-                <p className="text-sm text-gray-600">
-                  by {module.author}
-                </p>
-              </div>
-            </div>
-            
-            <p className="text-sm mb-4">{module.description}</p>
-            
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                ⭐ {module.rating} ({module.reviewCount})
-                <br />
-                📥 {module.downloads.toLocaleString()}
-              </div>
-              
-              <Button
-                variant="primary"
-                onClick={() => handleInstall(module.id)}
-                loading={installing === module.id}
-                disabled={module.installed}
-              >
-                {module.installed ? '설치됨' : '설치'}
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-      
-      {/* 설치 진행 모달 */}
-      <Modal
-        isOpen={installing !== null}
-        title="모듈 설치 중"
-      >
-        <Progress value={progress} max={100} />
-        <p className="mt-2 text-sm text-gray-600">
-          {progress}% 완료
-        </p>
-      </Modal>
-    </PageLayout>
-  );
-}
-```
+모듈 목록은 3컬럼 그리드로 카드 형태로 표시합니다. 각 카드에는 아이콘과 모듈명, 개발자명, 설명, 별점과 리뷰 수, 다운로드 횟수가 표시됩니다. 이미 설치된 모듈은 '설치됨'으로 표시되며 버튼이 비활성화됩니다.
+
+화면 하단에는 Modal 컴포넌트가 있어, 설치 진행 중에 Progress 바와 퍼센트를 표시합니다.
 
 ### WebSocket으로 실시간 진행 상황
 
-```typescript
-// apps/web/src/hooks/useModules.ts
-
-import { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
-
-export function useModules() {
-  const [modules, setModules] = useState([]);
-  
-  const installModule = async (moduleId: string, options?: any) => {
-    // WebSocket 연결
-    const socket = io();
-    
-    socket.on('module:install:progress', (data) => {
-      if (data.moduleId === moduleId) {
-        options?.onProgress?.(data);
-      }
-    });
-    
-    // API 호출
-    const response = await fetch('/api/system/modules/install', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ moduleId })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Installation failed');
-    }
-    
-    socket.disconnect();
-    return await response.json();
-  };
-  
-  return { modules, installModule };
-}
-```
+useModules 훅의 installModule 함수는 WebSocket과 REST API를 함께 사용합니다. Socket.IO로 연결한 후 'module:install:progress' 이벤트를 구독합니다. 해당 모듈 ID에 맞는 진행 상황 이벤트가 오면 onProgress 콜백으로 전달합니다. 동시에 /api/system/modules/install에 POST 요청을 보냅니다. 요청이 완료되면 WebSocket을 종료합니다.
 
 ## 모듈 ON/OFF 토글
 
 ### module.json 업데이트
 
-```typescript
-// apps/api/src/routes/modules.ts
-
-router.patch('/:moduleId/toggle', async (req, res) => {
-  const { moduleId } = req.params;
-  const { enabled } = req.body;
-  
-  const modulePath = path.join(process.cwd(), 'modules', moduleId);
-  const configPath = path.join(modulePath, 'module.json');
-  
-  // module.json 읽기
-  const config = await fs.readJson(configPath);
-  
-  // enabled 업데이트
-  config.enabled = enabled;
-  
-  // 저장
-  await fs.writeJson(configPath, config, { spaces: 2 });
-  
-  // 모듈 로더에 변경 알림
-  if (enabled) {
-    await loadModule(moduleId);
-  } else {
-    await unloadModule(moduleId);
-  }
-  
-  res.json({ success: true });
-});
-```
+PATCH /:moduleId/toggle 엔드포인트는 모듈의 활성화 상태를 변경합니다. 모듈 폴더의 module.json을 읽어서 enabled 값을 요청 본문의 값으로 업데이트한 후 저장합니다. enabled가 true로 바뀌면 loadModule을 호출하여 모듈을 로드하고, false로 바뀌면 unloadModule을 호출하여 모듈을 비로드합니다.
 
 ### UI 토글 스위치
 
-```typescript
-// apps/web/src/pages/InstalledModules.tsx
-
-<Switch
-  checked={module.enabled}
-  onChange={(enabled) => toggleModule(module.id, enabled)}
-/>
-```
+설치된 모듈 목록 페이지에서 각 모듈 옆에 Switch 컴포넌트를 배치합니다. checked는 모듈의 enabled 상태에 연결되고, onChange는 toggleModule 함수를 호출합니다.
 
 ## 모듈 업데이트
 
 ### 업데이트 확인
 
-```typescript
-// apps/api/src/services/update-checker.ts
-
-export async function checkUpdates() {
-  const installedModules = await getInstalledModules();
-  const updates = [];
-  
-  for (const module of installedModules) {
-    const latestVersion = await getLatestVersion(module.id);
-    
-    if (latestVersion !== module.version) {
-      updates.push({
-        moduleId: module.id,
-        currentVersion: module.version,
-        latestVersion,
-        changelog: await getChangelog(module.id, latestVersion)
-      });
-    }
-  }
-  
-  return updates;
-}
-```
+checkUpdates 함수는 설치된 모든 모듈에 대해 업데이트 여부를 확인합니다. 각 모듈의 현재 버전과 최신 버전을 비교하여, 다르면 모듈 ID, 현재 버전, 최신 버전, 변경 사항(changelog)을 함께 반환합니다.
 
 ### 업데이트 UI
 
-```typescript
-// apps/web/src/pages/Updates.tsx
-
-<Card title="업데이트 가능">
-  {updates.map(update => (
-    <div key={update.moduleId}>
-      <h3>{update.moduleId}</h3>
-      <p>
-        {update.currentVersion} → {update.latestVersion}
-      </p>
-      <Button onClick={() => updateModule(update.moduleId)}>
-        업데이트
-      </Button>
-    </div>
-  ))}
-</Card>
-```
+업데이트 가능한 모듈 목록을 카드 형태로 표시합니다. 각 항목에는 모듈명, 현재 버전에서 최신 버전으로의 변경을 화살표로 표시하고, 업데이트 버튼을 배치합니다.
 
 ## 모듈 제거
 
 ### 데이터 보존 옵션
 
-```typescript
-<Modal title="모듈 제거" isOpen={showRemoveModal}>
-  <p>정말 제거하시겠습니까?</p>
-  
-  <Checkbox
-    label="데이터 보존"
-    checked={preserveData}
-    onChange={setPreserveData}
-  />
-  
-  <div className="mt-4">
-    <Button onClick={handleRemove} variant="danger">
-      제거
-    </Button>
-    <Button onClick={closeModal} variant="secondary">
-      취소
-    </Button>
-  </div>
-</Modal>
-```
+모듈 제거 확인 Modal을 표시합니다. '정말 제거하시겠습니까?' 메시지 아래에 '데이터 보존' Checkbox가 있습니다. 체크하면 모듈 폴더만 삭제되고 관련 데이터는 유지됩니다. 하단에 빨간색 제거 버튼과 회색 취소 버튼이 배치됩니다.
 
 ## 통계 전송
 
-```typescript
-// 설치 시 통계 전송
-async function trackInstall(moduleId: string) {
-  try {
-    await fetch('https://your-finance-system.dev/api/track-install', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        moduleId,
-        timestamp: new Date().toISOString()
-      })
-    });
-  } catch {
-    // 통계 전송 실패는 무시
-  }
-}
+trackInstall 함수는 모듈 설치 시 통계 서버에 데이터를 전송합니다. 모듈 ID와 현재 타임스탬프를 POST 요청으로 보냅니다. 통계 전송이 실패해도 앱의 정상 운영에 영향을 주지 않도록 에러를 무시합니다.# 모듈 설치 및 관리
+
+## 설치 방식
+
+### 1. 앱 내 마켓플레이스에서 설치 (권장)
+
+#### 사용자 관점 플로우
+
 ```
+1. 마켓플레이스 메뉴 클릭
+   ↓
+2. 모듈 검색 또는 탐색
+   ↓
+3. 원하는 모듈 선택
+   ↓
+4. "설치" 버튼 클릭
+   ↓
+5. 권한 확인 및 동의
+   ↓
+6. 설치 진행 (자동)
+   ↓
+7. 완료 → 즉시 사용 가능
+```
+
+#### 기술적 흐름
+
+```
+웹 UI → API: POST /api/system/modules/install
+              ↓
+Backend: 1. 레지스트리에서 모듈 정보 조회
+         2. GitHub에서 모듈 코드 다운로드
+         3. 보안 검증
+         4. modules/ 폴더에 설치
+         5. module.json 검증
+         6. DB 마이그레이션 실행
+         7. 모듈 초기화
+              ↓
+Module Loader: 자동 감지 및 로드
+              ↓
+Frontend: 라우트 등록 및 메뉴 추가
+              ↓
+통계 서버: 다운로드 카운트 증가
+```
+
+### 2. 수동 설치 (Git Clone)
+
+modules/ 폴더로 이동한 후, git clone 명령으로 원하는 모듈 저장소를 다운로드합니다. 특정 버전을 설치하려면 -b 옵션에 버전 태그를 지정합니다. 모듈에 의존성이 있으면 해당 폴더로 이동하여 npm install을 실행합니다.
+
+## Backend 구현
+
+### 모듈 설치 API
+
+Express Router를 사용하여 모듈 관리 엔드포인트를 정의합니다.
+
+POST /install 엔드포인트는 모듈 설치를 처리합니다. 요청 본문에서 moduleId를 받고 총 5단계를 거쳐 진행됩니다. 첫째로 레지스트리에서 모듈 정보를 조회합니다. 둘째로 요청자가 관리자 권한인지 확인하고, 아니면 403을 반환합니다. 셋째로 이미 설치되어 있는지 확인하고, 중복이면 400을 반환합니다. 넷째로 installModule 서비스를 호출하여 설치를 진행하며, onProgress 콜백을 활용하여 WebSocket으로 진행 퍼센트와 메시지를 실시간 전송합니다. 다섯째로 설치 완료 후 통계를 기록합니다.
+
+DELETE /:moduleId 엔드포인트는 모듈 제거를 처리합니다. 쿼리 파라미터의 preserveData 값에 따라 데이터 보존 여부를 결정하고, 성공 시 204를 반환합니다.
+
+POST /:moduleId/update 엔드포인트는 모듈 업데이트를 처리합니다. updateModule 서비스를 호출하여 업데이트를 실행하고 결과를 반환합니다.
+
+### 모듈 매니저 서비스
+
+installModule 함수는 모듈 설치의 전체 파이프라인을 관리합니다. 총 9단계로 구성되며, 각 단계마다 onProgress 콜백으로 진행 상황을 전달합니다.
+
+10%: Git clone으로 모듈 코드를 다운로드합니다. 특정 버전이 지정되면 해당 버전 태그로 체크아웃합니다.
+30%: module.json 파일을 읽어서 유효성을 검증합니다.
+50%: 보안 스캔을 실행합니다.
+60%: package.json이 있으면 npm install로 의존성을 설치합니다.
+70%: module.json에 빌드 설정이 있으면 npm run build를 실행합니다.
+80%: DB 마이그레이션을 실행합니다.
+90%: 백엔드 모듈을 동적으로 import하고, initialize 함수가 있으면 실행합니다.
+100%: 설치 완료 메시지를 전달하고 결과를 반환합니다.
+
+설치 중 에러가 발생하면 생성된 폴더를 제거하여 롤백합니다.
+
+uninstallModule 함수는 모듈 제거를 처리합니다. 먼저 백엔드 모듈의 shutdown 함수를 호출하여 정상 종료합니다. preserveData 옵션이 false이면 해당 모듈의 데이터를 삭제합니다. 마지막으로 모듈 폴더를 제거합니다.
+
+updateModule 함수는 모듈 업데이트를 처리합니다. 현재 설치된 버전과 최신 버전을 비교합니다. 동일하면 upToDate: true를 반환합니다. 다르면 git pull로 코드를 가져온 후 최신 버전 태그로 체크아웃합니다. 의존성을 업데이트하고 DB 마이그레이션을 실행한 후, 핫 리로드로 모듈을 재시작합니다. 이전 버전과 현재 버전 정보를 반환합니다.
+
+### 보안 검증
+
+securityScan 함수는 설치될 모듈의 소스 코드를 분석하여 보안 이슈를 탐지합니다.
+
+첫째로 .ts, .tsx, .js, .jsx 확장자의 파일을 모두 조회하여 각 파일의 내용을 검사합니다. eval() 함수 사용, child_process 모듈 참조, new Function이나 Function()을 통한 동적 함수 생성이 발견되면 해당 파일명과 함께 위반 내용을 목록에 추가합니다.
+
+둘째로 module.json에 선언된 권한 목록과 실제 코드에서 사용되는 권한을 비교합니다. 선언되지 않은 권한이 사용된 경우 위반 목록에 추가합니다.
+
+검사 결과에 이슈가 하나라도 있으면 발견된 내용 전체를 에러로 발생시킵니다.
+
+## Frontend 구현
+
+### 모듈 설치 UI
+
+마켓플레이스 페이지입니다. useModules 훅에서 모듈 목록과 installModule 함수를 가져옵니다. installing 상태로 현재 설치 중인 모듈 ID를 추적하고, progress 상태로 진행 퍼센트를 관리합니다.
+
+handleInstall 함수는 설치를 시작합니다. 해당 모듈 ID를 installing에 세팅하고 progress를 0으로 초기화한 후 installModule을 호출합니다. onProgress 콜백으로 퍼센트가 업데이트됩니다. 설치 완료 시 성공 알림을, 실패 시 에러 알림을 표시합니다.
+
+모듈 목록은 3컬럼 그리드로 카드 형태로 표시합니다. 각 카드에는 아이콘과 모듈명, 개발자명, 설명, 별점과 리뷰 수, 다운로드 횟수가 표시됩니다. 이미 설치된 모듈은 '설치됨'으로 표시되며 버튼이 비활성화됩니다.
+
+화면 하단에는 Modal 컴포넌트가 있어, 설치 진행 중에 Progress 바와 퍼센트를 표시합니다.
+
+### WebSocket으로 실시간 진행 상황
+
+useModules 훅의 installModule 함수는 WebSocket과 REST API를 함께 사용합니다. Socket.IO로 연결한 후 'module:install:progress' 이벤트를 구독합니다. 해당 모듈 ID에 맞는 진행 상황 이벤트가 오면 onProgress 콜백으로 전달합니다. 동시에 /api/system/modules/install에 POST 요청을 보냅니다. 요청이 완료되면 WebSocket을 종료합니다.
+
+## 모듈 ON/OFF 토글
+
+### module.json 업데이트
+
+PATCH /:moduleId/toggle 엔드포인트는 모듈의 활성화 상태를 변경합니다. 모듈 폴더의 module.json을 읽어서 enabled 값을 요청 본문의 값으로 업데이트한 후 저장합니다. enabled가 true로 바뀌면 loadModule을 호출하여 모듈을 로드하고, false로 바뀌면 unloadModule을 호출하여 모듈을 비로드합니다.
+
+### UI 토글 스위치
+
+설치된 모듈 목록 페이지에서 각 모듈 옆에 Switch 컴포넌트를 배치합니다. checked는 모듈의 enabled 상태에 연결되고, onChange는 toggleModule 함수를 호출합니다.
+
+## 모듈 업데이트
+
+### 업데이트 확인
+
+checkUpdates 함수는 설치된 모든 모듈에 대해 업데이트 여부를 확인합니다. 각 모듈의 현재 버전과 최신 버전을 비교하여, 다르면 모듈 ID, 현재 버전, 최신 버전, 변경 사항(changelog)을 함께 반환합니다.
+
+### 업데이트 UI
+
+업데이트 가능한 모듈 목록을 카드 형태로 표시합니다. 각 항목에는 모듈명, 현재 버전에서 최신 버전으로의 변경을 화살표로 표시하고, 업데이트 버튼을 배치합니다.
+
+## 모듈 제거
+
+### 데이터 보존 옵션
+
+모듈 제거 확인 Modal을 표시합니다. '정말 제거하시겠습니까?' 메시지 아래에 '데이터 보존' Checkbox가 있습니다. 체크하면 모듈 폴더만 삭제되고 관련 데이터는 유지됩니다. 하단에 빨간색 제거 버튼과 회색 취소 버튼이 배치됩니다.
+
+## 통계 전송
+
+trackInstall 함수는 모듈 설치 시 통계 서버에 데이터를 전송합니다. 모듈 ID와 현재 타임스탬프를 POST 요청으로 보냅니다. 통계 전송이 실패해도 앱의 정상 운영에 영향을 주지 않도록 에러를 무시합니다.

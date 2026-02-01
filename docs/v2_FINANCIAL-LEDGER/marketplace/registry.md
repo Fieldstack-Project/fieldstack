@@ -127,7 +127,7 @@ github.com/your-org/module-registry/
   "repository": "https://github.com/crypto-dev/crypto-tracker",
   "homepage": "https://crypto-tracker.dev",
   "documentation": "https://docs.crypto-tracker.dev",
-  "bugs": "https://github.com/crypto-dev/crypto-tracker/issues",
+  "bug": "https://github.com/crypto-dev/crypto-tracker/issues",
   "version": "2.1.0",
   "license": "MIT",
   "category": "finance",
@@ -200,18 +200,65 @@ github.com/your-org/module-registry/
 }
 ```
 
+## 통계 수집
+
+### downloads.json
+
+```json
+{
+  "lastUpdated": "2025-01-21T12:00:00Z",
+  "total": 12345,
+  "modules": {
+    "ledger": {
+      "total": 1234,
+      "daily": {
+        "2025-01-20": 45,
+        "2025-01-19": 38
+      },
+      "monthly": {
+        "2025-01": 523,
+        "2024-12": 711
+      }
+    },
+    "crypto-tracker": {
+      "total": 523,
+      "daily": {
+        "2025-01-20": 12,
+        "2025-01-19": 8
+      }
+    }
+  }
+}
+```
+
+### trending.json
+
+```json
+{
+  "lastUpdated": "2025-01-21T12:00:00Z",
+  "period": "7days",
+  "modules": [
+    {
+      "id": "crypto-tracker",
+      "downloads": 156,
+      "growth": "+45%"
+    },
+    {
+      "id": "stock-tracker",
+      "downloads": 89,
+      "growth": "+32%"
+    }
+  ]
+}
+```
+
 ## 모듈 인증 프로세스
 
 ### 제출 절차
 
 #### 1. GitHub에 모듈 레포 생성
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/username/my-module
-git push -u origin main
-```
+
+git init으로 저장소를 초기화하고, 전체 파일을 추가하여 커밋합니다. GitHub의 원본 저장소를 연결한 후 main 브랜치를 푸시합니다.
 
 #### 2. module-registry에 PR 제출
 
@@ -327,30 +374,19 @@ jobs:
 ### 보안 정책
 
 #### 1. 코드 스캔
-```bash
-# 악성 코드 패턴 검사
-- eval() 사용
-- child_process 사용
-- fs 직접 접근
-- 외부 스크립트 로드
-```
+
+스캔 대상으로 금지되는 패턴은 다음과 같습니다: eval() 함수 사용, child_process 모듈 사용, fs 모듈을 통한 직접 파일 접근, 외부 스크립트 로드.
 
 #### 2. 권한 검증
-```typescript
-// 선언된 권한만 사용하는지 확인
-const declaredPermissions = moduleJson.permissions;
-const usedPermissions = scanCode(moduleCode);
 
-if (!usedPermissions.every(p => declaredPermissions.includes(p))) {
-  throw new Error('Undeclared permission usage');
-}
-```
+모듈의 코드를 분석하여 실제로 사용되는 권한 목록을 추출합니다. 이를 module.json에서 선언된 권한 목록과 비교합니다. 실제로 사용되는 권한이 선언된 권한에 포함되지 않으면 에러를 발생시킵니다.
 
 #### 3. 라이선스 확인
 - MIT, Apache 2.0 등 호환 라이선스만 허용
 - GPL 계열 제외 (전염성 방지)
 
 #### 4. 정기적인 재검증
+
 ```yaml
 # .github/workflows/revalidate.yml
 name: Revalidate Modules
@@ -367,58 +403,6 @@ jobs:
         run: |
           # 모든 등록된 모듈 재검증
           # 문제 발견 시 이슈 생성
-```
-
-## 통계 수집
-
-### downloads.json
-
-```json
-{
-  "lastUpdated": "2025-01-21T12:00:00Z",
-  "total": 12345,
-  "modules": {
-    "ledger": {
-      "total": 1234,
-      "daily": {
-        "2025-01-20": 45,
-        "2025-01-19": 38
-      },
-      "monthly": {
-        "2025-01": 523,
-        "2024-12": 711
-      }
-    },
-    "crypto-tracker": {
-      "total": 523,
-      "daily": {
-        "2025-01-20": 12,
-        "2025-01-19": 8
-      }
-    }
-  }
-}
-```
-
-### trending.json
-
-```json
-{
-  "lastUpdated": "2025-01-21T12:00:00Z",
-  "period": "7days",
-  "modules": [
-    {
-      "id": "crypto-tracker",
-      "downloads": 156,
-      "growth": "+45%"
-    },
-    {
-      "id": "stock-tracker",
-      "downloads": 89,
-      "growth": "+32%"
-    }
-  ]
-}
 ```
 
 ## API 엔드포인트
@@ -442,18 +426,7 @@ GET https://raw.githubusercontent.com/your-org/module-registry/main/stats/trendi
 
 ### 검색 API (Algolia)
 
-```javascript
-const searchClient = algoliasearch('APP_ID', 'SEARCH_KEY');
-const index = searchClient.initIndex('modules');
-
-// 검색
-const results = await index.search('crypto');
-
-// 필터
-const filtered = await index.search('', {
-  filters: 'category:finance AND verified:true'
-});
-```
+Algolia 클라이언트를 초기화하고 'modules' 인덱스에 접근합니다. 검색할 때는 키워드를 search 메서드에 넘기면 매칭되는 모듈 목록을 반환합니다. 필터 조건이 필요하면 filters 옵션을 사용하여 카테고리와 검증 여부 등을 조합하여 검색할 수 있습니다.
 
 ## 버전 관리
 

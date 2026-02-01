@@ -55,16 +55,8 @@ WordPress나 VSCode 확장 생태계처럼, 누구나 모듈을 개발하고 공
 ### 주요 기능
 
 #### 1. 설치된 모듈 목록
-```typescript
-interface InstalledModule {
-  name: string;
-  displayName: string;
-  version: string;
-  enabled: boolean;
-  updateAvailable: boolean;
-  lastUpdated: Date;
-}
-```
+
+InstalledModule은 설치된 모듈 하나의 정보 구조입니다. name은 내부 식별명, displayName은 표시 이름, version은 현재 버전, enabled는 활성화 여부, updateAvailable은 업데이트 가능 여부, lastUpdated는 마지막 업데이트 날짜입니다.
 
 **UI 예시:**
 ```
@@ -272,19 +264,8 @@ by @crypto-dev | v2.1.0 | ⭐ 4.8 (42 리뷰)
 ### 지원 도구
 
 #### CLI 도구 (향후)
-```bash
-# 새 모듈 생성
-npx create-finance-module my-module
 
-# 로컬 테스트
-npm run dev:module my-module
-
-# 배포 준비
-npm run build:module my-module
-
-# 레지스트리에 제출
-npm run submit:module my-module
-```
+향후 제공될 CLI 도구는 다음 명령어를 지원합니다. npx create-finance-module 명령으로 새 모듈을 생성하고, npm run dev:module 명령으로 로컬 테스트를 실행합니다. npm run build:module 명령으로 배포 준비를 하고, npm run submit:module 명령으로 레지스트리에 제출합니다.
 
 ## 수익화 없음
 
