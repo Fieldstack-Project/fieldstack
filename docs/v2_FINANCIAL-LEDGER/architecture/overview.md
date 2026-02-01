@@ -623,7 +623,7 @@ http://raspberrypi.local:3000
 
 ```bash
 # 1. 수동 설치
-git clone https://github.com/your-org/finance-system.git
+git clone https://github.com/Fieldstack-Project/Fieldstack.git
 cd finance-system
 pnpm install && pnpm build
 
@@ -650,7 +650,7 @@ pm2 save
 # 컨테이너 내부에서:
 apt update && apt install -y nodejs npm git
 npm install -g pnpm
-git clone https://github.com/your-org/finance-system.git
+git clone https://github.com/Fieldstack-Project/Fieldstack.git
 cd finance-system
 pnpm install && pnpm build
 cd apps/api
