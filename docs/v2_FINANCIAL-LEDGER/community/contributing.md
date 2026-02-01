@@ -220,33 +220,13 @@ pnpm format
 
 ### 명명 규칙
 
-**변수/함수:**
-```typescript
-// camelCase
-const userName = 'John';
-function getUserName() {}
-```
+**변수/함수:** camelCase를 사용합니다. 예를 들어 변수는 `userName`이고, 함수는 `getUserName()`과 같이 작성합니다.
 
-**컴포넌트:**
-```typescript
-// PascalCase
-function UserProfile() {}
-export default UserProfile;
-```
+**컴포넌트:** PascalCase를 사용합니다. 예를 들어 `UserProfile`과 같이 작성하고, default export로 내보냅니다.
 
-**상수:**
-```typescript
-// UPPER_SNAKE_CASE
-const MAX_LENGTH = 100;
-const API_URL = 'https://api.example.com';
-```
+**상수:** UPPER_SNAKE_CASE를 사용합니다. 예를 들어 `MAX_LENGTH`, `API_URL`과 같이 작성합니다.
 
-**파일명:**
-```
-components/UserProfile.tsx
-utils/formatDate.ts
-hooks/useUser.ts
-```
+**파일명:** 컴포넌트는 `components/UserProfile.tsx`, 유틸리티는 `utils/formatDate.ts`, 훅은 `hooks/useUser.ts`와 같이 구성합니다.
 
 ## 커밋 메시지 규칙
 
@@ -298,41 +278,15 @@ Docker Compose 설치 방법 추가
 
 ### 단위 테스트
 
-```typescript
-// modules/ledger/backend/__tests__/service.test.ts
+테스트 파일은 `modules/ledger/backend/__tests__/service.test.ts` 경로에 작성합니다. Vitest의 describe와 it를 사용하여 구성합니다.
 
-import { describe, it, expect } from 'vitest';
-import * as service from '../service';
-
-describe('Ledger Service', () => {
-  it('should create entry', async () => {
-    const entry = await service.create({
-      amount: 1000,
-      category: 'food'
-    }, 'user-123');
-    
-    expect(entry.amount).toBe(1000);
-    expect(entry.category).toBe('food');
-  });
-});
-```
+'Ledger Service' 테스트 스위트 안에 'should create entry' 테스트가 있습니다. service.create()를 호출하여 amount 1000, category 'food'인 항목을 생성하고, userId 'user-123'을 전달합니다. 반환된 항목의 amount가 1000이고 category가 'food'인지 expect로 검증합니다.
 
 ### 컴포넌트 테스트
 
-```typescript
-// modules/ledger/frontend/__tests__/List.test.tsx
+테스트 파일은 `modules/ledger/frontend/__tests__/List.test.tsx` 경로에 작성합니다.
 
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import List from '../pages/List';
-
-describe('Ledger List', () => {
-  it('should render title', () => {
-    render(<List />);
-    expect(screen.getByText('가계부')).toBeInTheDocument();
-  });
-});
-```
+'Ledger List' 테스트 스위트 안에 'should render title' 테스트가 있습니다. @testing-library/react의 render로 List 컴포넌트를 렌더링하고, screen.getByText('가계부')가 문서에 존재하는지 검증합니다.
 
 ## 문서 작성
 
@@ -368,18 +322,7 @@ MIT
 
 ### 코드 주석
 
-```typescript
-/**
- * 가계부 항목을 생성합니다.
- * 
- * @param data - 항목 데이터
- * @param userId - 사용자 ID
- * @returns 생성된 항목
- */
-export async function create(data: LedgerData, userId: string) {
-  // ...
-}
-```
+코드 주석은 JSDoc 형식으로 작성합니다. 함수의 목적을 첫 줄에 간결하게 설명하고, @param 태그로 각 파라미터와 그 역할을 기술합니다. @returns 태그로 반환값을 설명합니다. 예를 들어 가계부 항목을 생성하는 create 함수는 data(항목 데이터)와 userId(사용자 ID)를 받고, 생성된 항목을 반환한다고 문서화합니다.
 
 ## 모듈 제출
 
