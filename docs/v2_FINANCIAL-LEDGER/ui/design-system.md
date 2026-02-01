@@ -6,133 +6,52 @@
 
 UI는 Core/Module 로직과 완전 분리되어야 합니다:
 
-```
-❌ 잘못된 예:
-modules/ledger/backend/service.ts에 UI 로직 포함
+잘못된 예: modules/ledger/backend/service.ts (백엔드 로직 파일) 안에 UI 로직이 포함되어 있는 경우입니다.
 
-✅ 올바른 예:
-modules/ledger/frontend/ - UI 코드
-modules/ledger/backend/  - 비즈니스 로직
-```
+올바른 예: modules/ledger/frontend/ 폴더에는 UI 코드만, modules/ledger/backend/ 폴더에는 비즈니스 로직만 들어가야 합니다.
 
 ### 2. Core UI 우선
 
 모듈은 Core에서 제공하는 UI 컴포넌트를 최대한 활용하여 일관된 디자인 유지:
 
-```typescript
-// 권장
-import { Button, Card, Table } from '@core/ui';
+권장하는 방식은 Core에서 제공하는 Button, Card, Table 같은 컴포넌트를 직접 가져와 사용하는 것입니다.
 
-// 피해야 할 방식
-import { Button } from 'some-external-library';
-```
+피해야 할 방식은 외부 라이브러리에서 Button 같은 컴포넌트를 가져오는 것입니다. 이렇게 하면 앱 전체의 디자인 일관성이 무너집니다.
 
 ### 3. 자유로운 교체
 
 사용자는 원한다면 전체 UI를 자유롭게 교체 가능:
 
-```
-apps/web/
-├── src/
-│   └── custom-ui/     # 사용자 정의 UI
-│       ├── Button.tsx
-│       └── Card.tsx
-```
+apps/web/src/ 폴더 안에 custom-ui라는 폴더를 만들고, 그 안에 Button과 Card 같은 컴포넌트를 직접 작성하면 Core의 기본 UI를 교체할 수 있습니다.
 
 ## 디자인 토큰
 
 ### 색상 팔레트
 
-```typescript
-export const colors = {
-  // Primary
-  primary: {
-    50: '#EFF6FF',
-    100: '#DBEAFE',
-    500: '#3B82F6',   // 메인 색상
-    600: '#2563EB',
-    900: '#1E3A8A'
-  },
-  
-  // Semantic
-  success: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  info: '#3B82F6',
-  
-  // Grayscale
-  gray: {
-    50: '#F9FAFB',
-    100: '#F3F4F6',
-    500: '#6B7280',
-    900: '#111827'
-  }
-};
-```
+주색상(primary)은 파란색 계열로 밝은 음영(50번: 아주 연한 파란색)부터 어두운 음영(900번: 진한 네이비)까지 단계별로 정의되어 있습니다. 주로 사용되는 것은 500번(파란색 #3B82F6)입니다.
+
+의미가 부여된 색상도 따로 정의되어 있습니다: 성공은 초록색(#10B981), 경고는 주황색(#F59E0B), 위험은 빨간색(#EF4444), 정보는 파란색(#3B82F6)입니다.
+
+회색(gray)도 마찬가지로 가장 밝은 단계(50번)부터 가장 어두운 단계(900번)까지 정의되어 있습니다.
 
 ### 타이포그래피
 
-```typescript
-export const typography = {
-  fontFamily: {
-    sans: 'Inter, -apple-system, sans-serif',
-    mono: 'JetBrains Mono, monospace'
-  },
-  
-  fontSize: {
-    xs: '0.75rem',    // 12px
-    sm: '0.875rem',   // 14px
-    base: '1rem',     // 16px
-    lg: '1.125rem',   // 18px
-    xl: '1.25rem',    // 20px
-    '2xl': '1.5rem',  // 24px
-    '3xl': '1.875rem' // 30px
-  },
-  
-  fontWeight: {
-    normal: 400,
-    medium: 500,
-    semibold: 600,
-    bold: 700
-  }
-};
-```
+폰트는 두 종류로 나뉩니다. 일반 텍스트용으로는 Inter와 시스템 기본 폰트를 조합한 무단 폰트를 사용하고, 코드 표시용으로는 JetBrains Mono라는 등폭 폰트를 사용합니다.
+
+글자 크기는 7단계로 정의되어 있습니다: xs(12px, 작은 라벨용), sm(14px, 보조 텍스트용), base(16px, 본문 기본 크기), lg(18px), xl(20px), 2xl(24px), 3xl(30px, 가장 큰 제목용).
+
+글자 두께도 4단계로 나뉩니다: normal(일반), medium(약간 두꺼운), semibold(반 볼드), bold(볼드).
 
 ### 간격 (Spacing)
 
-```typescript
-export const spacing = {
-  0: '0',
-  1: '0.25rem',   // 4px
-  2: '0.5rem',    // 8px
-  3: '0.75rem',   // 12px
-  4: '1rem',      // 16px
-  6: '1.5rem',    // 24px
-  8: '2rem',      // 32px
-  12: '3rem',     // 48px
-  16: '4rem'      // 64px
-};
-```
+컴포넌트들 사이의 거리와 내부 여백을 균등하게 유지하기 위한 기준 간격입니다. 가장 작은 단위인 1단계는 4px이며, 단계가 올라갈수록 간격이 커집니다: 2단계(8px), 3단계(12px), 4단계(16px), 6단계(24px), 8단계(32px), 12단계(48px), 16단계(64px, 가장 큰 간격).
 
 ### 반경 (Border Radius)
 
-```typescript
-export const borderRadius = {
-  none: '0',
-  sm: '0.125rem',   // 2px
-  md: '0.375rem',   // 6px
-  lg: '0.5rem',     // 8px
-  xl: '0.75rem',    // 12px
-  full: '9999px'
-};
-```
+컴포넌트의 모서리를 둥글게 만드는 정도를 정의합니다. none은 각이 날카로운 직사각형(0px), sm은 아주 약간의 둥글기(2px), md는 눈에 띄는 둥글기(6px), lg는 제대로 둥근 모양(8px), xl은 더 둥근 모양(12px), full은 완전히 원형으로 만드는 것(양쪽 끝이 반원 모양)입니다.
 
 ## 반응형 디자인
 
 ### 브레이크포인트
 
-```typescript
-export const breakpoints = {
-  sm: '640px',   // Mobile
-  md: '768px',   // Tablet
-  lg: '1024px',  // Desktop
+앱은 세 가지 화면 크기에 맞게 자동으로 레이아웃을 조정합니다. 640px 이하의 작은 화면은 모바일(sm)로 판단되고, 768px 이상이면 타블릿(md)으로, 1024px 이상이면 데스크탑(lg)으로 간주됩니다. 이 기준값을 브레이크포인트라 부르며, 각 단계별로 컴포넌트의 배치와 크기가 자동으로 변경됩니다.

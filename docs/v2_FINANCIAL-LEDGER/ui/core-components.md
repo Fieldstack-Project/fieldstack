@@ -46,112 +46,40 @@ packages/core/ui/
 
 ### Button
 
-```typescript
-import { Button } from '@core/ui';
-
-<Button variant="primary" onClick={handleClick}>
-  저장
-</Button>
-
-<Button variant="secondary" size="sm">
-  취소
-</Button>
-
-<Button variant="danger" loading={isLoading}>
-  삭제
-</Button>
-```
+버튼 컴포넌트를 가져와서 사용합니다. variant 속성으로 스타일을 선택하여 사용할 수 있습니다: primary는 주요 액션용, secondary는 보조 액션용이며 size로 작은 크기(sm)를 지정할 수 있습니다. danger는 주의 필요한 액션용이며, loading 속성을 켜면 로딩 중 상태로 표시됩니다.
 
 **Props:**
-- `variant`: 'primary' | 'secondary' | 'danger' | 'ghost'
-- `size`: 'sm' | 'md' | 'lg'
-- `loading`: boolean
-- `disabled`: boolean
+- `variant`: 'primary' | 'secondary' | 'danger' | 'ghost' — 버튼 스타일 종류 (기본/보조/위험/투명)
+- `size`: 'sm' | 'md' | 'lg' — 버튼 크기 (작음/보통/큼)
+- `loading`: boolean — 로딩 중 상태 여부
+- `disabled`: boolean — 비활성화 여부
 
 ### Input
 
-```typescript
-import { Input } from '@core/ui';
-
-<Input
-  label="이메일"
-  type="email"
-  placeholder="example@email.com"
-  value={email}
-  onChange={setEmail}
-  error={errors.email}
-  required
-/>
-```
+입력폼 컴포넌트를 가져와서 사용합니다. 라벨을 '이메일'로, 타입을 이메일로 설정하고, 빈 상태에서 힌트로 "example@email.com"을 표시합니다. 사용자가 입력하면 그 값이 저장되며, 유효성 검사 실패 시 에러 메시지가 자동으로 표시됩니다. 필수 입력으로 설정되어 있습니다.
 
 **Props:**
-- `label`: string
-- `type`: 'text' | 'email' | 'password' | 'number'
-- `placeholder`: string
-- `error`: string
-- `required`: boolean
+- `label`: string — 입력폼 위에 표시되는 라벨 문자열
+- `type`: 'text' | 'email' | 'password' | 'number' — 입력 타입 (텍스트/이메일/비밀번호/숫자)
+- `placeholder`: string — 빈 상태에서 표시되는 힌트 문자열
+- `error`: string — 유효성 검사 실패 시 표시되는 에러 메시지
+- `required`: boolean — 필수 입력 여부
 
 ### Select
 
-```typescript
-import { Select } from '@core/ui';
-
-<Select
-  label="카테고리"
-  options={[
-    { value: 'food', label: '식비' },
-    { value: 'transport', label: '교통비' }
-  ]}
-  value={category}
-  onChange={setCategory}
-/>
-```
+드롭다운 선택기 컴포넌트를 가져와서 사용합니다. 라벨을 '카테고리'로 설정하고, 선택지로 '식비'와 '교통비' 두 항목을 제공합니다. 사용자가 항목을 선택하면 그 값이 저장됩니다.
 
 ### Card
 
-```typescript
-import { Card } from '@core/ui';
-
-<Card title="월간 요약" actions={<Button>상세보기</Button>}>
-  <p>총 지출: 1,234,567원</p>
-</Card>
-```
+카드 컴포넌트를 가져와서 사용합니다. 카드 제목을 '월간 요약'으로 설정하고, 우측 상단에 '상세보기' 버튼을 배치합니다. 카드 본문에는 '총 지출: 1,234,567원'을 표시합니다.
 
 ### Modal
 
-```typescript
-import { Modal, useModal } from '@core/ui';
-
-const modal = useModal();
-
-<>
-  <Button onClick={modal.open}>열기</Button>
-  
-  <Modal
-    isOpen={modal.isOpen}
-    onClose={modal.close}
-    title="확인"
-  >
-    <p>정말 삭제하시겠습니까?</p>
-    <Button onClick={handleDelete}>삭제</Button>
-  </Modal>
-</>
-```
+팝업 컴포넌트와 팝업 관리 훅(useModal)을 가져와서 사용합니다. 먼저 팝업 훅을 초기화하고, '열기' 버튼을 누르면 팝업이 열립니다. 팝업의 제목은 '확인'이며, 본문에 '정말 삭제하시겠습니까?' 메시지와 '삭제' 버튼이 표시됩니다.
 
 ### Table
 
-```typescript
-import { Table } from '@core/ui';
-
-<Table
-  columns={[
-    { key: 'name', label: '이름' },
-    { key: 'price', label: '가격' }
-  ]}
-  data={items}
-  onRowClick={handleRowClick}
-/>
-```
+테이블 컴포넌트를 가져와서 사용합니다. 열을 두 개로 정의합니다: '이름'과 '가격'. 데이터를 넘기면 자동으로 테이블이 생성되며, 행을 클릭하면 별도의 이벤트가 실행됩니다.
 
 ## 레이아웃 컴포넌트
 
@@ -159,52 +87,19 @@ import { Table } from '@core/ui';
 
 표준 페이지 레이아웃:
 
-```typescript
-import { PageLayout } from '@core/ui';
-
-<PageLayout
-  title="가계부"
-  subtitle="수입과 지출을 관리하세요"
-  actions={<Button variant="primary">추가</Button>}
-  breadcrumb={['홈', '가계부']}
->
-  {children}
-</PageLayout>
-```
+PageLayout 컴포넌트를 가져와서 사용합니다. 페이지 제목을 '가계부', 부제목을 '수입과 지출을 관리하세요'로 설정합니다. 우측 상단에 '추가' 버튼을 배치하고, 상단 경로(브레드크럼)를 '홈 → 가계부'로 표시합니다. 본문 영역에 원하는 컨텐츠를 배치합니다.
 
 ### FormLayout
 
 폼 전용 레이아웃:
 
-```typescript
-import { FormLayout } from '@core/ui';
-
-<FormLayout
-  title="새 항목 추가"
-  onSubmit={handleSubmit}
-  onCancel={handleCancel}
-  submitText="저장"
->
-  <Input label="금액" type="number" />
-  <Select label="카테고리" options={categories} />
-</FormLayout>
-```
+FormLayout 컴포넌트를 가져와서 사용합니다. 폼 제목을 '새 항목 추가'로 설정하고, 저장 버튼의 텍스트를 '저장'으로 지정합니다. 본문에는 금액 숫자 입력폼과 카테고리 드롭다운을 배치합니다. 저장 클릭 시 제출 로직이, 취소 클릭 시 취소 로직이 실행됩니다.
 
 ### ListLayout
 
 리스트 페이지 레이아웃:
 
-```typescript
-import { ListLayout } from '@core/ui';
-
-<ListLayout
-  title="구독 목록"
-  filters={<CategoryFilter />}
-  actions={<Button>추가</Button>}
->
-  {items.map(item => <ItemCard key={item.id} item={item} />)}
-</ListLayout>
-```
+ListLayout 컴포넌트를 가져와서 사용합니다. 제목을 '구독 목록'으로 설정하고, 상단에 카테고리 필터와 '추가' 버튼을 배치합니다. 본문에는 각 항목을 카드 형태로 하나씩 반복 표시합니다.
 
 ## 고급 컴포넌트
 
@@ -212,25 +107,7 @@ import { ListLayout } from '@core/ui';
 
 정렬, 필터, 페이지네이션 내장:
 
-```typescript
-import { DataTable } from '@core/ui';
-
-<DataTable
-  columns={[
-    { key: 'date', label: '날짜', sortable: true },
-    { key: 'amount', label: '금액', sortable: true, format: 'currency' },
-    { key: 'category', label: '카테고리', filterable: true }
-  ]}
-  data={entries}
-  searchable
-  searchPlaceholder="검색..."
-  sortable
-  filterable
-  pagination
-  pageSize={20}
-  onRowClick={handleRowClick}
-/>
-```
+DataTable 컴포넌트를 가져와서 사용합니다. 열을 세 개로 정의합니다: '날짜'는 정렬 가능하고, '금액'은 정렬 가능하며 통화 형식으로 자동 포맷됩니다, '카테고리'는 필터링 가능합니다. 전체 테이블에 검색기능을 켜고, 페이지네이션을 활성화하며 한 페이지당 20개 항목을 표시합니다. 행을 클릭하면 별도의 이벤트가 실행됩니다.
 
 **기능:**
 - 정렬 (오름차순/내림차순)
@@ -244,44 +121,7 @@ import { DataTable } from '@core/ui';
 
 JSON 스키마로 폼 자동 생성:
 
-```typescript
-import { FormBuilder } from '@core/ui';
-
-<FormBuilder
-  schema={{
-    fields: [
-      {
-        name: 'amount',
-        type: 'number',
-        label: '금액',
-        required: true,
-        min: 0
-      },
-      {
-        name: 'category',
-        type: 'select',
-        label: '카테고리',
-        options: categories,
-        required: true
-      },
-      {
-        name: 'date',
-        type: 'date',
-        label: '날짜',
-        defaultValue: new Date()
-      },
-      {
-        name: 'description',
-        type: 'textarea',
-        label: '메모',
-        rows: 3
-      }
-    ]
-  }}
-  onSubmit={handleSubmit}
-  onCancel={handleCancel}
-/>
-```
+FormBuilder 컴포넌트를 가져와서 사용합니다. 폼의 구조를 정의합니다: '금액' 필드는 숫자 타입이며 필수이고 0 이상이어야 합니다, '카테고리' 필드는 드롭다운 타입이며 필수입니다, '날짜' 필드는 날짜 타입이며 기본값으로 오늘 날짜가 설정됩니다, '메모' 필드는 장문 입력 타입이며 3줄 높이로 표시됩니다. 저장 클릭 시 제출 로직이, 취소 클릭 시 취소 로직이 실행됩니다.
 
 **지원하는 필드 타입:**
 - text, email, password
@@ -298,154 +138,32 @@ import { FormBuilder } from '@core/ui';
 
 폼 상태 관리:
 
-```typescript
-import { useForm } from '@core/ui';
+폼 훅을 가져와서 초기화합니다. 초기값으로 금액은 0, 카테고리는 빈 문자열로 설정합니다. 유효성 검사 규칙도 정의합니다: 금액은 0보다 커야 하고, 카테고리는 반드시 선택되어야 합니다. 폼 제출 시 입력된 값으로 새 항목을 생성합니다.
 
-const form = useForm({
-  initialValues: {
-    amount: 0,
-    category: ''
-  },
-  validations: {
-    amount: (value) => value > 0 || '금액은 0보다 커야 합니다',
-    category: (value) => value.length > 0 || '카테고리를 선택하세요'
-  },
-  onSubmit: async (values) => {
-    await createEntry(values);
-  }
-});
-
-<form onSubmit={form.handleSubmit}>
-  <Input
-    label="금액"
-    value={form.values.amount}
-    onChange={(e) => form.setValue('amount', e.target.value)}
-    error={form.errors.amount}
-  />
-  <Button type="submit" loading={form.isSubmitting}>
-    저장
-  </Button>
-</form>
-```
+사용 시, 폼 제출 이벤트에 훅의 제출 핸들러를 연결합니다. 금액 입력폼의 값과 에러 메시지는 훅이 관리하며, 저장 버튼은 제출 중 상태를 자동으로 표시합니다.
 
 ### useTable
 
 테이블 상태 관리:
 
-```typescript
-import { useTable } from '@core/ui';
+테이블 훅을 가져와서 초기화합니다. 데이터를 넘기고, 기본 정렬 기준을 날짜로, 정렬 방향을 내림차순으로, 페이지당 항목 수를 20개로 설정합니다.
 
-const table = useTable({
-  data: entries,
-  sortBy: 'date',
-  sortOrder: 'desc',
-  pageSize: 20
-});
-
-<DataTable
-  {...table.getTableProps()}
-  data={table.paginatedData}
-  onSort={table.handleSort}
-  onPageChange={table.setPage}
-/>
-```
+사용 시, DataTable 컴포넌트에 훅이 관리하는 속성들을 연결합니다. 현재 페이지의 데이터만 표시되며, 정렬 클릭과 페이지 변경 이벤트도 훅이 자동으로 처리합니다.
 
 ### useNotification
 
 알림 표시:
 
-```typescript
-import { useNotification } from '@core/ui';
-
-const notify = useNotification();
-
-const handleSave = async () => {
-  try {
-    await saveData();
-    notify.success('저장되었습니다');
-  } catch (error) {
-    notify.error('저장에 실패했습니다');
-  }
-};
-```
+알림 훅을 가져와서 초기화합니다. 저장 버튼을 클릭하면 데이터 저장을 시도합니다. 저장이 성공하면 '저장되었습니다' 초록색 알림이 표시되고, 실패하면 '저장에 실패했습니다' 빨간색 알림이 표시됩니다.
 
 ## 사용 예시
 
 ### 완전한 페이지 예제
 
-```typescript
-import { 
-  PageLayout, 
-  DataTable, 
-  Button, 
-  Card,
-  useModal,
-  FormBuilder 
-} from '@core/ui';
-
-export default function LedgerPage() {
-  const modal = useModal();
-  const [entries, setEntries] = useState([]);
-  
-  return (
-    <PageLayout
-      title="가계부"
-      actions={
-        <Button variant="primary" onClick={modal.open}>
-          + 추가
-        </Button>
-      }
-    >
-      <Card title="최근 내역">
-        <DataTable
-          columns={[
-            { key: 'date', label: '날짜', sortable: true },
-            { key: 'category', label: '카테고리' },
-            { key: 'amount', label: '금액', format: 'currency' }
-          ]}
-          data={entries}
-          searchable
-          pagination
-        />
-      </Card>
-      
-      <Modal
-        isOpen={modal.isOpen}
-        onClose={modal.close}
-        title="새 항목"
-      >
-        <FormBuilder
-          schema={ledgerSchema}
-          onSubmit={handleCreate}
-          onCancel={modal.close}
-        />
-      </Modal>
-    </PageLayout>
-  );
-}
-```
+위에서 설명한 여러 컴포넌트들을 종합한 실제 페이지입니다. PageLayout로 페이지 틀을 잡고 제목을 '가계부'로 설정합니다. 우측 상단의 '+ 추가' 버튼을 누르면 팝업이 열립니다. 본문에는 Card 안에 DataTable을 넣어 가계부 내역을 표시합니다. 날짜 열은 정렬 가능하고, 금액 열은 통화 형식으로 포맷되며, 검색과 페이지네이션도 활성화되어 있습니다. 팝업 안에는 FormBuilder로 자동 생성된 폼이 있어 새 항목을 입력할 수 있습니다.
 
 ## 테마 커스터마이징
 
-```typescript
-// packages/core/ui/theme.ts
-export const theme = {
-  colors: {
-    primary: '#3B82F6',
-    secondary: '#6B7280',
-    danger: '#EF4444',
-    success: '#10B981'
-  },
-  fonts: {
-    sans: 'Inter, sans-serif',
-    mono: 'JetBrains Mono, monospace'
-  },
-  spacing: {
-    sm: '0.5rem',
-    md: '1rem',
-    lg: '1.5rem'
-  }
-};
-```
+테마 파일에서 전체 앱의 시각 기준값을 관리합니다. 색상으로는 주색상(파란색 #3B82F6), 부차색상(회색 #6B7280), 위험색(빨간색 #EF4444), 성공색(초록색 #10B981)이 정의되어 있습니다. 폰트로는 일반 텍스트용 Inter와 코드용 JetBrains Mono를 사용합니다. 간격은 작음(0.5rem), 보통(1rem), 큼(1.5rem) 세 단계로 정의되어 있습니다.
 
 사용자는 자유롭게 테마를 커스터마이징할 수 있습니다.
