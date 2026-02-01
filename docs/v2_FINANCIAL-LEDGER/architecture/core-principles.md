@@ -63,29 +63,9 @@ Plugins (Extension Layer)
 
 ### 설계 철학
 
-**전통적 방식 (❌):**
-```
-apps/
-  ├── api/
-  │   └── features/
-  │       ├── ledger.ts
-  │       └── subscription.ts
-  └── web/
-      └── pages/
-          ├── Ledger.tsx
-          └── Subscription.tsx
-```
+잘못된 방식은 기능별로 백엔드와 프론트엔드를 각각 분리하여 구성하는 것입니다. 예를 들어 apps/api/features/ 폴더에 ledger.ts와 subscription.ts를 두고, apps/web/pages/ 폴더에 Ledger.tsx와 Subscription.tsx를 두는 구조입니다.
 
-**모듈 중심 (✅):**
-```
-modules/
-  ├── ledger/
-  │   ├── frontend/
-  │   └── backend/
-  └── subscription/
-      ├── frontend/
-      └── backend/
-```
+올바른 방식은 기능 단위로 폴더를 나누어 frontend와 backend가 하나의 모듈 폴더 안에 함께 있는 것입니다. modules/ledger/ 안에 frontend/와 backend/가 모여있고, modules/subscription/도 동일하게 구성됩니다.
 
 ### 장점
 

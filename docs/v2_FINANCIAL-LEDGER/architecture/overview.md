@@ -107,35 +107,10 @@ SERVE_FRONTEND=true  # 기본값
 ```
 
 **Express 서버 구현:**
-```typescript
-// apps/api/src/index.ts
 
-const isProd = process.env.NODE_ENV === 'production';
-const serveFrontend = process.env.SERVE_FRONTEND !== 'false';
+프로덕션 환경에서 SERVE_FRONTEND가 'false'가 아니면 통합 모드로 실행됩니다. API 라우트는 항상 활성화되어 /api 경로를 처리합니다.
 
-// API 라우트 (항상 활성화)
-app.use('/api', apiRoutes);
-
-// Frontend 서빙 (프로덕션 통합 모드)
-if (isProd && serveFrontend) {
-  const publicPath = path.join(__dirname, '../public');
-  
-  // 1. 정적 파일 서빙
-  app.use(express.static(publicPath, {
-    maxAge: '1y',
-    etag: true
-  }));
-  
-  // 2. SPA fallback (모든 non-API 요청)
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(publicPath, 'index.html'));
-    }
-  });
-  
-  console.log('🌐 Serving Frontend + API (Integrated)');
-}
-```
+프론트엔드 서빙은 두 단계로 구성됩니다. 첫째로 express.static 미들웨어로 public 폴더의 정적 파일을 서빙합니다. 캐시 유효기간은 1년으로 설정하고 etag도 활성화합니다. 둘째로 SPA fallback 라우트가 있어, /api로 시작하지 않는 모든 요청에 대해 index.html을 반환합니다. 이렇게 하면 React Router가 클라이언트 측에서 라우팅을 처리할 수 있습니다.
 
 #### 파일 구조
 
@@ -217,20 +192,8 @@ pnpm dev:api
 ```
 
 **Vite Proxy 설정:**
-```typescript
-// apps/web/vite.config.ts
-export default defineConfig({
-  server: {
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      }
-    }
-  }
-})
-```
+
+Vite 개발 서버를 포트 5173에서 실행하며, /api 경로로 향하는 요청을 localhost:3000의 백엔드로 프록시합니다. changeOrigin을 true로 설정하여 Origin 헤더를 백엔드 주소로 바꾸는 것입니다.
 
 #### 특징
 
@@ -287,13 +250,8 @@ CORS_ORIGIN=https://my-app.vercel.app
 ```
 
 **CORS 설정:**
-```typescript
-// apps/api/src/middleware/cors.ts
-app.use(cors({
-  origin: process.env.CORS_ORIGIN,
-  credentials: true
-}));
-```
+
+cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 Origin으로 설정합니다. credentials를 true로 놓아 쿠키와 인증 헤더를 포함한 요청도 허용합니다.
 
 #### 특징
 
@@ -363,16 +321,7 @@ app.use(cors({
 
 #### Event Bus
 
-- **모듈 간 통신**
-- **이벤트 발행/구독 패턴**
-- **느슨한 결합**
-
-```typescript
-// 예시: Subscription → Ledger 자동 기록
-eventBus.on('subscription:payment', async (data) => {
-  await createLedgerEntry(data);
-});
-```
+모듈 간 통신은 이벤트 발행/구독 패턴으로 느슨한 결합을 유지합니다. 예를 들어 Subscription 모듈에서 'subscription:payment' 이벤트를 발행하면, Ledger 모듈이 그 이벤트를 구독하여 자동으로 가계부 항목을 생성합니다.
 
 #### AI Abstraction
 > 📖 → `technical/ai-integration.md`
@@ -573,14 +522,7 @@ Finance System (:3000)
 
 ### 정적 파일 캐싱 (홈서버 모드)
 
-```typescript
-app.use(express.static('public', {
-  maxAge: '1y',           // 1년 캐시
-  etag: true,
-  lastModified: true,
-  immutable: true
-}));
-```
+express.static 미들웨어로 public 폴더를 서빙합니다. 캐시 유효기간은 1년으로 설정하고, etag과 lastModified를 활성화하여 조건부 요청을 지원합니다. immutable 옵션도 켜서 해시가 포함된 파일명의 캐시를 더 효과적으로 활용합니다.
 
 ### DB 최적화
 > 📖 → `technical/database.md § 성능 최적화`
@@ -591,18 +533,7 @@ app.use(express.static('public', {
 
 ### 메모리 관리
 
-```typescript
-// PM2 클러스터 모드
-module.exports = {
-  apps: [{
-    name: 'finance-system',
-    script: 'dist/index.js',
-    instances: 'max',      // CPU 코어 수만큼
-    exec_mode: 'cluster',
-    max_memory_restart: '1G'
-  }]
-};
-```
+PM2 클러스터 모드로 실행합니다. 앱 이름은 'finance-system'이고, CPU 코어 수만큼 인스턴스를 생성합니다. 클러스터 실행 모드로 설정하고, 단일 프로세스의 메모리가 1GB를 초과하면 자동으로 재시작합니다.
 
 ---
 
@@ -624,17 +555,7 @@ module.exports = {
 
 ### 에러 응답 (홈서버 모드)
 
-```typescript
-// API 에러
-app.use((err, req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    res.status(500).json({ error: err.message });
-  } else {
-    // Frontend 요청은 index.html로
-    res.sendFile('public/index.html');
-  }
-});
-```
+에러 핸들러 미들웨어가 요청 경로를 확인합니다. /api로 시작하는 요청이면 500 상태로 JSON 에러 응답을 반환합니다. 그 외의 요청은 프론트엔드 요청으로 간주하여 index.html을 반환합니다.
 
 ---
 
@@ -742,20 +663,7 @@ node dist/index.js
 
 ### Health Check Endpoint
 
-```typescript
-app.get('/health', async (req, res) => {
-  const health = {
-    status: 'ok',
-    mode: config.serveFrontend ? 'integrated' : 'api-only',
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    database: await checkDatabase(),
-    modules: await checkModules()
-  };
-  
-  res.json(health);
-});
-```
+GET /health 엔드포인트는 시스템 상태를 조회합니다. 응답에는 전체 상태, 현재 배포 모드(통합 또는 api-only), 서버 업타임, 프로세스 메모리 사용량, 데이터베이스 연결 상태, 로드된 모듈 상태가 포함됩니다.
 
 ### 모니터링 (선택)
 

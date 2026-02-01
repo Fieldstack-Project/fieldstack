@@ -113,50 +113,11 @@
 
 #### 기술 구현 방향
 
-```typescript
-// packages/core/loader/index.ts
+ModuleLoader 클래스는 모듈 설치와 로드의 전체 파이프라인을 담당합니다.
 
-export class ModuleLoader {
-  /**
-   * 모듈 설치 + 자동 로드
-   * VSCode 확장 방식 구현
-   */
-  async installAndLoad(moduleId: string): Promise<void> {
-    // 1. 다운로드 및 검증
-    await this.downloadModule(moduleId);
-    await this.validateSecurity(moduleId);
-    
-    // 2. 의존성 설치
-    await this.installDependencies(moduleId);
-    
-    // 3. DB 마이그레이션
-    await this.runMigrations(moduleId);
-    
-    // 4. 런타임 동적 로드
-    await this.loadModuleRuntime(moduleId);
-    
-    // 5. 라우트 등록
-    await this.registerRoutes(moduleId);
-    
-    // 6. Frontend 알림
-    this.notifyFrontend('module:installed', { moduleId });
-  }
-  
-  /**
-   * Hot Reload (개발 모드)
-   */
-  async reloadModule(moduleId: string): Promise<void> {
-    // 1. 기존 모듈 정리
-    await this.unloadModule(moduleId);
-    
-    // 2. require.cache 제거
-    this.clearRequireCache(moduleId);
-    
-    // 3. 재로드
-    await this.loadModuleRuntime(moduleId);
-  }
-}
-```
+installAndLoad 메서드는 모듈 설치를 총 6단계로 처리합니다. 첫째로 모듈을 다운로드하고 보안 검증을 실행합니다. 둘째로 의존성을 설치합니다. 셋째로 DB 마이그레이션을 실행합니다. 넷째로 런타임에 모듈을 동적으로 로드합니다. 다섯째로 라우트를 등록합니다. 여섯째로 Frontend에 'module:installed' 이벤트를 WebSocket으로 알림합니다.
+
+reloadModule 메서드는 개발 모드에서 사용되는 Hot Reload 기능입니다. 기존 모듈을 먼저 정리한 후, require.cache를 제거하고 모듈을 다시 로드합니다.
 
 ### 📚 관련 문서
 
@@ -284,110 +245,21 @@ export class ModuleLoader {
 
 #### 기술 구현
 
-```typescript
-// packages/core/auth/admin.ts
+AdminAuthService 클래스는 관리자 PIN 인증을 담당합니다.
 
-export class AdminAuthService {
-  /**
-   * 초기 설치 시 관리자 PIN 생성
-   */
-  async setupAdminPin(email: string, pin: string): Promise<void> {
-    // PIN 검증 (4~6자리 숫자)
-    if (!/^\d{4,6}$/.test(pin)) {
-      throw new Error('PIN은 4~6자리 숫자여야 합니다');
-    }
-    
-    // 암호화 저장 (pbkdf2)
-    const salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync(pin, salt, 10000, 64, 'sha512')
-      .toString('hex');
-    
-    await db.allowedUsers.update({
-      where: { email },
-      data: { 
-        role: 'admin',
-        admin_pin_salt: salt,
-        admin_pin_hash: hash
-      }
-    });
-  }
-  
-  /**
-   * PIN 검증 + 세션 생성
-   */
-  async verifyAndCreateSession(
-    userId: string, 
-    pin: string
-  ): Promise<string> {
-    // PIN 검증
-    const valid = await this.verifyPin(userId, pin);
-    if (!valid) {
-      // 감사 로그
-      await this.logFailedAttempt(userId);
-      throw new Error('PIN이 올바르지 않습니다');
-    }
-    
-    // 세션 생성 (30분)
-    const sessionId = crypto.randomUUID();
-    await db.adminSessions.create({
-      data: {
-        id: sessionId,
-        user_id: userId,
-        expires_at: new Date(Date.now() + 30 * 60 * 1000)
-      }
-    });
-    
-    return sessionId;
-  }
-}
-```
+setupAdminPin 메서드는 초기 설치 시 관리자 PIN을 생성합니다. 먼저 PIN이 4~6자리 숫자인지 정규식으로 검증합니다. 통과하면 무작위 16바이트의 salt를 생성하고, PIN과 salt를 합쳐 pbkdf2로 10000회 반복 해싱합니다. 그 결과를 사용자 테이블에 role, salt, hash와 함께 저장합니다.
+
+verifyAndCreateSession 메서드는 PIN 검증과 세션 생성을 처리합니다. verifyPin을 호출하여 PIN이 올바른지 확인합니다. 검증 실패 시 감사 로그를 남기고 에러를 발생시킵니다. 검증 성공 시 무작위 UUID를 세션 ID로 생성하고, 현재 시간에서 30분을 더한 만료 시간과 함께 세션을 저장합니다.
 
 #### UI 구현
 
-```typescript
-// apps/web/src/components/AdminPinModal.tsx
-
-export function AdminPinModal({ open, onSuccess }) {
-  const [pin, setPin] = useState('');
-  
-  return (
-    <Modal open={open} title="🔐 관리자 인증">
-      <p>관리자 설정에 접근하려면 PIN을 입력하세요</p>
-      
-      {/* 숫자 패드 UI */}
-      <PinInput
-        length={6}
-        value={pin}
-        onChange={setPin}
-        onComplete={handleVerify}
-      />
-      
-      <p className="text-sm text-gray-600">
-        💡 이 인증은 30분간 유효합니다
-      </p>
-    </Modal>
-  );
-}
-```
+AdminPinModal은 관리자 인증 모달 컴포넌트입니다. '🔐 관리자 인증' 제목과 안내 문자열을 표시하고, PinInput 컴포넌트로 숫자 패드 형태의 PIN 입력 UI를 제공합니다. 6자리가 입력되면 자동으로 handleVerify를 호출합니다. 하단에는 '이 인증은 30분간 유효합니다' 안내가 표시됩니다.
 
 ### 🔒 보안 강화
 
-```typescript
-// Rate Limiting
-// 5회 실패 시 5분 잠금
-const RATE_LIMIT = {
-  attempts: 5,
-  window: 5 * 60 * 1000  // 5분
-};
+Rate Limiting은 5회 연속 실패 시 5분간 로그인을 잠급니다. 잠금 창은 5분(밀리초 환산)입니다.
 
-// 감사 로그
-interface AuditLog {
-  userId: string;
-  action: 'pin_verify_success' | 'pin_verify_failed';
-  ipAddress: string;
-  timestamp: Date;
-}
-```
+감사 로그는 각 PIN 검증 시도마다 사용자 ID, 성공/실패 여부, IP 주소, 타임스탬프를 기록합니다.
 
 ### 📚 관련 문서
 
@@ -470,19 +342,12 @@ interface AuditLog {
 
 1. **적절한 추상화 레벨**
    - Raw SQL보다 안전하고 간편
-   - ORM보다 가볍고 이해하기 쉬움
+   - ORM보다 가볍고 이해하기 쉜음
    - 필요 시 Raw SQL 직접 사용 가능
 
 2. **모듈 개발자 친화적**
-   ```typescript
-   // 간단하고 직관적
-   const entries = await db
-     .table('ledger_entries')
-     .where('user_id', userId)
-     .orderBy('date', 'desc')
-     .limit(50)
-     .get();
-   ```
+
+   사용법은 간단하고 직관적입니다. db.table('ledger_entries')에서 테이블을 지정하고, .where로 user_id 조건을 추가하고, .orderBy로 날짜 내림차순 정렬, .limit으로 50건 제한한 후 .get()으로 실행하면 결과를 받습니다.
 
 3. **다양한 DB 지원**
    - 각 Provider가 Query Builder를 SQL로 변환
@@ -494,120 +359,27 @@ interface AuditLog {
 
 #### Query Builder API
 
-```typescript
-// packages/core/db/index.ts
+DBClient 인터페이스는 두 가지 주요 기능을 제공합니다. table 메서드는 테이블 이름을 받아 QueryBuilder를 반환합니다. query 메서드는 Raw SQL과 파라미터를 받아 직접 실행할 수 있습니다. 트랜잭션은 transaction 메서드로 처리되며, 콜백 안에서 실행된 작업들이 하나로 묶입니다.
 
-export interface DBClient {
-  // Query Builder
-  table(name: string): QueryBuilder;
-  
-  // Raw Query (필요 시)
-  query(sql: string, params?: any[]): Promise<any[]>;
-  
-  // 트랜잭션
-  transaction<T>(fn: (trx: DBClient) => Promise<T>): Promise<T>;
-}
-
-export class QueryBuilder {
-  // 체이닝 API (Knex 스타일)
-  select(...columns: string[]): this;
-  where(column: string, value: any): this;
-  orderBy(column: string, direction: 'asc' | 'desc'): this;
-  limit(n: number): this;
-  offset(n: number): this;
-  
-  // 실행
-  async get(): Promise<any[]>;
-  async first(): Promise<any | null>;
-  async insert(data: any): Promise<any>;
-  async update(data: any): Promise<number>;
-  async delete(): Promise<number>;
-}
-```
+QueryBuilder 클래스는 Knex 스타일의 체이닝 API를 제공합니다. select로 컬럼을 지정하고, where로 조건을 추가하고, orderBy로 정렬, limit과 offset으로 페이지네이션을 적용합니다. 실행은 get(목록), first(단일 항목), insert(삽입), update(수정), delete(삭제) 메서드로 합니다.
 
 #### 사용 예시
 
-```typescript
-// modules/ledger/backend/service.ts
+getLedgerEntries 함수는 간단한 조회입니다. ledger_entries 테이블에서 user_id와 날짜 조건으로 필터링하고, 날짜 내림차순으로 50건까지 조회합니다.
 
-export async function getLedgerEntries(userId: string) {
-  // 간단한 쿼리
-  return await db
-    .table('ledger_entries')
-    .where('user_id', userId)
-    .where('date', '>=', '2025-01-01')
-    .orderBy('date', 'desc')
-    .limit(50)
-    .get();
-}
+createEntry 함수는 삽입입니다. 입력된 데이터에 created_at과 updated_at을 현재 시간으로 추가하여 테이블에 삽입합니다.
 
-export async function createEntry(data: any) {
-  // 삽입
-  return await db
-    .table('ledger_entries')
-    .insert({
-      ...data,
-      created_at: new Date(),
-      updated_at: new Date()
-    });
-}
+updateEntry 함수는 수정입니다. id 조건으로 해당 항목을 찾아 새 데이터로 업데이트합니다.
 
-export async function updateEntry(id: string, data: any) {
-  // 업데이트
-  return await db
-    .table('ledger_entries')
-    .where('id', id)
-    .update(data);
-}
-
-// 복잡한 쿼리는 Raw SQL
-export async function complexQuery() {
-  return await db.query(`
-    SELECT 
-      category,
-      SUM(amount) as total
-    FROM ledger_entries
-    WHERE user_id = $1
-    GROUP BY category
-  `, [userId]);
-}
-```
+복잡한 쿼리는 Raw SQL을 사용합니다. 예시로 카테고리별 금액 합계를 구하는 쿼리가 있으며, GROUP BY와 SUM을 사용합니다. 파라미터 바인딩으로 SQL Injection을 방지합니다.
 
 #### Provider 구현
 
-```typescript
-// packages/core/db/providers/postgres.ts
+PostgresProvider는 Query Builder를 PostgreSQL SQL로 변환합니다. WHERE 절에서 `$1, $2` 형태의 플레이스홀더를 사용하고, INSERT에서는 RETURNING *를 사용하여 삽입된 행을 반환합니다.
 
-export class PostgresProvider implements DBClient {
-  table(name: string): QueryBuilder {
-    return new QueryBuilder(name, this, 'postgres');
-  }
-  
-  // Query Builder → PostgreSQL SQL 변환
-  toSQL(builder: QueryBuilder): { text: string; values: any[] } {
-    // SELECT * FROM table WHERE col = $1 AND col2 = $2
-    // RETURNING * (INSERT용)
-  }
-}
+SQLiteProvider는 Query Builder를 SQLite SQL로 변환합니다. WHERE 절에서 `?, ?` 형태의 플레이스홀더를 사용하고, INSERT에서는 LAST_INSERT_ROWID()를 사용합니다.
 
-// packages/core/db/providers/sqlite.ts
-
-export class SQLiteProvider implements DBClient {
-  toSQL(builder: QueryBuilder): { text: string; values: any[] } {
-    // SELECT * FROM table WHERE col = ? AND col2 = ?
-    // LAST_INSERT_ROWID() (INSERT용)
-  }
-}
-
-// packages/core/db/providers/mongodb.ts
-
-export class MongoDBProvider implements DBClient {
-  // Query Builder → MongoDB Query Object
-  toMongoQuery(builder: QueryBuilder): object {
-    // { userId: xxx, date: { $gte: xxx } }
-  }
-}
-```
+MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예시로 userId와 날짜 조건은 `{ userId: xxx, date: { $gte: xxx } }` 형태로 변환됩니다.
 
 ### 📚 관련 문서
 
@@ -623,12 +395,8 @@ export class MongoDBProvider implements DBClient {
 ### ⚠️ 주의사항
 
 1. **트랜잭션 사용**
-   ```typescript
-   await db.transaction(async (trx) => {
-     await trx.table('entries').insert(entry);
-     await trx.table('accounts').update(balance);
-   });
-   ```
+
+   트랜잭션은 여러 작업을 하나로 묶어 원자성을 보장합니다. 예시로 entries 테이블에 삽입하고 accounts 테이블의 잔액을 업데이트하는 두 작업이 있으며, 하나라도 실패하면 두 작업 모두 되돌려집니다.
 
 2. **SQL Injection 방지**
    - 항상 파라미터 바인딩 사용
