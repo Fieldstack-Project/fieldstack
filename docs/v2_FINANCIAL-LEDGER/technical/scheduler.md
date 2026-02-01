@@ -34,22 +34,7 @@ apps/api/src/plugins/scheduler/
 
 모듈은 **초기화 시 작업을 등록**:
 
-```typescript
-// modules/ledger/backend/index.ts
-import { scheduler } from '@core/plugins/scheduler';
-
-export function initialize() {
-  // 월간 요약 작업 등록
-  scheduler.register({
-    name: 'ledger-monthly-summary',
-    schedule: '0 0 1 * *',  // 매월 1일 자정
-    handler: async () => {
-      const summary = await generateMonthlySummary();
-      await sendNotification(summary);
-    }
-  });
-}
-```
+Core의 scheduler를 가져와 초기화 함수 내에서 작업을 등록합니다. 예시로 '월간 요약' 작업을 등록하며, 스케줄은 매월 1일 자정으로 설정합니다. 작업이 실행되면 월간 요약을 생성한 후 사용자에게 알림을 보냅니다.
 
 ---
 
@@ -84,93 +69,32 @@ export function initialize() {
 
 ### 1. 월간 가계부 요약
 
-```typescript
-scheduler.register({
-  name: 'ledger-monthly-summary',
-  schedule: '0 9 1 * *',  // 매월 1일 오전 9시
-  handler: async () => {
-    const lastMonth = getLastMonth();
-    const entries = await db.query(
-      'SELECT * FROM ledger_entries WHERE month = ?', 
-      [lastMonth]
-    );
-    
-    const summary = calculateSummary(entries);
-    await notifyUser(summary);
-  }
-});
-```
+작업명은 'ledger-monthly-summary'이며, 매월 1일 오전 9시에 실행됩니다. 실행되면 지난 달의 가계부 항목을 조회한 후 요약을 계산하고, 사용자에게 요약 알림을 보냅니다.
 
 ### 2. 구독 결제일 체크
 
 > 📖 **기본 모듈:**  
 > → `modules/default-modules.md § Subscription`
 
-```typescript
-scheduler.register({
-  name: 'subscription-payment-check',
-  schedule: '0 9 * * *',  // 매일 오전 9시
-  handler: async () => {
-    const today = new Date();
-    const dueSubscriptions = await db.query(
-      'SELECT * FROM subscriptions WHERE payment_day = ?',
-      [today.getDate()]
-    );
-    
-    for (const sub of dueSubscriptions) {
-      await sendPaymentReminder(sub);
-    }
-  }
-});
-```
+작업명은 'subscription-payment-check'이며, 매일 오전 9시에 실행됩니다. 실행되면 오늘 날짜와 결제일이 일치하는 구독 목록을 조회하고, 각각에 대해 결제일 안내 알림을 보냅니다.
 
 ### 3. 외주 정산 알림
 
-```typescript
-scheduler.register({
-  name: 'project-settlement-reminder',
-  schedule: '0 10 * * 1',  // 매주 월요일 오전 10시
-  handler: async () => {
-    const pendingProjects = await db.query(
-      'SELECT * FROM projects WHERE status = "pending_settlement"'
-    );
-    
-    await sendSettlementReminder(pendingProjects);
-  }
-});
-```
+작업명은 'project-settlement-reminder'이며, 매주 월요일 오전 10시에 실행됩니다. 실행되면 정산 대기 중인 프로젝트들을 조회하고, 정산 안내 알림을 보냅니다.
 
 ### 4. Google Drive 자동 백업
 
 > 📖 **통합 서비스:**  
 > → `modules/integrations.md § Google Drive`
 
-```typescript
-scheduler.register({
-  name: 'backup-to-drive',
-  schedule: '0 2 * * *',  // 매일 새벽 2시
-  handler: async () => {
-    const backup = await createDatabaseBackup();
-    await uploadToGoogleDrive(backup);
-  }
-});
-```
+작업명은 'backup-to-drive'이며, 매일 새벽 2시에 실행됩니다. 실행되면 데이터베이스 백업 파일을 생성한 후 Google Drive에 업로드합니다.
 
 ### 5. Slack 리포트 전송
 
 > 📖 **통합 서비스:**  
 > → `modules/integrations.md § Slack`
 
-```typescript
-scheduler.register({
-  name: 'weekly-slack-report',
-  schedule: '0 9 * * 1',  // 매주 월요일 오전 9시
-  handler: async () => {
-    const weeklyStats = await generateWeeklyStats();
-    await sendToSlack(weeklyStats);
-  }
-});
-```
+작업명은 'weekly-slack-report'이며, 매주 월요일 오전 9시에 실행됩니다. 실행되면 주간 통계를 생성한 후 Slack으로 전송합니다.
 
 ---
 
@@ -178,45 +102,11 @@ scheduler.register({
 
 모든 작업 실행은 로그로 기록:
 
-```typescript
-interface ExecutionLog {
-  taskName: string;
-  executedAt: string;      // ISO 8601
-  status: 'success' | 'failed';
-  duration: number;        // ms
-  error?: string;
-}
-```
+실행 로그의 구조는 작업명(taskName), 실행 시간(executedAt, ISO 8601 형식), 결과 상태(success 또는 failed), 실행 소요 시간(duration, ms 단위), 실패 시 에러 메시지(error)로 구성됩니다.
 
 ### 로그 저장
 
-```typescript
-// apps/api/src/plugins/scheduler/executor.ts
-
-async function executeTask(task: ScheduledTask) {
-  const startTime = Date.now();
-  let status: 'success' | 'failed' = 'success';
-  let error: string | undefined;
-  
-  try {
-    await task.handler();
-  } catch (err) {
-    status = 'failed';
-    error = err.message;
-    console.error(`❌ Task failed: ${task.name}`, err);
-  }
-  
-  const duration = Date.now() - startTime;
-  
-  // 로그 저장
-  await db.query(
-    'INSERT INTO scheduler_logs (task_name, executed_at, status, duration, error) VALUES (?, ?, ?, ?, ?)',
-    [task.name, new Date().toISOString(), status, duration, error]
-  );
-  
-  console.log(`✓ Task executed: ${task.name} (${duration}ms)`);
-}
-```
+executeTask 함수는 작업을 실행하고 로그를 저장합니다. 실행 시작 시간을 기록한 후 작업의 handler를 실행합니다. 성공하면 상태를 'success'로, 실패하면 'failed'로 설정하고 에러 메시지를 저장합니다. 실행이 완료되면 작업명, 실행 시간, 상태, 소요 시간, 에러 메시지를 scheduler_logs 테이블에 기록합니다.
 
 ---
 
@@ -234,76 +124,7 @@ async function executeTask(task: ScheduledTask) {
 
 ### UI 예시
 
-```typescript
-// apps/web/src/pages/Settings/Scheduler.tsx
-
-import { Card, Table, Button, Switch } from '@core/ui';
-
-export default function SchedulerSettings() {
-  const [tasks, setTasks] = useState<ScheduledTask[]>([]);
-  
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-  
-  const fetchTasks = async () => {
-    const response = await fetch('/api/scheduler/tasks');
-    setTasks(await response.json());
-  };
-  
-  const handleToggle = async (taskName: string, enabled: boolean) => {
-    await fetch(`/api/scheduler/tasks/${taskName}/toggle`, {
-      method: 'POST',
-      body: JSON.stringify({ enabled })
-    });
-    
-    fetchTasks();
-  };
-  
-  const handleRunNow = async (taskName: string) => {
-    await fetch(`/api/scheduler/tasks/${taskName}/run`, {
-      method: 'POST'
-    });
-    
-    notify.success('작업이 실행되었습니다');
-  };
-  
-  return (
-    <Card title="스케줄된 작업">
-      <Table
-        columns={[
-          { key: 'name', label: '작업명' },
-          { key: 'schedule', label: '스케줄' },
-          { key: 'nextRun', label: '다음 실행' },
-          { 
-            key: 'enabled', 
-            label: '활성화',
-            render: (task) => (
-              <Switch
-                checked={task.enabled}
-                onChange={(enabled) => handleToggle(task.name, enabled)}
-              />
-            )
-          },
-          {
-            key: 'actions',
-            label: '작업',
-            render: (task) => (
-              <Button 
-                size="sm"
-                onClick={() => handleRunNow(task.name)}
-              >
-                지금 실행
-              </Button>
-            )
-          }
-        ]}
-        data={tasks}
-      />
-    </Card>
-  );
-}
-```
+SchedulerSettings 페이지 컴포넌트입니다. 컴포넌트가 열리면 백엔드에서 등록된 작업 목록을 가져옵니다. 작업 목록을 테이블로 표시하며, 각 행에는 작업명, 스케줄, 다음 실행 시간이 표시됩니다. 활성화 열에는 토글 스위치가 있어 클릭하면 백엔드에 활성화/비활성화 요청을 보내고 목록을 다시 조회합니다. 작업 열에는 '지금 실행' 버튼이 있어 클릭하면 백엔드에 수동 실행 요청을 보내고 성공 시 '작업이 실행되었습니다' 알림을 표시합니다.
 
 ---
 
@@ -314,31 +135,7 @@ export default function SchedulerSettings() {
 
 Scheduler는 통합 서비스와 함께 사용하여 강력한 자동화 구현:
 
-```typescript
-scheduler.register({
-  name: 'automated-workflow',
-  schedule: '0 18 * * 5',  // 매주 금요일 오후 6시
-  handler: async () => {
-    // 1. 주간 데이터 수집
-    const weeklyData = await collectWeeklyData();
-    
-    // 2. AI로 분석
-    const analysis = await ai.analyze(weeklyData);
-    
-    // 3. 리포트 생성
-    const report = generateReport(analysis);
-    
-    // 4. Google Drive에 저장
-    await googleDrive.upload(report);
-    
-    // 5. Slack으로 알림
-    await slack.notify('주간 리포트가 생성되었습니다');
-    
-    // 6. 이메일 발송
-    await email.send(report);
-  }
-});
-```
+작업명은 'automated-workflow'이며, 매주 금요일 오후 6시에 실행됩니다. 실행되면 총 6단계로 진행됩니다. 첫째로 주간 데이터를 수집합니다. 둘째로 AI를 활용하여 데이터를 분석합니다. 셋째로 분석 결과로 리포트를 생성합니다. 넷째로 리포트를 Google Drive에 저장합니다. 다섯째로 Slack에 '주간 리포트가 생성되었습니다' 알림을 보냅니다. 여섯째로 리포트를 이메일로 발송합니다.
 
 ---
 
@@ -346,214 +143,41 @@ scheduler.register({
 
 ### 재시도 정책
 
-```typescript
-scheduler.register({
-  name: 'critical-task',
-  schedule: '0 * * * *',
-  retries: 3,              // 최대 3회 재시도
-  retryDelay: 300000,      // 5분 후 재시도
-  onError: async (error) => {
-    // 실패 알림
-    await notifyAdmin({
-      task: 'critical-task',
-      error: error.message
-    });
-  }
-});
-```
+작업을 등록할 때 retries와 retryDelay를 설정할 수 있습니다. retries는 최대 재시도 횟수이고 retryDelay는 재시도 간 대기 시간(밀리초)입니다. 예시로 retries를 3회, retryDelay를 5분(300000ms)으로 설정하며, 모든 재시도가 실패하면 onError 콜백에서 관리자에게 실패 알림을 보냅니다.
 
 ### 구현
 
-```typescript
-// apps/api/src/plugins/scheduler/executor.ts
-
-async function executeWithRetry(task: ScheduledTask) {
-  let lastError: Error;
-  
-  for (let attempt = 0; attempt <= (task.retries || 0); attempt++) {
-    try {
-      await task.handler();
-      return; // 성공
-      
-    } catch (error) {
-      lastError = error;
-      
-      if (attempt < (task.retries || 0)) {
-        console.log(`⚠️ Retry ${attempt + 1}/${task.retries}: ${task.name}`);
-        await sleep(task.retryDelay || 60000);
-      }
-    }
-  }
-  
-  // 모든 재시도 실패
-  if (task.onError) {
-    await task.onError(lastError);
-  }
-  
-  throw lastError;
-}
-```
+executeWithRetry 함수는 작업을 실행하고 실패 시 재시도합니다. 최대 재시도 횟수까지 반복하며, 각 재시도 사이에 retryDelay만큼 대기합니다. 성공하면 즉시 종료합니다. 모든 재시도가 실패하면 onError 콜백이 있으면 실행하고, 마지막 에러를 발생시킵니다.
 
 ---
 
 ## Scheduler 엔진 구현
 
-```typescript
-// apps/api/src/plugins/scheduler/index.ts
+Scheduler 클래스는 전체 스케줄 엔진을 담당합니다. 내부에는 등록된 작업 목록과 실행 중인 cron 작업 목록을 각각 관리합니다.
 
-import cron from 'node-cron';
+register 메서드는 새 작업을 등록합니다. enabled가 명시적으로 false가 아니면 기본적으로 활성화로 설정하고, 활성화된 작업은 바로 cron에 등록하여 실행을 시작합니다.
 
-interface ScheduledTask {
-  name: string;
-  schedule: string;        // Cron 표현식
-  handler: () => Promise<void>;
-  enabled?: boolean;
-  retries?: number;
-  retryDelay?: number;
-  onError?: (error: Error) => Promise<void>;
-}
+startJob 메서드는 cron.schedule을 사용하여 지정된 스케줄에 따라 작업을 자동으로 실행하도록 설정합니다.
 
-class Scheduler {
-  private tasks = new Map<string, ScheduledTask>();
-  private jobs = new Map<string, cron.ScheduledTask>();
-  
-  register(task: ScheduledTask) {
-    // 기본값 설정
-    task.enabled = task.enabled !== false;
-    
-    // 등록
-    this.tasks.set(task.name, task);
-    
-    // Cron 작업 시작
-    if (task.enabled) {
-      this.startJob(task);
-    }
-    
-    console.log(`✓ Task registered: ${task.name} (${task.schedule})`);
-  }
-  
-  private startJob(task: ScheduledTask) {
-    const job = cron.schedule(task.schedule, async () => {
-      console.log(`▶ Running task: ${task.name}`);
-      await executeTask(task);
-    });
-    
-    this.jobs.set(task.name, job);
-  }
-  
-  unregister(name: string) {
-    const job = this.jobs.get(name);
-    
-    if (job) {
-      job.stop();
-      this.jobs.delete(name);
-    }
-    
-    this.tasks.delete(name);
-    console.log(`✓ Task unregistered: ${name}`);
-  }
-  
-  async runNow(name: string) {
-    const task = this.tasks.get(name);
-    
-    if (!task) {
-      throw new Error(`Task not found: ${name}`);
-    }
-    
-    console.log(`▶ Manual run: ${name}`);
-    await executeTask(task);
-  }
-  
-  getTask(name: string): ScheduledTask | undefined {
-    return this.tasks.get(name);
-  }
-  
-  getAllTasks(): ScheduledTask[] {
-    return Array.from(this.tasks.values());
-  }
-  
-  toggle(name: string, enabled: boolean) {
-    const task = this.tasks.get(name);
-    
-    if (!task) {
-      throw new Error(`Task not found: ${name}`);
-    }
-    
-    task.enabled = enabled;
-    
-    if (enabled) {
-      this.startJob(task);
-    } else {
-      const job = this.jobs.get(name);
-      if (job) {
-        job.stop();
-        this.jobs.delete(name);
-      }
-    }
-    
-    console.log(`✓ Task ${enabled ? 'enabled' : 'disabled'}: ${name}`);
-  }
-}
+unregister 메서드는 해당 작업의 cron을 중지하고 등록 목록에서도 제거합니다.
 
-// 전역 인스턴스
-export const scheduler = new Scheduler();
-```
+runNow 메서드는 스케줄과 무관하게 즉시 작업을 실행합니다.
+
+toggle 메서드는 작업을 활성화하거나 비활성화합니다. 활성화하면 cron을 시작하고, 비활성화하면 cron을 중지합니다.
+
+마지막에서 전역 인스턴스로 Scheduler를 하나 생성하여 앱 전체에서 공유합니다.
 
 ---
 
 ## API 엔드포인트
 
-```typescript
-// apps/api/src/routes/scheduler.ts
+GET /tasks 엔드포인트는 등록된 작업 전체를 조회하여 작업명, 스케줄, 활성화 여부, 다음 실행 시간을 반환합니다.
 
-import { Router } from 'express';
-import { scheduler } from '../plugins/scheduler';
+POST /tasks/:name/toggle 엔드포인트는 요청 본문의 enabled 값으로 해당 작업의 활성화 상태를 변경합니다.
 
-const router = Router();
+POST /tasks/:name/run 엔드포인트는 해당 작업을 즉시 실행합니다. 성공하면 success를 반환하고, 실패하면 에러 메시지를 반환합니다.
 
-// 작업 목록 조회
-router.get('/tasks', async (req, res) => {
-  const tasks = scheduler.getAllTasks();
-  
-  res.json(tasks.map(task => ({
-    name: task.name,
-    schedule: task.schedule,
-    enabled: task.enabled,
-    nextRun: getNextRunTime(task.schedule)
-  })));
-});
-
-// 작업 활성화/비활성화
-router.post('/tasks/:name/toggle', async (req, res) => {
-  const { enabled } = req.body;
-  
-  scheduler.toggle(req.params.name, enabled);
-  
-  res.json({ success: true });
-});
-
-// 수동 실행
-router.post('/tasks/:name/run', async (req, res) => {
-  try {
-    await scheduler.runNow(req.params.name);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 실행 히스토리
-router.get('/tasks/:name/history', async (req, res) => {
-  const logs = await db.query(
-    'SELECT * FROM scheduler_logs WHERE task_name = ? ORDER BY executed_at DESC LIMIT 100',
-    [req.params.name]
-  );
-  
-  res.json(logs);
-});
-
-export default router;
-```
+GET /tasks/:name/history 엔드포인트는 해당 작업의 실행 로그를 실행 시간 내림차순으로 최근 100건까지 조회합니다.
 
 ---
 
@@ -562,49 +186,19 @@ export default router;
 > 📖 **모듈 생명주기:**  
 > → `modules/system-design.md § 모듈 생명주기 § shutdown()`
 
-```typescript
-// modules/ledger/backend/index.ts
-
-export function shutdown() {
-  // Scheduler 작업 제거
-  scheduler.unregister('ledger-monthly-summary');
-  
-  console.log('Ledger module shutdown complete');
-}
-```
+모듈의 shutdown 함수에서 scheduler.unregister를 호출하여 해당 모듈이 등록한 작업을 제거합니다. 예시로 ledger 모듈은 종료 시 'ledger-monthly-summary' 작업을 제거합니다.
 
 ---
 
 ## 다음 실행 시간 계산
 
-```typescript
-import parser from 'cron-parser';
-
-function getNextRunTime(cronExpression: string): Date {
-  const interval = parser.parseExpression(cronExpression);
-  return interval.next().toDate();
-}
-
-// 사용
-const nextRun = getNextRunTime('0 9 * * *');
-console.log(`Next run: ${nextRun.toISOString()}`);
-```
+getNextRunTime 함수는 cron-parser 라이브러리를 사용하여 주어진 Cron 표현식의 다음 실행 시간을 계산합니다. 예시로 '0 9 * * *'(매일 오전 9시)의 다음 실행 시간을 반환합니다.
 
 ---
 
 ## 타임존 처리
 
-```typescript
-import parser from 'cron-parser';
-
-const options = {
-  currentDate: new Date(),
-  tz: 'Asia/Seoul'  // 타임존 설정
-};
-
-const interval = parser.parseExpression('0 9 * * *', options);
-const nextRun = interval.next().toDate();
-```
+cron-parser에 타임존 옵션을 설정할 수 있습니다. 예시로 'Asia/Seoul'로 설정하면 한국 시간 기준으로 다음 실행 시간을 계산합니다.
 
 ---
 
@@ -612,44 +206,11 @@ const nextRun = interval.next().toDate();
 
 ### 대시보드
 
-```typescript
-// apps/web/src/pages/Scheduler/Dashboard.tsx
-
-export default function SchedulerDashboard() {
-  const [stats, setStats] = useState({
-    totalTasks: 0,
-    activeTasks: 0,
-    successRate: 0,
-    lastExecution: null
-  });
-  
-  return (
-    <div className="grid grid-cols-4 gap-4">
-      <StatCard title="전체 작업" value={stats.totalTasks} />
-      <StatCard title="활성 작업" value={stats.activeTasks} />
-      <StatCard title="성공률" value={`${stats.successRate}%`} />
-      <StatCard title="마지막 실행" value={stats.lastExecution} />
-    </div>
-  );
-}
-```
+SchedulerDashboard 컴포넌트는 스케줄 현황을 요약하여 표시합니다. 전체 작업 수, 활성 작업 수, 성공률, 마지막 실행 시간의 네 가지 정보를 카드 형태로 보여줍니다.
 
 ### 알림
 
-```typescript
-// 작업 실패 시 알림
-scheduler.register({
-  name: 'important-task',
-  schedule: '0 0 * * *',
-  onError: async (error) => {
-    await sendEmail({
-      to: 'admin@example.com',
-      subject: '작업 실패 알림',
-      body: `작업이 실패했습니다: ${error.message}`
-    });
-  }
-});
-```
+작업을 등록할 때 onError 콜백을 설정할 수 있습니다. 예시로 'important-task'는 실패 시 관리자 이메일로 '작업 실패 알림'을 발송하며, 본문에는 실패한 에러 메시지를 포함합니다.
 
 ---
 
@@ -657,40 +218,11 @@ scheduler.register({
 
 ### 병렬 실행 제한
 
-```typescript
-import pLimit from 'p-limit';
-
-const limit = pLimit(5); // 최대 5개 동시 실행
-
-async function executeAllPendingTasks() {
-  const tasks = getPendingTasks();
-  
-  await Promise.all(
-    tasks.map(task => limit(() => executeTask(task)))
-  );
-}
-```
+p-limit 라이브러리를 사용하여 동시에 실행되는 작업 수를 제한합니다. 예시로 최대 5개의 작업만 동시에 실행되도록 설정합니다. 대기 중인 작업들은 앞선 작업이 완료되면 순차적으로 실행됩니다.
 
 ### 중복 실행 방지
 
-```typescript
-const runningTasks = new Set<string>();
-
-async function executeTask(task: ScheduledTask) {
-  if (runningTasks.has(task.name)) {
-    console.log(`⚠️ Task already running: ${task.name}`);
-    return;
-  }
-  
-  runningTasks.add(task.name);
-  
-  try {
-    await task.handler();
-  } finally {
-    runningTasks.delete(task.name);
-  }
-}
-```
+runningTasks라는 집합(Set)을 사용하여 현재 실행 중인 작업명을 추적합니다. executeTask가 호출될 때 이미 같은 작업이 실행 중이면 실행하지 않고 경고를 출력합니다. 작업이 완료되면 (성공이든 실패든) 해당 작업명을 집합에서 제거합니다.
 
 ---
 

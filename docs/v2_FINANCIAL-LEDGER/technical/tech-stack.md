@@ -66,7 +66,7 @@
   - TypeScript 지원
   - 서버 상태 관리
 
-### 라우팅
+### 라우팩
 - **React Router** v6
   - 선언적 라우팅
   - Nested Routes
@@ -171,13 +171,8 @@ apps/api/
 ```
 
 **실행:**
-```bash
-# Terminal 1
-pnpm dev:web    # Vite → :5173
 
-# Terminal 2
-pnpm dev:api    # Express → :3000
-```
+개발 시에는 터미널 두 개를 열어 사용합니다. 첫 번째 터미널에서는 pnpm dev:web 명령으로 Vite 개발 서버를 실행하여 포트 5173에서 프론트엔드를 서빙합니다. 두 번째 터미널에서는 pnpm dev:api 명령으로 Express 백엔드 서버를 실행하여 포트 3000에서 API를 서빙합니다.
 
 **장점:**
 - 빠른 개발
@@ -222,12 +217,8 @@ pnpm dev:api    # Express → :3000
   - Workspace 지원
 
 ### 워크스페이스 구조
-```yaml
-# pnpm-workspace.yaml
-packages:
-  - 'packages/*'
-  - 'apps/*'
-```
+
+pnpm-workspace.yaml 파일에서 워크스페이스 범위를 정의합니다. packages/ 폴더와 apps/ 폴더 안의 모든 패키지를 워크스페이스로 포함시킵니다.
 
 ### 빌드 도구
 - **Turborepo** (선택)
@@ -421,15 +412,8 @@ packages:
   - **Asset hashing** (캐시 버스팅)
 
 ### 정적 파일 캐싱
-```typescript
-// Express 설정
-app.use(express.static('public', {
-  maxAge: '1y',           // 1년 캐시
-  etag: true,
-  lastModified: true,
-  immutable: true
-}));
-```
+
+Express에서 public/ 폴더의 정적 파일을 서빙할 때 캐시 설정을 적용합니다. maxAge를 1년으로 설정하여 브라우저가 해당 파일을 1년간 캐시하도록 합니다. etag와 lastModified는 파일이 변경되었는지 확인하는 기능이고, immutable은 캐시 유효 기간 내에 파일이 변경되지 않는다는 신호를 브라우저에 전달합니다.
 
 ---
 
@@ -437,37 +421,15 @@ app.use(express.static('public', {
 
 ### 개발 환경 (.env.development)
 
-```env
-NODE_ENV=development
-PORT=3000
-SERVE_FRONTEND=false
-
-# Frontend는 Vite가 별도로 서빙
-# Backend는 API만 제공
-```
+NODE_ENV를 'development'로, PORT를 3000으로 설정합니다. SERVE_FRONTEND를 false로 설정하여 백엔드는 API만 제공하고, 프론트엔드는 Vite가 별도로 서빙합니다.
 
 ### 프로덕션 통합 (.env.production)
 
-```env
-NODE_ENV=production
-PORT=3000
-SERVE_FRONTEND=true
-
-# Backend가 Frontend + API 모두 서빙
-# 단일 포트
-```
+NODE_ENV를 'production'으로, PORT를 3000으로 설정합니다. SERVE_FRONTEND를 true로 설정하여 백엔드가 프론트엔드 정적 파일과 API를 모두 단일 포트로 서빙합니다.
 
 ### 프로덕션 분리 (.env.production.separated)
 
-```env
-NODE_ENV=production
-PORT=3000
-SERVE_FRONTEND=false
-CORS_ORIGIN=https://my-frontend.vercel.app
-
-# Backend는 API만
-# Frontend는 별도 CDN
-```
+NODE_ENV를 'production'으로, PORT를 3000으로 설정합니다. SERVE_FRONTEND를 false로 설정하여 백엔드는 API만 제공합니다. CORS_ORIGIN에 프론트엔드가 배포된 CDN 주소를 넣어 해당 도메인만 API 접근을 허용합니다. 프론트엔드는 별도 CDN에서 서빙됩니다.
 
 ---
 

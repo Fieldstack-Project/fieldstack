@@ -24,16 +24,8 @@ AI는 계산 주체가 아닌 **분석/요약/해설 역할**로만 사용됩니
 ## 지원 Provider
 
 ### 1. Google Gemini
-```typescript
-{
-  provider: 'gemini',
-  models: [
-    'gemini-pro',
-    'gemini-pro-vision'
-  ],
-  features: ['text', 'vision', 'multimodal']
-}
-```
+
+Provider를 'gemini'로 설정하고, 사용 가능한 모델으로 gemini-pro와 gemini-pro-vision이 있습니다. 지원하는 기능은 텍스트, 이미지, 멀티모달입니다.
 
 **장점:**
 - 무료 티어 제공
@@ -41,17 +33,8 @@ AI는 계산 주체가 아닌 **분석/요약/해설 역할**로만 사용됩니
 - 빠른 응답
 
 ### 2. OpenAI
-```typescript
-{
-  provider: 'openai',
-  models: [
-    'gpt-4',
-    'gpt-4-turbo',
-    'gpt-3.5-turbo'
-  ],
-  features: ['text', 'function-calling']
-}
-```
+
+Provider를 'openai'로 설정하고, 사용 가능한 모델으로 gpt-4, gpt-4-turbo, gpt-3.5-turbo가 있습니다. 지원하는 기능은 텍스트와 함수 호출(Function Calling)입니다.
 
 **장점:**
 - 고품질 응답
@@ -59,17 +42,8 @@ AI는 계산 주체가 아닌 **분석/요약/해설 역할**로만 사용됩니
 - 안정적
 
 ### 3. Anthropic Claude
-```typescript
-{
-  provider: 'anthropic',
-  models: [
-    'claude-3-opus',
-    'claude-3-sonnet',
-    'claude-3-haiku'
-  ],
-  features: ['text', 'long-context']
-}
-```
+
+Provider를 'anthropic'로 설정하고, 사용 가능한 모델으로 claude-3-opus, claude-3-sonnet, claude-3-haiku가 있습니다. 지원하는 기능은 텍스트와 긴 컨텍스트 처리입니다.
 
 **장점:**
 - 긴 컨텍스트
@@ -77,17 +51,8 @@ AI는 계산 주체가 아닌 **분석/요약/해설 역할**로만 사용됩니
 - 안전성
 
 ### 4. Ollama (로컬)
-```typescript
-{
-  provider: 'ollama',
-  models: [
-    'llama2',
-    'mistral',
-    'codellama'
-  ],
-  features: ['text', 'local']
-}
-```
+
+Provider를 'ollama'로 설정하고, 사용 가능한 모델으로 llama2, mistral, codellama가 있습니다. 지원하는 기능은 텍스트와 로컬 실행입니다.
 
 **장점:**
 - 완전 무료
@@ -100,11 +65,7 @@ AI는 계산 주체가 아닌 **분석/요약/해설 역할**로만 사용됩니
 
 ### 환경 변수
 
-```env
-AI_PROVIDER=gemini
-AI_API_KEY=your-api-key
-AI_MODEL=gemini-pro
-```
+AI_PROVIDER에 사용할 Provider 이름을 넣고, AI_API_KEY에 해당 Provider의 API 키를 넣고, AI_MODEL에 사용할 모델 이름을 넣습니다.
 
 ### 웹 UI 설정
 
@@ -121,113 +82,23 @@ AI_MODEL=gemini-pro
 
 ### 인터페이스
 
-```typescript
-// packages/core/ai/index.ts
+AI Provider가 공통으로 제공해야 할 세 가지 기능을 정의합니다. 첫째는 generate로, 프롬프트를 받아 텍스트 응답을 생성합니다. 둘째는 generateStream으로, 응답을 청크 단위로 실시간으로 흘려보내는 스트리밍 생성입니다. 셋째는 analyzeImage로, 이미지와 프롬프트를 받아 이미지를 분석합니다.
 
-export interface AIProvider {
-  generate(prompt: string, options?: GenerateOptions): Promise<string>;
-  generateStream(prompt: string, options?: GenerateOptions): AsyncIterator<string>;
-  analyzeImage(image: Buffer, prompt: string): Promise<string>;
-}
-
-export interface GenerateOptions {
-  temperature?: number;
-  maxTokens?: number;
-  systemPrompt?: string;
-}
-```
+GenerateOptions는 응답의 창의성을 조절하는 temperature, 최대 응답 길이인 maxTokens, 그리고 시스템 수준의 지침인 systemPrompt를 설정할 수 있습니다.
 
 ### Provider 구현
 
-```typescript
-// packages/core/ai/providers/gemini.ts
+Gemini Provider의 구현을 예시로 보여줍니다. 클래스를 초기화할 때 API 키와 모델 이름을 받아 저장합니다.
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+generate 메서드는 주어진 프롬프트를 Gemini API에 전송하여 텍스트 응답을 받아 반환합니다. 이때 temperature와 maxTokens 옵션을 적용하며, 기본값은 각각 0.7과 1000입니다.
 
-export class GeminiProvider implements AIProvider {
-  private client: GoogleGenerativeAI;
-  private model: string;
-  
-  constructor(apiKey: string, model: string = 'gemini-pro') {
-    this.client = new GoogleGenerativeAI(apiKey);
-    this.model = model;
-  }
-  
-  async generate(prompt: string, options?: GenerateOptions): Promise<string> {
-    const model = this.client.getGenerativeModel({ 
-      model: this.model 
-    });
-    
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: options?.temperature ?? 0.7,
-        maxOutputTokens: options?.maxTokens ?? 1000
-      }
-    });
-    
-    return result.response.text();
-  }
-  
-  async *generateStream(prompt: string, options?: GenerateOptions) {
-    const model = this.client.getGenerativeModel({ 
-      model: this.model 
-    });
-    
-    const result = await model.generateContentStream(prompt);
-    
-    for await (const chunk of result.stream) {
-      yield chunk.text();
-    }
-  }
-  
-  async analyzeImage(image: Buffer, prompt: string): Promise<string> {
-    const model = this.client.getGenerativeModel({ 
-      model: 'gemini-pro-vision' 
-    });
-    
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: image.toString('base64'),
-          mimeType: 'image/jpeg'
-        }
-      }
-    ]);
-    
-    return result.response.text();
-  }
-}
-```
+generateStream 메서드는 동일하게 프롬프트를 전송하지만, 응답을 청크 단위로 실시간으로 받아 하나씩 반환합니다.
+
+analyzeImage 메서드는 이미지를 Base64로 변환하여 프롬프트와 함께 gemini-pro-vision 모델에 전송하고, 분석 결과를 텍스트로 반환합니다.
 
 ### Provider 팩토리
 
-```typescript
-// packages/core/ai/factory.ts
-
-export async function createAIProvider(userId: string): Promise<AIProvider> {
-  // 사용자 설정 가져오기
-  const config = await getAIConfig(userId);
-  
-  if (!config.provider || config.provider === 'none') {
-    throw new Error('AI is not configured');
-  }
-  
-  switch (config.provider) {
-    case 'gemini':
-      return new GeminiProvider(config.apiKey, config.model);
-    case 'openai':
-      return new OpenAIProvider(config.apiKey, config.model);
-    case 'anthropic':
-      return new ClaudeProvider(config.apiKey, config.model);
-    case 'ollama':
-      return new OllamaProvider(config.model);
-    default:
-      throw new Error(`Unknown AI provider: ${config.provider}`);
-  }
-}
-```
+사용자 ID를 받아 해당 사용자의 AI 설정을 조회합니다. Provider가 설정되지 않았거나 'none'이면 에러를 발생시킵니다. 설정된 Provider 이름에 따라 Gemini, OpenAI, Anthropic, Ollama 중 하나의 Provider 객체를 생성하여 반환합니다. 알 수 없는 Provider 이름이면 에러를 발생시킵니다.
 
 ---
 
@@ -235,150 +106,19 @@ export async function createAIProvider(userId: string): Promise<AIProvider> {
 
 ### 1. 월간 가계부 요약
 
-```typescript
-// modules/ledger/backend/ai-summary.ts
-
-export async function generateMonthlySummary(userId: string, month: string) {
-  // 1. 데이터 조회
-  const entries = await db.ledgerEntry.findMany({
-    where: {
-      user_id: userId,
-      date: {
-        gte: new Date(`${month}-01`),
-        lt: new Date(`${month}-31`)
-      }
-    }
-  });
-  
-  // 2. 통계 계산
-  const stats = calculateStats(entries);
-  
-  // 3. AI 분석
-  const ai = await createAIProvider(userId);
-  
-  const prompt = `
-다음은 ${month}의 가계부 데이터입니다:
-
-총 수입: ${stats.totalIncome}원
-총 지출: ${stats.totalExpense}원
-순액: ${stats.net}원
-
-카테고리별 지출:
-${stats.byCategory.map(c => `- ${c.name}: ${c.amount}원`).join('\n')}
-
-이 데이터를 분석하여:
-1. 주요 지출 패턴
-2. 절약 가능한 부분
-3. 다음 달 예산 제안
-
-을 한국어로 간단명료하게 작성해주세요.
-`;
-  
-  const summary = await ai.generate(prompt, {
-    temperature: 0.7,
-    maxTokens: 500
-  });
-  
-  return summary;
-}
-```
+총 세 단계로 진행됩니다. 첫째로 해당 사용자의 해당 월간 가계부 항목을 데이터베이스에서 조회합니다. 둘째로 조회된 항목들로 총 수입, 총 지출, 순액, 카테고리별 지출 등의 통계를 계산합니다. 셋째로 AI Provider를 생성하고, 계산된 통계를 프롬프트로 넘기여 주요 지출 패턴, 절약 가능한 부분, 다음 달 예산 제안을 한국어로 작성하는 것을 요청합니다. 이때 temperature는 0.7, maxTokens는 500으로 설정합니다.
 
 ### 2. 영수증 분석 (OCR)
 
-```typescript
-// modules/ledger/backend/receipt-ocr.ts
-
-export async function analyzeReceipt(userId: string, imageBuffer: Buffer) {
-  const ai = await createAIProvider(userId);
-  
-  const prompt = `
-이 영수증 이미지에서 다음 정보를 추출해주세요:
-
-1. 상호명
-2. 총 금액
-3. 결제 일시
-4. 구매 항목들
-
-JSON 형식으로 응답해주세요:
-{
-  "merchant": "상호명",
-  "amount": 금액(숫자),
-  "date": "YYYY-MM-DD",
-  "items": ["항목1", "항목2"]
-}
-`;
-  
-  const result = await ai.analyzeImage(imageBuffer, prompt);
-  
-  // JSON 파싱
-  const data = JSON.parse(result);
-  
-  return data;
-}
-```
+사용자의 AI Provider를 생성한 후, 영수증 이미지를 전달하며 상호명, 총 금액, 결제 일시, 구매 항목들을 JSON 형식으로 추출하는 것을 요청합니다. AI가 반환한 응답을 JSON으로 파싱하여 반환합니다.
 
 ### 3. 지출 패턴 분석
 
-```typescript
-// modules/ledger/backend/pattern-analysis.ts
-
-export async function analyzeSpendingPattern(userId: string) {
-  // 최근 3개월 데이터
-  const entries = await getRecentEntries(userId, 90);
-  
-  const ai = await createAIProvider(userId);
-  
-  const prompt = `
-다음은 최근 3개월간의 지출 데이터입니다:
-
-${formatEntriesForAI(entries)}
-
-다음을 분석해주세요:
-1. 반복적인 지출 패턴
-2. 비정상적인 지출
-3. 절약 팁
-
-간결하게 3-5개 문장으로 작성해주세요.
-`;
-  
-  const analysis = await ai.generate(prompt);
-  
-  return analysis;
-}
-```
+최근 90일간의 지출 항목을 조회한 후, AI Provider를 생성하여 해당 데이터를 프롬프트로 넘기고 반복적인 지출 패턴, 비정상적인 지출, 절약 팁을 3~5문장으로 간결하게 분석하는 것을 요청합니다.
 
 ### 4. 구독 최적화 제안
 
-```typescript
-// modules/subscription/backend/optimization.ts
-
-export async function suggestOptimization(userId: string) {
-  const subscriptions = await db.subscription.findMany({
-    where: { user_id: userId }
-  });
-  
-  const ai = await createAIProvider(userId);
-  
-  const prompt = `
-현재 구독 중인 서비스들:
-
-${subscriptions.map(s => `- ${s.service_name}: ${s.amount}원/월`).join('\n')}
-
-총 구독료: ${subscriptions.reduce((sum, s) => sum + s.amount, 0)}원/월
-
-다음을 제안해주세요:
-1. 중복된 서비스
-2. 사용하지 않을 것 같은 서비스
-3. 대체 가능한 저렴한 옵션
-
-3-4개 문장으로 간결하게 작성해주세요.
-`;
-  
-  const suggestions = await ai.generate(prompt);
-  
-  return suggestions;
-}
-```
+해당 사용자의 구독 목록을 전체 조회한 후, 서비스명과 월간 금액을 정리하여 총 구독료와 함께 AI에 전달합니다. 중복된 서비스, 사용하지 않을 것 같은 서비스, 대체 가능한 저렴한 옵션을 3~4문장으로 간결하게 제안하는 것을 요청합니다.
 
 ---
 
@@ -386,83 +126,11 @@ ${subscriptions.map(s => `- ${s.service_name}: ${s.amount}원/월`).join('\n')}
 
 ### Backend
 
-```typescript
-// apps/api/src/routes/ai.ts
-
-router.post('/api/ai/analyze', authMiddleware, async (req, res) => {
-  const { prompt, data } = req.body;
-  
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  
-  try {
-    const ai = await createAIProvider(req.user.id);
-    
-    for await (const chunk of ai.generateStream(prompt)) {
-      res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
-    }
-    
-    res.write('data: [DONE]\n\n');
-    res.end();
-    
-  } catch (error) {
-    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
-    res.end();
-  }
-});
-```
+API 엔드포인트를 POST /api/ai/analyze로 생성합니다. 요청이 들어오면 응답의 Content-Type을 text/event-stream으로 설정하여 실시간 스트리밍을 준비합니다. 사용자의 AI Provider를 생성한 후 generateStream을 호출하며, 응답이 청크 단위로 날아올 때마다 SSE(Server-Sent Events) 형식으로 클라이언트에 전송합니다. 스트리밍이 완료되면 [DONE] 신호를 보내고, 에러가 발생하면 에러 메시지를 전송합니다.
 
 ### Frontend
 
-```typescript
-// apps/web/src/hooks/useAIStream.ts
-
-export function useAIStream() {
-  const [text, setText] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const generate = async (prompt: string, data: any) => {
-    setLoading(true);
-    setText('');
-    
-    const response = await fetch('/api/ai/analyze', {
-      method: 'POST',
-      body: JSON.stringify({ prompt, data })
-    });
-    
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    
-    while (true) {
-      const { done, value } = await reader.read();
-      
-      if (done) break;
-      
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
-      
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          
-          if (data === '[DONE]') {
-            setLoading(false);
-            return;
-          }
-          
-          try {
-            const { chunk } = JSON.parse(data);
-            setText(prev => prev + chunk);
-          } catch {}
-        }
-      }
-    }
-  };
-  
-  return { text, loading, generate };
-}
-```
+useAIStream이라는 훅을 생성합니다. 이 훅은 현재까지 받은 텍스트와 로딩 상태를 관리합니다. generate 함수를 호출하면 백엔드의 스트리밍 엔드포인트에 요청을 보내고, 응답 본문을 ReadableStream으로 읽습니다. 청크가 날아올 때마다 SSE 형식을 파싱하여 텍스트를 누적하며 표시하고, [DONE] 신호를 받으면 로딩 상태를 끕니다.
 
 ---
 
@@ -470,56 +138,11 @@ export function useAIStream() {
 
 ### 사용량 추적
 
-```typescript
-// packages/core/ai/usage-tracker.ts
-
-export class AIUsageTracker {
-  async track(userId: string, provider: string, tokens: number, cost: number) {
-    await db.aiUsage.create({
-      data: {
-        user_id: userId,
-        provider,
-        tokens,
-        cost,
-        timestamp: new Date()
-      }
-    });
-  }
-  
-  async getMonthlyUsage(userId: string): Promise<UsageStats> {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    
-    const usage = await db.aiUsage.aggregate({
-      where: {
-        user_id: userId,
-        timestamp: { gte: startOfMonth }
-      },
-      _sum: {
-        tokens: true,
-        cost: true
-      }
-    });
-    
-    return {
-      tokens: usage._sum.tokens || 0,
-      cost: usage._sum.cost || 0
-    };
-  }
-}
-```
+AIUsageTracker 클래스를 구현합니다. track 메서드는 사용자 ID, Provider 이름, 사용된 토큰 수, 비용을 기록하여 데이터베이스에 저장합니다. getMonthlyUsage 메서드는 현재 월의 1일부터 오늘까지의 사용량을 집계하여 총 토큰 수와 총 비용을 반환합니다.
 
 ### 사용량 제한 (선택)
 
-```typescript
-// 월 1000회 제한 예시
-const usage = await tracker.getMonthlyUsage(userId);
-
-if (usage.requests > 1000) {
-  throw new Error('Monthly AI usage limit exceeded');
-}
-```
+월간 사용 횟수를 조회한 후, 1000회를 초과하면 에러를 발생시켜 추가 호출을 막습니다.
 
 ---
 
@@ -527,45 +150,11 @@ if (usage.requests > 1000) {
 
 ### Retry 로직
 
-```typescript
-// packages/core/ai/utils.ts
-
-export async function retryAICall<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3
-): Promise<T> {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      
-      // 지수 백오프
-      await sleep(Math.pow(2, i) * 1000);
-    }
-  }
-}
-
-// 사용
-const summary = await retryAICall(() => 
-  ai.generate(prompt)
-);
-```
+retryAICall이라는 유틸리티 함수를 제공합니다. AI 호출이 실패하면 지수 백오프(1초 → 2초 → 4초) 간격으로 최대 3회까지 재시도합니다. 모든 재시도가 실패하면 마지막 에러를 발생시킵니다.
 
 ### Fallback
 
-```typescript
-// AI 실패 시 기본 통계로 대체
-try {
-  const aiSummary = await generateAISummary(userId);
-  return aiSummary;
-} catch (error) {
-  console.error('AI summary failed:', error);
-  
-  // 기본 통계 반환
-  return generateBasicStats(userId);
-}
-```
+AI 요약 생성을 시도한 후, 성공하면 AI의 결과를 반환합니다. 실패하면 에러를 로깅하고 AI 없이 기본 통계만 정리하여 반환합니다.
 
 ---
 
@@ -573,22 +162,7 @@ try {
 
 ### 결과 캐싱
 
-```typescript
-// 동일한 요청은 캐시 사용
-const cacheKey = `ai:summary:${userId}:${month}`;
-
-// 캐시 확인
-const cached = await cache.get(cacheKey);
-if (cached) return cached;
-
-// AI 호출
-const result = await generateSummary(userId, month);
-
-// 캐시 저장 (1시간)
-await cache.set(cacheKey, result, 3600);
-
-return result;
-```
+캐시 키를 사용자 ID와 월간 정보로 구성합니다. 먼저 해당 키의 캐시가 있는지 확인하고, 있으면 캐시된 결과를 바로 반환합니다. 없으면 AI를 호출하여 요약을 생성한 후, 결과를 1시간 동안 캐시에 저장하고 반환합니다.
 
 ---
 
@@ -596,34 +170,7 @@ return result;
 
 ### 템플릿 시스템
 
-```typescript
-// packages/core/ai/prompts.ts
-
-export const PROMPTS = {
-  monthlySummary: (stats: Stats) => `
-다음은 이번 달 가계부 데이터입니다:
-
-총 수입: ${stats.income}원
-총 지출: ${stats.expense}원
-순액: ${stats.net}원
-
-카테고리별 지출:
-${stats.categories.map(c => `- ${c.name}: ${c.amount}원`).join('\n')}
-
-이 데이터를 분석하여 주요 인사이트를 3-5문장으로 작성해주세요.
-`,
-  
-  receiptOCR: () => `
-이 영수증에서 다음 정보를 JSON 형식으로 추출해주세요:
-{
-  "merchant": "상호명",
-  "amount": 금액,
-  "date": "YYYY-MM-DD",
-  "items": ["항목들"]
-}
-`
-};
-```
+프롬프트를 템플릿 형태로 관리하는 객체를 정의합니다. monthlySummary 템플릿은 Stats 객체를 받아 총 수입, 총 지출, 순액, 카테고리별 지출을 정리한 후 주요 인사이트를 3~5문장으로 작성하는 것을 요청하는 프롬프트를 생성합니다. receiptOCR 템플릿은 영수증 이미지에서 상호명, 금액, 날짜, 구매 항목을 JSON 형식으로 추출하는 프롬프트를 생성합니다.
 
 ---
 
@@ -637,18 +184,7 @@ ${stats.categories.map(c => `- ${c.name}: ${c.amount}원`).join('\n')}
 
 ### Rate Limiting
 
-```typescript
-// AI API 호출 제한
-const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1분
-  max: 10, // 최대 10회
-  message: 'Too many AI requests'
-});
-
-router.post('/api/ai/*', authMiddleware, limiter, async (req, res) => {
-  // ...
-});
-```
+AI API 호출에 속도 제한을 적용합니다. 1분 단위로 최대 10회까지만 요청을 허용하고, 그 이상이면 'Too many AI requests' 메시지로 요청을 막습니다. 이 미들웨어는 /api/ai/ 경로의 모든 요청에 적용됩니다.
 
 ---
 
@@ -656,13 +192,6 @@ router.post('/api/ai/*', authMiddleware, limiter, async (req, res) => {
 
 ### AI 끄기
 
-사용자가 언제든지 AI 기능을 비활성화할 수 있습니다:
-
-```typescript
-// 설정에서
-await updateSettings(userId, 'ai', {
-  provider: 'none'
-});
-```
+사용자가 언제든지 AI 기능을 비활성화할 수 있습니다. 해당 사용자의 AI 설정에서 provider를 'none'으로 업데이트하면 됩니다.
 
 AI가 비활성화되면 모든 AI 기능은 기본 통계로 대체됩니다.

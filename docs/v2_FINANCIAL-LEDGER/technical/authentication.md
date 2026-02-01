@@ -115,26 +115,9 @@
 
 ### 데이터베이스 스키마
 
-```sql
-CREATE TABLE allowed_users (
-  id UUID PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  role VARCHAR(50) DEFAULT 'user',
-  admin_pin_hash VARCHAR(255),      -- 관리자 PIN (PBKDF2)
-  added_by UUID,
-  added_at TIMESTAMP DEFAULT NOW(),
-  last_login TIMESTAMP
-);
+allowed_users 테이블을 생성합니다. 고유 식별자인 id, 중복 불가능한 이메일 주소, 역할(기본값 'user'), 관리자 PIN의 해시값(PBKDF2로 암호화된 값), 추가한 관리자의 ID, 추가 시간, 마지막 로그인 시간 열이 있습니다.
 
--- 관리자 인증 세션 (임시)
-CREATE TABLE admin_sessions (
-  id UUID PRIMARY KEY,
-  user_id UUID NOT NULL,
-  expires_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(user_id)
-);
-```
+admin_sessions 테이블은 관리자 PIN 인증 후 생성되는 임시 세션을 저장합니다. 세션 ID, 사용자 ID, 만료 시간, 생성 시간이 있으며, 한 사용자당 세션은 하나만 존재할 수 있습니다.
 
 **역할 (Role):**
 - `admin` - 전체 권한 + PIN 설정 가능
@@ -171,16 +154,8 @@ CREATE TABLE admin_sessions (
 ### 2. 세션 관리
 
 **JWT 기반:**
-```typescript
-// Payload
-{
-  userId: "uuid",
-  email: "user@example.com",
-  role: "user",
-  iat: 1234567890,  // 발급 시간
-  exp: 1234654290   // 만료 시간 (7일)
-}
-```
+
+JWT 토큰의 내부 구조(Payload)는 다음과 같습니다. 사용자의 고유 ID, 이메일, 역할을 포함하고, 발급 시간(iat)과 만료 시간(exp)도 함께 저장됩니다. 만료 시간은 발급 시간 기준 7일 후입니다.
 
 **저장 위치:**
 - `httpOnly` Cookie (추천)
@@ -196,242 +171,30 @@ CREATE TABLE admin_sessions (
 
 ### Express Middleware
 
-```typescript
-// packages/core/auth/middleware.ts
-
-export async function authMiddleware(req, res, next) {
-  try {
-    // 1. 토큰 추출
-    const token = extractToken(req);
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    
-    // 2. 토큰 검증
-    const payload = verifyToken(token);
-    
-    // 3. 사용자 조회
-    const user = await db.users.findUnique({
-      where: { id: payload.userId }
-    });
-    
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-    
-    // 4. Whitelist 확인
-    const allowed = await db.allowedUsers.findUnique({
-      where: { email: user.email }
-    });
-    
-    if (!allowed) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    // 5. 요청 객체에 사용자 정보 추가
-    req.user = user;
-    next();
-    
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-}
-```
+authMiddleware는 모든 보호된 API 요청에 적용되는 인증 미들웨어입니다. 총 5단계로 진행됩니다. 첫째로 요청에서 토큰을 추출하고, 없으면 401 에러를 반환합니다. 둘째로 토큰의 유효성을 검증합니다. 셋째로 토큰에서 추출된 사용자 ID로 데이터베이스에서 사용자를 조회하고, 없으면 401 에러를 반환합니다. 넷째로 해당 사용자의 이메일이 Whitelist(allowed_users)에 있는지 확인하고, 없으면 403 에러를 반환합니다. 다섯째로 모든 검증이 통과하면 요청 객체에 사용자 정보를 추가하고 다음 단계로 넘깁니다.
 
 ### 관리자 PIN 인증
 
 > 💡 **구현 상세:**  
 > → `architecture/decisions.md § 결정 #2: 기술 구현`
 
-```typescript
-// packages/core/auth/admin-auth.ts
+AdminAuthService 클래스가 관리자 PIN 인증의 전체 흐름을 담당합니다.
 
-import crypto from 'crypto';
+hashPin 메서드는 PIN 문자열을 받아 무작위 Salt를 생성한 후 PBKDF2 알고리즘으로 100,000회 반복 해싱하여 안전한 해시값을 생성합니다. 해시값과 Salt를 함께 반환합니다.
 
-export class AdminAuthService {
-  // PIN 해싱
-  static async hashPin(pin: string, salt?: Buffer): Promise<{ hash: string; salt: string }> {
-    const pinSalt = salt || crypto.randomBytes(16);
-    
-    const hash = crypto.pbkdf2Sync(
-      pin,
-      pinSalt,
-      100000,  // iterations
-      64,      // keylen
-      'sha512'
-    );
-    
-    return {
-      hash: hash.toString('hex'),
-      salt: pinSalt.toString('hex')
-    };
-  }
-  
-  // PIN 검증
-  static async verifyPin(pin: string, storedHash: string): Promise<boolean> {
-    const [hash, salt] = storedHash.split(':');
-    
-    const { hash: computedHash } = await this.hashPin(
-      pin,
-      Buffer.from(salt, 'hex')
-    );
-    
-    return hash === computedHash;
-  }
-  
-  // 세션 생성 (30분 유효)
-  static async createSession(userId: string): Promise<string> {
-    const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-    
-    await db.adminSessions.upsert({
-      where: { user_id: userId },
-      update: { 
-        id: sessionId,
-        expires_at: expiresAt 
-      },
-      create: {
-        id: sessionId,
-        user_id: userId,
-        expires_at: expiresAt
-      }
-    });
-    
-    return sessionId;
-  }
-  
-  // 세션 검증
-  static async verifySession(sessionId: string): Promise<boolean> {
-    const session = await db.adminSessions.findUnique({
-      where: { id: sessionId }
-    });
-    
-    if (!session) return false;
-    if (session.expires_at < new Date()) {
-      // 만료된 세션 삭제
-      await db.adminSessions.delete({ where: { id: sessionId } });
-      return false;
-    }
-    
-    return true;
-  }
-}
-```
+verifyPin 메서드는 입력된 PIN과 저장된 해시값을 비교합니다. 저장된 해시값에서 Salt를 분리한 후, 같은 Salt로 입력 PIN을 다시 해싱하여 저장된 해시와 일치하는지 확인합니다.
+
+createSession 메서드는 무작위 세션 ID를 생성하고, 현재 시간 기준 30분 후를 만료 시간으로 설정하여 admin_sessions 테이블에 저장합니다. 기존 세션이 있으면 새 세션으로 덮어씁니다.
+
+verifySession 메서드는 세션 ID로 세션을 조회한 후, 존재하지 않거나 만료 시간이 지난 경우 false를 반환합니다. 만료된 세션은 즉시 삭제됩니다.
 
 ### API 엔드포인트
 
-```typescript
-// apps/api/src/routes/admin.ts
+**PIN 설정 엔드포인트(POST /setup-pin):** 먼저 요청자가 관리자 역할인지 확인합니다. PIN이 4~6자리 숫자인지 검증하고, 연속된 숫자(예: 1234)나 반복된 숫자(예: 1111)인지도 체크합니다. 검증을 통과하면 PIN을 해싱하여 해시값과 Salt를 콜론(:)으로 구분하여 데이터베이스에 저장합니다.
 
-// PIN 설정 (초기 설정 시)
-router.post('/setup-pin', authMiddleware, async (req, res) => {
-  const { pin } = req.body;
-  
-  // 1. 관리자 권한 확인
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  
-  // 2. PIN 검증
-  if (!/^\d{4,6}$/.test(pin)) {
-    return res.status(400).json({ error: 'PIN must be 4-6 digits' });
-  }
-  
-  // 연속/반복 검증
-  if (/^(\d)\1+$/.test(pin) || /^(?:0123|1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|3210)/.test(pin)) {
-    return res.status(400).json({ error: 'PIN too simple' });
-  }
-  
-  // 3. PIN 해싱
-  const { hash, salt } = await AdminAuthService.hashPin(pin);
-  const storedHash = `${hash}:${salt}`;
-  
-  // 4. DB 저장
-  await db.allowedUsers.update({
-    where: { email: req.user.email },
-    data: { admin_pin_hash: storedHash }
-  });
-  
-  res.json({ success: true });
-});
+**PIN 인증 엔드포인트(POST /verify-pin):** 관리자 권한을 확인한 후, 저장된 PIN 해시를 조회합니다. 입력된 PIN과 저장된 해시를 비교하여 검증합니다. 실패하면 감사 로그를 남기고 401 에러를 반환합니다. 성공하면 30분 유효한 세션을 생성하여 세션 ID를 반환합니다.
 
-// PIN 인증
-router.post('/verify-pin', authMiddleware, async (req, res) => {
-  const { pin } = req.body;
-  
-  // 1. 관리자 권한 확인
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Not an admin' });
-  }
-  
-  // 2. PIN 조회
-  const allowedUser = await db.allowedUsers.findUnique({
-    where: { email: req.user.email }
-  });
-  
-  if (!allowedUser?.admin_pin_hash) {
-    return res.status(400).json({ error: 'PIN not set' });
-  }
-  
-  // 3. PIN 검증
-  const isValid = await AdminAuthService.verifyPin(
-    pin,
-    allowedUser.admin_pin_hash
-  );
-  
-  if (!isValid) {
-    // 감사 로그
-    await logFailedAttempt(req.user.id, req.ip);
-    return res.status(401).json({ error: 'Invalid PIN' });
-  }
-  
-  // 4. 세션 생성
-  const sessionId = await AdminAuthService.createSession(req.user.id);
-  
-  res.json({ 
-    success: true,
-    sessionId 
-  });
-});
-
-// 관리자 설정 접근 미들웨어
-export async function requireAdminPin(req, res, next) {
-  // 1. 기본 인증 확인
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  
-  // 2. 세션 확인
-  const sessionId = req.headers['x-admin-session'];
-  
-  if (!sessionId) {
-    return res.status(401).json({ 
-      error: 'PIN required',
-      requirePin: true 
-    });
-  }
-  
-  // 3. 세션 검증
-  const valid = await AdminAuthService.verifySession(sessionId);
-  
-  if (!valid) {
-    return res.status(401).json({ 
-      error: 'Session expired',
-      requirePin: true 
-    });
-  }
-  
-  // 4. 통과
-  next();
-}
-
-// 사용 예시
-router.get('/users', authMiddleware, requireAdminPin, async (req, res) => {
-  // PIN 인증 후에만 접근 가능
-  const users = await db.allowedUsers.findMany();
-  res.json(users);
-});
-```
+**관리자 설정 접근 미들웨어(requireAdminPin):** 기본 인증과 관리자 권한을 먼저 확인합니다. 요청 헤더에서 관리자 세션 ID를 추출하고, 없으면 PIN 입력이 필요하다는 응답을 반환합니다. 세션 ID가 있으면 유효성을 검증하고, 만료된 경우에도 PIN 입력을 다시 요구합니다. 검증이 통과하면 다음 단계로 넘깁니다.
 
 ---
 
@@ -442,221 +205,21 @@ router.get('/users', authMiddleware, requireAdminPin, async (req, res) => {
 > 💡 **UI 구현 예시:**  
 > → `architecture/decisions.md § 결정 #2: UI 구현`
 
-```typescript
-// apps/web/src/components/PinInput.tsx
+PinInput 컴포넌트는 사용자가 PIN을 입력하는 화면을 제공합니다. length 속성으로 PIN 자릿수(4 또는 6)를 설정할 수 있습니다.
 
-import { useState, useRef, useEffect } from 'react';
-
-interface PinInputProps {
-  length?: number;  // 4 or 6
-  onComplete: (pin: string) => void;
-  error?: string;
-}
-
-export function PinInput({ length = 6, onComplete, error }: PinInputProps) {
-  const [pin, setPin] = useState<string[]>(Array(length).fill(''));
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  
-  const handleChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    
-    const newPin = [...pin];
-    newPin[index] = value.slice(-1);
-    setPin(newPin);
-    
-    // 자동 포커스 이동
-    if (value && index < length - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-    
-    // 완성 시 콜백
-    if (newPin.every(d => d) && newPin.join('').length === length) {
-      onComplete(newPin.join(''));
-    }
-  };
-  
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !pin[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-  
-  useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, []);
-  
-  return (
-    <div className="pin-input">
-      <div className="pin-boxes">
-        {pin.map((digit, i) => (
-          <input
-            key={i}
-            ref={el => inputRefs.current[i] = el}
-            type="text"
-            inputMode="numeric"
-            maxLength={1}
-            value={digit}
-            onChange={(e) => handleChange(i, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(i, e)}
-            className={`pin-box ${error ? 'error' : ''}`}
-            autoComplete="off"
-          />
-        ))}
-      </div>
-      {error && <p className="error-message">{error}</p>}
-    </div>
-  );
-}
-```
+각 자리마다 개별 입력란을 생성합니다. 숫자가 아닌 값은 입력할 수 없습니다. 숫자를 입력하면 자동으로 다음 입력란으로 포커스가 이동하고, Backspace를 누르면 이전 입력란으로 돌아갑니다. PIN의 모든 자리가 채워지면 onComplete 콜백을 실행하여 완성된 PIN을 전달합니다. 컴포넌트가 열리면 첫 번째 입력란에 자동으로 포커스됩니다. 에러 메시지가 있으면 입력란 아래에 빨간색으로 표시됩니다.
 
 ### PIN 인증 모달
 
-```typescript
-// apps/web/src/components/AdminPinModal.tsx
+AdminPinModal 컴포넌트는 관리자 PIN 입력을 위한 팝업입니다. PinInput 컴포넌트를 내부에 포함시킵니다.
 
-import { useState } from 'react';
-import { Modal } from '@core/ui';
-import { PinInput } from './PinInput';
-
-interface AdminPinModalProps {
-  open: boolean;
-  onSuccess: (sessionId: string) => void;
-  onCancel: () => void;
-}
-
-export function AdminPinModal({ open, onSuccess, onCancel }: AdminPinModalProps) {
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const handlePinComplete = async (pin: string) => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      const response = await fetch('/api/admin/verify-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin })
-      });
-      
-      if (response.ok) {
-        const { sessionId } = await response.json();
-        
-        // 세션 저장
-        sessionStorage.setItem('admin_session', sessionId);
-        
-        onSuccess(sessionId);
-      } else {
-        setError('PIN이 올바르지 않습니다');
-      }
-    } catch (err) {
-      setError('인증 중 오류가 발생했습니다');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <Modal open={open} onClose={onCancel}>
-      <div className="admin-pin-modal">
-        <div className="modal-icon">🔒</div>
-        <h2>관리자 인증</h2>
-        <p>관리자 설정에 접근하려면 PIN을 입력하세요.</p>
-        
-        <PinInput
-          length={6}
-          onComplete={handlePinComplete}
-          error={error}
-        />
-        
-        {loading && <p className="loading">인증 중...</p>}
-        
-        <div className="modal-actions">
-          <button onClick={onCancel}>취소</button>
-        </div>
-        
-        <p className="modal-note">
-          💡 이 인증은 30분간 유효합니다.
-        </p>
-      </div>
-    </Modal>
-  );
-}
-```
+PIN 입력이 완료되면 백엔드의 /api/admin/verify-pin에 요청을 보냅니다. 응답이 성공하면 반환된 세션 ID를 sessionStorage에 저장하고 onSuccess 콜백을 실행합니다. 실패하면 'PIN이 올바르지 않습니다' 에러 메시지를 표시합니다. 요청 중에는 '인증 중...' 로딩 메시지가 표시됩니다. 모달 하단에는 이 인증은 30분간 유효하다는 안내가 표시됩니다.
 
 ### Protected Admin Route
 
-```typescript
-// apps/web/src/components/ProtectedAdminRoute.tsx
+ProtectedAdminRoute 컴포넌트는 관리자 전용 페이지를 보호하는 라우트 래퍼입니다.
 
-export function ProtectedAdminRoute({ children }) {
-  const { user } = useAuth();
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [verified, setVerified] = useState(false);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    checkAdminSession();
-  }, []);
-  
-  const checkAdminSession = async () => {
-    if (user?.role !== 'admin') {
-      return;
-    }
-    
-    const sessionId = sessionStorage.getItem('admin_session');
-    
-    if (!sessionId) {
-      setShowPinModal(true);
-      setLoading(false);
-      return;
-    }
-    
-    // 세션 검증
-    try {
-      const response = await fetch('/api/admin/verify-session', {
-        headers: { 'X-Admin-Session': sessionId }
-      });
-      
-      if (response.ok) {
-        setVerified(true);
-      } else {
-        sessionStorage.removeItem('admin_session');
-        setShowPinModal(true);
-      }
-    } catch {
-      setShowPinModal(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handlePinSuccess = (sessionId: string) => {
-    setVerified(true);
-    setShowPinModal(false);
-  };
-  
-  if (loading) return <LoadingScreen />;
-  if (user?.role !== 'admin') return <Navigate to="/" />;
-  
-  if (!verified) {
-    return (
-      <>
-        <AdminPinModal
-          open={showPinModal}
-          onSuccess={handlePinSuccess}
-          onCancel={() => navigate(-1)}
-        />
-        <div className="admin-locked">
-          <p>관리자 인증이 필요합니다</p>
-        </div>
-      </>
-    );
-  }
-  
-  return children;
-}
-```
+컴포넌트가 마운트되면 먼저 기존 관리자 세션이 있는지 확인합니다. sessionStorage에 저장된 세션 ID가 없으면 바로 PIN 모달을 표시합니다. 세션 ID가 있으면 백엔드에 세션 유효성 검증을 요청합니다. 유효하면 자식 컴포넌트를 렌더링하고, 유효하지 않으면 sessionStorage의 세션을 삭제하고 PIN 모달을 다시 표시합니다. PIN 인증이 성공하면 verified 상태를 켜고 모달을 닫습니다. 관리자가 아닌 사용자는 홈 페이지로 리다이렉트됩니다.
 
 ---
 
@@ -667,209 +230,35 @@ export function ProtectedAdminRoute({ children }) {
 
 ### Rate Limiting
 
-```typescript
-// 5회 실패 시 5분 잠금
-const rateLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  max: 5,
-  message: 'Too many failed attempts. Please try again later.',
-  skipSuccessfulRequests: true
-});
-
-router.post('/verify-pin', rateLimiter, async (req, res) => {
-  // ...
-});
-```
+PIN 인증 엔드포인트에 속도 제한을 적용합니다. 5분 동안 5회 이상 실패하면 잠금됩니다. 성공한 요청은 실패 횟수에서 제외됩니다.
 
 ### 감사 로그
 
-```typescript
-async function logFailedAttempt(userId: string, ip: string) {
-  await db.auditLog.create({
-    data: {
-      user_id: userId,
-      action: 'admin_pin_failed',
-      ip_address: ip,
-      timestamp: new Date()
-    }
-  });
-  
-  // 연속 실패 체크
-  const recentFailures = await db.auditLog.count({
-    where: {
-      user_id: userId,
-      action: 'admin_pin_failed',
-      timestamp: {
-        gte: new Date(Date.now() - 5 * 60 * 1000)
-      }
-    }
-  });
-  
-  if (recentFailures >= 5) {
-    await notifyAdmin({
-      subject: '⚠️ 관리자 PIN 접근 실패 다수 발생',
-      message: `User ${userId}가 5회 이상 PIN 인증 실패`
-    });
-  }
-}
-```
+logFailedAttempt 함수는 PIN 인증 실패 시 사용자 ID, 실패 액션, IP 주소와 시간을 감사 로그 테이블에 기록합니다. 기록 후 최근 5분간의 연속 실패 횟수를 조회하여, 5회 이상이면 관리자에게 '관리자 PIN 접근 실패 다수 발생' 경고 알림을 보냅니다.
 
 ### 세션 타임아웃
 
-```typescript
-// 30분 동안 미사용 시 자동 만료
-const SESSION_TIMEOUT = 30 * 60 * 1000;
-
-// 세션 생성/갱신 시 타임아웃 설정
-await db.adminSessions.update({
-  where: { id: sessionId },
-  data: {
-    expires_at: new Date(Date.now() + SESSION_TIMEOUT)
-  }
-});
-```
+관리자 세션은 30분 동안 사용되지 않으면 자동으로 만료됩니다. 세션을 생성하거나 갱신할 때마다 만료 시간을 현재 시간 기준 30분 후로 재설정합니다.
 
 ### PIN 변경
 
-```typescript
-router.post('/change-pin', authMiddleware, requireAdminPin, async (req, res) => {
-  const { currentPin, newPin } = req.body;
-  
-  // 1. 현재 PIN 확인
-  const user = await db.allowedUsers.findUnique({
-    where: { email: req.user.email }
-  });
-  
-  const isValid = await AdminAuthService.verifyPin(
-    currentPin,
-    user.admin_pin_hash
-  );
-  
-  if (!isValid) {
-    return res.status(401).json({ error: 'Current PIN incorrect' });
-  }
-  
-  // 2. 새 PIN 해싱
-  const { hash, salt } = await AdminAuthService.hashPin(newPin);
-  
-  // 3. 업데이트
-  await db.allowedUsers.update({
-    where: { email: req.user.email },
-    data: { admin_pin_hash: `${hash}:${salt}` }
-  });
-  
-  // 4. 모든 세션 무효화
-  await db.adminSessions.deleteMany({
-    where: { user_id: req.user.id }
-  });
-  
-  res.json({ success: true });
-});
-```
+현재 PIN과 새 PIN을 모두 받습니다. 먼저 현재 PIN이 올바른지 검증합니다. 올바르지 않으면 401 에러를 반환합니다. 올바르면 새 PIN을 해싱하여 저장한 후, 해당 사용자의 모든 관리자 세션을 무효화합니다.
 
 ---
 
 ## Google OAuth 콜백 처리
 
-```typescript
-// apps/api/src/routes/auth.ts
+GET /auth/google 엔드포인트는 사용자를 Google의 OAuth 인증 페이지로 리다이렉트합니다. 프로필과 이메일 정보에 대한 권한을 요청합니다.
 
-router.get('/auth/google', (req, res) => {
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: [
-      'https://www.googleapis.com/auth/userinfo.profile',
-      'https://www.googleapis.com/auth/userinfo.email'
-    ]
-  });
-  
-  res.redirect(authUrl);
-});
-
-router.get('/auth/callback', async (req, res) => {
-  const { code } = req.query;
-  
-  try {
-    // 1. Authorization Code → Access Token
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
-    
-    // 2. 사용자 정보 조회
-    const { data } = await oauth2Client.request({
-      url: 'https://www.googleapis.com/oauth2/v2/userinfo'
-    });
-    
-    // 3. Whitelist 확인
-    const allowed = await db.allowedUsers.findUnique({
-      where: { email: data.email }
-    });
-    
-    if (!allowed) {
-      return res.status(403).send('Access Denied');
-    }
-    
-    // 4. 사용자 생성 또는 업데이트
-    const user = await db.users.upsert({
-      where: { email: data.email },
-      update: { 
-        last_login: new Date(),
-        profile_picture: data.picture
-      },
-      create: {
-        email: data.email,
-        name: data.name,
-        profile_picture: data.picture
-      }
-    });
-    
-    // 5. JWT 발급
-    const token = generateToken({
-      userId: user.id,
-      email: user.email,
-      role: allowed.role
-    });
-    
-    // 6. 쿠키에 저장
-    res.cookie('auth_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7일
-    });
-    
-    // 7. 메인 화면으로 리다이렉트
-    res.redirect('/');
-    
-  } catch (error) {
-    res.status(500).send('Authentication failed');
-  }
-});
-```
+GET /auth/callback 엔드포인트는 Google에서 돌아온 콜백을 처리합니다. 총 7단계로 진행됩니다. 첫째로 Google에서 반환된 Authorization Code를 Access Token으로 교환합니다. 둘째로 Access Token으로 사용자의 프로필 정보를 조회합니다. 셋째로 조회된 이메일이 Whitelist에 있는지 확인하고, 없으면 접근 거부합니다. 넷째로 사용자가 이미 존재하면 마지막 로그인 시간과 프로필 사진을 업데이트하고, 없으면 새로 생성합니다. 다섯째로 사용자 ID, 이메일, 역할로 JWT 토큰을 생성합니다. 여섯째로 생성된 토큰을 httpOnly Cookie로 저장하며, 프로덕션 환경에서는 secure 플래그도 활성화하고, 만료 시간은 7일로 설정합니다. 일곱째로 메인 화면으로 리다이렉트합니다.
 
 ---
 
-## 로그아웃
+## 로그인
 
-```typescript
-// Backend
-router.post('/auth/logout', authMiddleware, async (req, res) => {
-  // 관리자 세션도 삭제
-  if (req.user.role === 'admin') {
-    await db.adminSessions.deleteMany({
-      where: { user_id: req.user.id }
-    });
-  }
-  
-  res.clearCookie('auth_token');
-  res.json({ success: true });
-});
+**Backend:** POST /auth/logout 엔드포인트는 관리자인 경우 해당 사용자의 모든 관리자 세션을 삭제한 후, auth_token 쿠키를 삭제합니다.
 
-// Frontend
-const handleLogout = async () => {
-  await fetch('/api/auth/logout', { method: 'POST' });
-  sessionStorage.removeItem('admin_session');
-  window.location.href = '/login';
-};
-```
+**Frontend:** 로그아웃 버튼을 클릭하면 백엔드의 로그아웃 엔드포인트에 요청을 보냅니다. 완료되면 sessionStorage의 관리자 세션도 삭제하고, 로그인 페이지로 이동합니다.
 
 ---
 

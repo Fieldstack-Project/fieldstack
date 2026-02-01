@@ -20,23 +20,16 @@
 ## 설정 예시
 
 ### Local PostgreSQL
-```env
-DB_PROVIDER=local
-DATABASE_URL=postgresql://localhost:5432/mydb
-```
+
+DB_PROVIDER를 'local'로 설정하고, DATABASE_URL에 로컬 PostgreSQL의 연결 주소를 넣습니다.
 
 ### Supabase
-```env
-DB_PROVIDER=supabase
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_KEY=xxx
-```
+
+DB_PROVIDER를 'supabase'로 설정하고, SUPABASE_URL에 Supabase 프로젝트 URL을, SUPABASE_KEY에 API 키를 넣습니다.
 
 ### MongoDB
-```env
-DB_PROVIDER=mongodb
-MONGODB_URI=mongodb://localhost:27017/mydb
-```
+
+DB_PROVIDER를 'mongodb'로 설정하고, MONGODB_URI에 MongoDB의 연결 주소를 넣습니다.
 
 ---
 
@@ -52,38 +45,14 @@ Core에서 DB Provider를 추상화하여 **모듈은 DB 종류를 신경쓰지 
 
 ### 추상화 레이어 구조
 
-```typescript
-// packages/core/db/index.ts
-interface DBProvider {
-  connect(): Promise<void>;
-  disconnect(): Promise<void>;
-  query(sql: string, params?: any[]): Promise<any>;
-  transaction(callback: () => Promise<void>): Promise<void>;
-}
-
-class PostgresProvider implements DBProvider { ... }
-class MongoDBProvider implements DBProvider { ... }
-class SupabaseProvider implements DBProvider { ... }
-class SQLiteProvider implements DBProvider { ... }
-```
+DBProvider 인터페이스를 정의합니다. 모든 DB Provider는 동일하게 connect(연결), disconnect(연결 종료), query(쿼리 실행), transaction(트랜잭션 실행)의 네 가지 메서드를 제공해야 합니다. 이 인터페이스를 구현하는 Provider는 PostgresProvider, MongoDBProvider, SupabaseProvider, SQLiteProvider의 네 종류가 있습니다.
 
 ### 모듈에서의 사용
 
 > 📖 **모듈 개발 가이드:**  
 > → `modules/development-guide.md § Backend 개발 § service.ts`
 
-```typescript
-// modules/ledger/backend/service.ts
-import { db } from '@core/db';
-
-export async function createEntry(data: LedgerEntry) {
-  // DB 종류와 관계없이 동일한 인터페이스 사용
-  return await db.query(
-    'INSERT INTO ledger_entries VALUES (?)',
-    [data]
-  );
-}
-```
+모듈에서는 Core의 db 객체를 가져와 사용합니다. 실제로 뒤에서 어떤 DB가 돌고 있는지와 관계없이 동일한 인터페이스로 쿼리를 실행할 수 있습니다. 예시로는 ledger_entries 테이블에 새 항목을 삽입하는 것을 보여줍니다.
 
 ---
 
@@ -100,16 +69,7 @@ export async function createEntry(data: LedgerEntry) {
 
 ### 예시
 
-```typescript
-// ✅ 허용: 자신의 테이블 접근
-await db.query('SELECT * FROM ledger_entries WHERE user_id = ?', [userId]);
-
-// ❌ 금지: 다른 모듈의 테이블 직접 접근
-await db.query('SELECT * FROM subscription_services');
-
-// ✅ 허용: Event Bus 사용
-eventBus.emit('subscription:get-all', { userId });
-```
+자신의 테이블인 ledger_entries에서 조회하는 것은 허용됩니다. 다른 모듈의 테이블인 subscription_services에 직접 접근하는 것은 금지됩니다. 다른 모듈의 데이터가 필요하면 Event Bus를 통해 요청해야 합니다.
 
 ---
 
@@ -132,50 +92,13 @@ modules/ledger/
 
 Core가 모든 모듈의 마이그레이션을 자동으로 감지하고 실행:
 
-```typescript
-// apps/api/src/services/migration.ts
+runAllMigrations 함수는 활성화된 모든 모듈을 조회한 후, 각 모듈의 migrations 폴더가 존재하는지 확인하고 있으면 해당 모듈의 마이그레이션을 실행합니다.
 
-async function runAllMigrations() {
-  const modules = await getEnabledModules();
-  
-  for (const module of modules) {
-    const migrationsDir = `modules/${module.name}/backend/migrations`;
-    
-    if (await fs.pathExists(migrationsDir)) {
-      await runModuleMigrations(module.name, migrationsDir);
-    }
-  }
-}
-
-async function runModuleMigrations(moduleName: string, dir: string) {
-  const files = await fs.readdir(dir);
-  const sqlFiles = files.filter(f => f.endsWith('.sql')).sort();
-  
-  for (const file of sqlFiles) {
-    const executed = await checkMigrationExecuted(moduleName, file);
-    
-    if (!executed) {
-      const sql = await fs.readFile(`${dir}/${file}`, 'utf-8');
-      await db.query(sql);
-      await markMigrationExecuted(moduleName, file);
-      
-      console.log(`✓ Migration: ${moduleName}/${file}`);
-    }
-  }
-}
-```
+runModuleMigrations 함수는 해당 폴더의 .sql 파일을 이름순으로 정렬한 후, 각 파일에 대해 이미 실행된 마이그레이션인지 확인합니다. 아직 실행되지 않은 파일이면 SQL을 읽어 실행하고, 실행 완료를 기록합니다.
 
 ### 마이그레이션 기록
 
-```sql
-CREATE TABLE _migrations (
-  id UUID PRIMARY KEY,
-  module_name VARCHAR(100) NOT NULL,
-  migration_file VARCHAR(255) NOT NULL,
-  executed_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(module_name, migration_file)
-);
-```
+_migrations 테이블을 생성합니다. 이 테이블은 어떤 모듈의 어떤 마이그레이션 파일이 언제 실행되었는지를 기록합니다. 같은 모듈의 같은 파일은 중복 실행되지 않도록 고유 제약조건이 있습니다.
 
 ---
 
@@ -183,164 +106,19 @@ CREATE TABLE _migrations (
 
 ### PostgreSQL Provider
 
-```typescript
-// packages/core/db/providers/postgres.ts
-
-import { Pool } from 'pg';
-
-export class PostgresProvider implements DBProvider {
-  private pool: Pool;
-  
-  async connect() {
-    this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL
-    });
-  }
-  
-  async query(sql: string, params?: any[]) {
-    const result = await this.pool.query(sql, params);
-    return result.rows;
-  }
-  
-  async transaction(callback: () => Promise<void>) {
-    const client = await this.pool.connect();
-    
-    try {
-      await client.query('BEGIN');
-      await callback();
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
-  
-  async disconnect() {
-    await this.pool.end();
-  }
-}
-```
+PostgresProvider는 pg 라이브러리의 Pool을 사용합니다. connect 메서드는 환경 변수의 DATABASE_URL로 연결 풀을 생성합니다. query 메서드는 SQL과 파라미터를 받아 실행하고 결과의 행(rows)을 반환합니다. transaction 메서드는 연결 풀에서 클라이언트를 빌려 BEGIN을 실행한 후, 콜백 함수를 실행합니다. 콜백이 성공하면 COMMIT하고 실패하면 ROLLBACK한 후, 빌린 클라이언트를 반환합니다. disconnect 메서드는 연결 풀을 종료합니다.
 
 ### SQLite Provider
 
-```typescript
-// packages/core/db/providers/sqlite.ts
-
-import sqlite3 from 'sqlite3';
-import { promisify } from 'util';
-
-export class SQLiteProvider implements DBProvider {
-  private db: sqlite3.Database;
-  
-  async connect() {
-    this.db = new sqlite3.Database('./data/database.db');
-  }
-  
-  async query(sql: string, params?: any[]) {
-    const run = promisify(this.db.all.bind(this.db));
-    return await run(sql, params);
-  }
-  
-  async transaction(callback: () => Promise<void>) {
-    await this.query('BEGIN TRANSACTION');
-    
-    try {
-      await callback();
-      await this.query('COMMIT');
-    } catch (error) {
-      await this.query('ROLLBACK');
-      throw error;
-    }
-  }
-  
-  async disconnect() {
-    const close = promisify(this.db.close.bind(this.db));
-    await close();
-  }
-}
-```
+SQLiteProvider는 sqlite3 라이브러리를 사용합니다. connect 메서드는 ./data/database.db 경로의 파일을 열거나 없으면 생성합니다. query 메서드는 SQL과 파라미터를 받아 실행하고 결과를 반환합니다. transaction 메서드는 BEGIN TRANSACTION을 실행한 후 콜백을 실행하고, 성공하면 COMMIT, 실패하면 ROLLBACK합니다. disconnect 메서드는 데이터베이스 파일 연결을 닫습니다.
 
 ### Supabase Provider
 
-```typescript
-// packages/core/db/providers/supabase.ts
-
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
-export class SupabaseProvider implements DBProvider {
-  private client: SupabaseClient;
-  
-  async connect() {
-    this.client = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_KEY!
-    );
-  }
-  
-  async query(sql: string, params?: any[]) {
-    const { data, error } = await this.client.rpc('execute_sql', {
-      query: sql,
-      params
-    });
-    
-    if (error) throw error;
-    return data;
-  }
-  
-  async transaction(callback: () => Promise<void>) {
-    // Supabase는 트랜잭션을 함수로 처리
-    await callback();
-  }
-  
-  async disconnect() {
-    // Supabase는 명시적 연결 종료 불필요
-  }
-}
-```
+SupabaseProvider는 @supabase/supabase-js 클라이언트를 사용합니다. connect 메서드는 환경 변수의 SUPABASE_URL과 SUPABASE_KEY로 클라이언트를 생성합니다. query 메서드는 Supabase의 RPC 기능을 활용하여 SQL과 파라미터를 실행합니다. 에러가 발생하면 바로 throw합니다. transaction 메서드는 콜백을 바로 실행합니다 (Supabase는 함수 단위로 트랜잭션을 처리). disconnect는 Supabase의 특성상 명시적 종료가 불필요합니다.
 
 ### MongoDB Provider
 
-```typescript
-// packages/core/db/providers/mongodb.ts
-
-import { MongoClient, Db } from 'mongodb';
-
-export class MongoDBProvider implements DBProvider {
-  private client: MongoClient;
-  private db: Db;
-  
-  async connect() {
-    this.client = new MongoClient(process.env.MONGODB_URI!);
-    await this.client.connect();
-    this.db = this.client.db();
-  }
-  
-  async query(collection: string, operation: any) {
-    // MongoDB는 SQL이 아니므로 API 변환
-    return await this.db.collection(collection)[operation.method](
-      operation.params
-    );
-  }
-  
-  async transaction(callback: () => Promise<void>) {
-    const session = this.client.startSession();
-    
-    try {
-      await session.withTransaction(async () => {
-        await callback();
-      });
-    } finally {
-      await session.endSession();
-    }
-  }
-  
-  async disconnect() {
-    await this.client.close();
-  }
-}
-```
+MongoDBProvider는 mongodb 라이브러리의 MongoClient를 사용합니다. connect 메서드는 환경 변수의 MONGODB_URI로 연결하고, 기본 데이터베이스를 참조합니다. query 메서드는 컬렉션 이름과 작업 정보를 받아 해당 컬렉션에 지정된 메서드를 실행합니다 (MongoDB는 SQL이 아니므로 API 형태로 변환). transaction 메서드는 세션을 시작하고 withTransaction을 사용하여 콜백을 실행하고, 완료되면 세션을 종료합니다. disconnect 메서드는 MongoClient 연결을 닫습니다.
 
 ---
 
@@ -349,47 +127,9 @@ export class MongoDBProvider implements DBProvider {
 > 📌 **Provider 선택 로직:**  
 > → `architecture/decisions.md § 결정 #3`
 
-```typescript
-// packages/core/db/factory.ts
+createDBProvider 함수는 환경 변수의 DB_PROVIDER 값에 따라 적절한 Provider 객체를 생성합니다. 기본값은 'sqlite'이며, 'postgres', 'sqlite', 'supabase', 'mongodb' 중 하나를 지정할 수 있습니다. 알 수 없는 Provider 이름이면 에러를 발생시킵니다.
 
-import { PostgresProvider } from './providers/postgres';
-import { SQLiteProvider } from './providers/sqlite';
-import { SupabaseProvider } from './providers/supabase';
-import { MongoDBProvider } from './providers/mongodb';
-
-export async function createDBProvider(): Promise<DBProvider> {
-  const provider = process.env.DB_PROVIDER || 'sqlite';
-  
-  switch (provider) {
-    case 'postgres':
-      return new PostgresProvider();
-    
-    case 'sqlite':
-      return new SQLiteProvider();
-    
-    case 'supabase':
-      return new SupabaseProvider();
-    
-    case 'mongodb':
-      return new MongoDBProvider();
-    
-    default:
-      throw new Error(`Unknown DB provider: ${provider}`);
-  }
-}
-
-// 전역 인스턴스
-let dbInstance: DBProvider;
-
-export async function getDB(): Promise<DBProvider> {
-  if (!dbInstance) {
-    dbInstance = await createDBProvider();
-    await dbInstance.connect();
-  }
-  
-  return dbInstance;
-}
-```
+getDB 함수는 전역 DB 인스턴스를 관리합니다. 처음 호출되면 createDBProvider로 Provider를 생성하고 연결한 후, 이후 호출에서는 같은 인스턴스를 반환합니다.
 
 ---
 
@@ -400,50 +140,11 @@ export async function getDB(): Promise<DBProvider> {
 
 ### 기본 쿼리
 
-```typescript
-// modules/ledger/backend/service.ts
-import { db } from '@core/db';
-
-export async function list(userId: string) {
-  return await db.query(
-    'SELECT * FROM ledger_entries WHERE user_id = ? ORDER BY date DESC',
-    [userId]
-  );
-}
-
-export async function create(data: LedgerEntry) {
-  return await db.query(
-    'INSERT INTO ledger_entries (id, user_id, amount, date) VALUES (?, ?, ?, ?)',
-    [data.id, data.userId, data.amount, data.date]
-  );
-}
-```
+Core의 db 객체를 가져와 사용합니다. list 함수는 해당 사용자의 ledger_entries를 날짜 내림차순으로 조회합니다. create 함수는 새 항목의 ID, 사용자 ID, 금액, 날짜를 받아 테이블에 삽입합니다.
 
 ### 트랜잭션
 
-```typescript
-export async function transferFunds(from: string, to: string, amount: number) {
-  await db.transaction(async () => {
-    // 출금
-    await db.query(
-      'UPDATE accounts SET balance = balance - ? WHERE id = ?',
-      [amount, from]
-    );
-    
-    // 입금
-    await db.query(
-      'UPDATE accounts SET balance = balance + ? WHERE id = ?',
-      [amount, to]
-    );
-    
-    // 기록
-    await db.query(
-      'INSERT INTO transactions (from_id, to_id, amount) VALUES (?, ?, ?)',
-      [from, to, amount]
-    );
-  });
-}
-```
+transferFunds 함수는 한 계좌에서 다른 계좌로 금액을 이체하는 작업을 트랜잭션으로 묶습니다. 트랜잭션 내에서 출금 계좌의 잔액을 줄이고, 입금 계좌의 잔액을 늘리고, 이체 기록을 남깁니다. 중간에 에러가 발생하면 세 작업 모두 되돌려집니다.
 
 ---
 
@@ -452,34 +153,11 @@ export async function transferFunds(from: string, to: string, amount: number) {
 > 📖 **모듈 구조:**  
 > → `modules/development-guide.md § schema.ts`
 
-```typescript
-// modules/ledger/backend/schema.ts
+ledger_entries 테이블의 스키마를 정의합니다. 열 구성은 다음과 같습니다: id는 기본키인 UUID, user_id는 필수의 UUID, amount는 소수점 2자리까지 가능한 숫자, category는 최대 100자의 문자열, date는 필수의 날짜, created_at과 updated_at은 자동으로 현재 시간으로 설정됩니다.
 
-export const schema = {
-  tableName: 'ledger_entries',
-  columns: {
-    id: { type: 'uuid', primaryKey: true },
-    user_id: { type: 'uuid', nullable: false },
-    amount: { type: 'decimal', precision: 10, scale: 2 },
-    category: { type: 'string', maxLength: 100 },
-    date: { type: 'date', nullable: false },
-    created_at: { type: 'timestamp', default: 'now()' },
-    updated_at: { type: 'timestamp', default: 'now()' }
-  },
-  indexes: [
-    { columns: ['user_id'] },
-    { columns: ['date'] },
-    { columns: ['user_id', 'date'] }
-  ],
-  foreignKeys: [
-    {
-      columns: ['user_id'],
-      references: { table: 'users', columns: ['id'] },
-      onDelete: 'CASCADE'
-    }
-  ]
-};
-```
+인덱스는 세 종류를 정의합니다: user_id 단일 인덱스, date 단일 인덱스, user_id와 date의 복합 인덱스입니다.
+
+외래키는 user_id가 users 테이블의 id를 참조하며, 해당 사용자가 삭제되면 관련 항목도 자동으로 삭제됩니다.
 
 ---
 
@@ -487,91 +165,15 @@ export const schema = {
 
 복잡한 쿼리를 위한 빌더 제공:
 
-```typescript
-// packages/core/db/query-builder.ts
+QueryBuilder 클래스는 테이블명을 받아 초기화됩니다. where 메서드는 조건을 추가하며, 여러 번 호출하면 AND로 연결됩니다. order 메서드는 정렬 열과 방향(오름차순/내림차순)을 지정합니다. get 메서드는 지금까지 설정된 조건과 정렬을 기반으로 SELECT 쿼리를 조립하여 실행하고 결과를 반환합니다.
 
-export class QueryBuilder {
-  private table: string;
-  private conditions: string[] = [];
-  private params: any[] = [];
-  private orderBy: string[] = [];
-  
-  constructor(table: string) {
-    this.table = table;
-  }
-  
-  where(column: string, operator: string, value: any) {
-    this.conditions.push(`${column} ${operator} ?`);
-    this.params.push(value);
-    return this;
-  }
-  
-  order(column: string, direction: 'ASC' | 'DESC' = 'ASC') {
-    this.orderBy.push(`${column} ${direction}`);
-    return this;
-  }
-  
-  async get(): Promise<any[]> {
-    let sql = `SELECT * FROM ${this.table}`;
-    
-    if (this.conditions.length > 0) {
-      sql += ` WHERE ${this.conditions.join(' AND ')}`;
-    }
-    
-    if (this.orderBy.length > 0) {
-      sql += ` ORDER BY ${this.orderBy.join(', ')}`;
-    }
-    
-    return await db.query(sql, this.params);
-  }
-}
-
-// 사용
-const entries = await new QueryBuilder('ledger_entries')
-  .where('user_id', '=', userId)
-  .where('amount', '>', 0)
-  .order('date', 'DESC')
-  .get();
-```
+사용 예시로 ledger_entries에서 특정 사용자의 금액이 0보다 큰 항목들을 날짜 내림차순으로 조회하는 것을 보여줍니다.
 
 ---
 
 ## 연결 풀 관리
 
-```typescript
-// packages/core/db/pool.ts
-
-interface PoolConfig {
-  min: number;
-  max: number;
-  idleTimeoutMillis: number;
-}
-
-const defaultPoolConfig: PoolConfig = {
-  min: 2,
-  max: 10,
-  idleTimeoutMillis: 30000
-};
-
-export class ConnectionPool {
-  private config: PoolConfig;
-  private provider: DBProvider;
-  
-  constructor(provider: DBProvider, config?: Partial<PoolConfig>) {
-    this.provider = provider;
-    this.config = { ...defaultPoolConfig, ...config };
-  }
-  
-  async getConnection(): Promise<DBProvider> {
-    // 연결 풀에서 가져오기
-    return this.provider;
-  }
-  
-  async releaseConnection(connection: DBProvider) {
-    // 연결 반환
-  }
-}
-```
+ConnectionPool 클래스는 DB 연결 풀의 설정과 Provider를 관리합니다. 기본 설정은 최소 2개, 최대 10개의 연결을 유지하며, 30초 동안 사용되지 않은 연결은 자동으로 닫힙니다. getConnection 메서드는 연결 풀에서 사용 가능한 연결을 가져오고, releaseConnection 메서드는 사용한 연결을 풀로 반환합니다.
 
 ---
 
@@ -579,55 +181,15 @@ export class ConnectionPool {
 
 ### PostgreSQL 백업
 
-```bash
-#!/bin/bash
-# backup-postgres.sh
-
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="./backups"
-
-pg_dump -U finance finance | gzip > $BACKUP_DIR/db_$DATE.sql.gz
-
-echo "✓ Backup created: db_$DATE.sql.gz"
-```
+백업 스크립트는 실행 시간을 날짜와 시간으로 포맷하여 파일명에 포함시킵니다. pg_dump 명령으로 finance 데이터베이스를 전체 덤프한 후 gzip으로 압축하여 backups/ 폴더에 저장합니다.
 
 ### SQLite 백업
 
-```bash
-#!/bin/bash
-# backup-sqlite.sh
-
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="./backups"
-
-cp ./data/database.db $BACKUP_DIR/db_$DATE.db
-
-echo "✓ Backup created: db_$DATE.db"
-```
+백업 스크립트는 동일하게 날짜·시간을 파일명에 포함시키며, ./data/database.db 파일을 backups/ 폴더로 복사합니다.
 
 ### 복원
 
-```typescript
-// apps/api/src/services/restore.ts
-
-export async function restoreDatabase(backupFile: string) {
-  const provider = process.env.DB_PROVIDER;
-  
-  switch (provider) {
-    case 'postgres':
-      await execAsync(`psql -U finance finance < ${backupFile}`);
-      break;
-    
-    case 'sqlite':
-      await fs.copy(backupFile, './data/database.db');
-      break;
-    
-    case 'supabase':
-      // Supabase는 UI에서 복원
-      throw new Error('Supabase는 대시보드에서 복원하세요');
-  }
-}
-```
+restoreDatabase 함수는 환경 변수의 DB_PROVIDER에 따라 복원 방법을 나눕니다. PostgreSQL은 psql 명령으로 백업 파일을 복원합니다. SQLite는 백업 파일을 ./data/database.db 경로로 복사합니다. Supabase는 직접 복원이 불가하여 대시보드에서 복원하라는 안내를 에러로 반환합니다.
 
 ---
 
@@ -635,41 +197,11 @@ export async function restoreDatabase(backupFile: string) {
 
 ### 쿼리 로깅
 
-```typescript
-// packages/core/db/logger.ts
-
-export function logQuery(sql: string, params: any[], duration: number) {
-  if (process.env.LOG_QUERIES === 'true') {
-    console.log(`[DB] ${duration}ms - ${sql}`, params);
-  }
-  
-  // 느린 쿼리 경고
-  if (duration > 1000) {
-    console.warn(`⚠️ Slow query (${duration}ms): ${sql}`);
-  }
-}
-
-// 사용
-const start = Date.now();
-const result = await db.query(sql, params);
-const duration = Date.now() - start;
-
-logQuery(sql, params, duration);
-```
+logQuery 함수는 실행된 SQL, 파라미터, 실행 소요 시간을 로그로 기록합니다. LOG_QUERIES 환경 변수가 'true'로 설정되어 있을 때만 로그를 출력합니다. 실행 시간이 1초(1000ms)를 초과하면 느린 쿼리 경고를 별도로 출력합니다.
 
 ### 연결 상태 체크
 
-```typescript
-export async function checkDatabaseHealth(): Promise<boolean> {
-  try {
-    await db.query('SELECT 1');
-    return true;
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
-    return false;
-  }
-}
-```
+checkDatabaseHealth 함수는 간단한 SELECT 1 쿼리를 실행하여 DB 연결이 정상인지 확인합니다. 성공하면 true, 실패하면 에러를 로깅하고 false를 반환합니다.
 
 ---
 
@@ -677,30 +209,11 @@ export async function checkDatabaseHealth(): Promise<boolean> {
 
 ### SQL Injection 방지
 
-```typescript
-// ❌ 위험: SQL Injection 가능
-const sql = `SELECT * FROM users WHERE email = '${email}'`;
-
-// ✅ 안전: Prepared Statement
-const sql = 'SELECT * FROM users WHERE email = ?';
-const result = await db.query(sql, [email]);
-```
+직접 문자열을 이어붙여 SQL을 만드면 SQL Injection 공격이 가능합니다. 대신 파라미터를 ? 플레이스홀더로 표시하고 별도로 전달하는 Prepared Statement 방식을 사용해야 합니다. db.query의 두 번째 인수로 파라미터를 배열로 넘기면 자동으로 안전하게 처리됩니다.
 
 ### 암호화
 
-```typescript
-// 민감한 데이터 암호화
-import { encrypt, decrypt } from '@core/crypto';
-
-export async function saveApiKey(userId: string, apiKey: string) {
-  const encrypted = encrypt(apiKey);
-  
-  await db.query(
-    'UPDATE users SET api_key = ? WHERE id = ?',
-    [encrypted, userId]
-  );
-}
-```
+민감한 데이터는 저장 전에 암호화합니다. Core의 encrypt 함수를 사용하여 API Key 등의 정보를 암호화한 후 저장하고, 읽을 때는 decrypt 함수로 복호화합니다.
 
 ---
 
