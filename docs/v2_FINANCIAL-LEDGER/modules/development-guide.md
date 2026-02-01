@@ -14,29 +14,11 @@
 
 ### 1. 모듈 템플릿 복사
 
-```bash
-cp -r modules/example modules/my-module
-cd modules/my-module
-```
+example 폴더를 복사하여 my-module이라는 새 폴더로 만들고, 해당 폴더로 이동합니다.
 
 ### 2. module.json 수정
 
-```json
-{
-  "name": "my-module",
-  "version": "1.0.0",
-  "displayName": "내 모듈",
-  "description": "모듈 설명",
-  "icon": "🎯",
-  "routes": {
-    "frontend": "/my-module",
-    "api": "/api/my-module"
-  },
-  "permissions": ["db:read", "db:write"],
-  "dependencies": [],
-  "enabled": true
-}
-```
+모듈의 메타데이터를 정의하는 파일입니다. name은 내부 식별명, version은 버전, displayName은 표시 이름, description은 설명, icon은 아이콘 이모지입니다. routes에는 프론트엔드 경로와 API 경로를 정의하고, permissions에는 필요한 권한(예: db:read, db:write)을 목록으로 넣습니다. dependencies는 의존하는 다른 모듈 목록이고, enabled는 활성화 여부입니다.
 
 ---
 
@@ -77,70 +59,17 @@ modules/my-module/
 
 ### routes.ts
 
-```typescript
-// modules/my-module/backend/routes.ts
+Express Router를 사용하여 CRUD 엔드포인트를 정의합니다.
 
-import { Router } from 'express';
-import * as service from './service';
-import { validateCreate, validateUpdate } from './validation';
+GET / 엔드포인트는 목록 조회입니다. 현재 로그인 사용자의 ID로 service.list를 호출하여 항목 목록을 반환합니다. 에러가 발생하면 500 상태와 에러 메시지를 반환합니다.
 
-const router = Router();
+GET /:id 엔드포인트는 상세 조회입니다. URL의 항목 ID와 사용자 ID로 service.getById를 호출합니다. 해당 항목이 없으면 404를 반환하고, 있으면 항목 정보를 반환합니다.
 
-// 목록 조회
-router.get('/', async (req, res) => {
-  try {
-    const items = await service.list(req.user.id);
-    res.json(items);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+POST / 엔드포인트는 신규 생성입니다. validateCreate 미들웨어를 거쳐 입력 데이터의 유효성을 먼저 검증하고, 통과하면 service.create를 호출하여 새 항목을 생성합니다. 성공 시 201 상태와 생성된 항목을 반환합니다.
 
-// 상세 조회
-router.get('/:id', async (req, res) => {
-  try {
-    const item = await service.getById(req.params.id, req.user.id);
-    if (!item) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    res.json(item);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+PUT /:id 엔드포인트는 수정입니다. validateUpdate 미들웨어를 거쳐 유효성 검증 후, service.update를 호출하여 해당 항목을 수정합니다.
 
-// 생성
-router.post('/', validateCreate, async (req, res) => {
-  try {
-    const item = await service.create(req.body, req.user.id);
-    res.status(201).json(item);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 수정
-router.put('/:id', validateUpdate, async (req, res) => {
-  try {
-    const item = await service.update(req.params.id, req.body, req.user.id);
-    res.json(item);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 삭제
-router.delete('/:id', async (req, res) => {
-  try {
-    await service.remove(req.params.id, req.user.id);
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-export default router;
-```
+DELETE /:id 엔드포인트는 삭제입니다. service.remove를 호출하여 해당 항목을 삭제하고, 성공 시 204 상태(본문 없음)를 반환합니다.
 
 ### service.ts
 
@@ -148,187 +77,42 @@ export default router;
 > → `technical/database.md`  
 > → `architecture/decisions.md § 결정 #3: DB 추상화`
 
-```typescript
-// modules/my-module/backend/service.ts
+Core의 db와 eventBus를 가져와 사용합니다.
 
-import { db } from '@core/db';
-import { eventBus } from '@core/events';
+list 함수는 해당 사용자의 my_module_items를 생성 시간 내림차순으로 조회합니다.
 
-export async function list(userId: string) {
-  return await db.query(
-    'SELECT * FROM my_module_items WHERE user_id = ? ORDER BY created_at DESC',
-    [userId]
-  );
-}
+getById 함수는 항목 ID와 사용자 ID로 특정 항목을 조회하고, 결과의 첫 번째 항목을 반환합니다.
 
-export async function getById(id: string, userId: string) {
-  const results = await db.query(
-    'SELECT * FROM my_module_items WHERE id = ? AND user_id = ?',
-    [id, userId]
-  );
-  return results[0];
-}
+create 함수는 새 항목을 생성합니다. 무임의 ID를 생성하고, 입력 데이터에 사용자 ID와 생성·수정 시간을 추가한 후 테이블에 삽입합니다. 삽입 완료 후 'my-module:created' 이벤트를 Event Bus에 발행합니다.
 
-export async function create(data: any, userId: string) {
-  const item = {
-    id: generateId(),
-    ...data,
-    user_id: userId,
-    created_at: new Date(),
-    updated_at: new Date()
-  };
-  
-  await db.query(
-    'INSERT INTO my_module_items VALUES (?)',
-    [item]
-  );
-  
-  // 이벤트 발행
-  eventBus.emit('my-module:created', item);
-  
-  return item;
-}
+update 함수는 먼저 해당 항목이 존재하는지 확인하고, 없으면 에러를 발생시킵니다. 존재하면 기존 데이터에 새 데이터를 덮어씀하고 수정 시간을 업데이트한 후 저장합니다. 완료 후 'my-module:updated' 이벤트를 발행합니다.
 
-export async function update(id: string, data: any, userId: string) {
-  const item = await getById(id, userId);
-  if (!item) {
-    throw new Error('Not found');
-  }
-  
-  const updated = {
-    ...item,
-    ...data,
-    updated_at: new Date()
-  };
-  
-  await db.query(
-    'UPDATE my_module_items SET ? WHERE id = ? AND user_id = ?',
-    [updated, id, userId]
-  );
-  
-  eventBus.emit('my-module:updated', updated);
-  
-  return updated;
-}
-
-export async function remove(id: string, userId: string) {
-  const item = await getById(id, userId);
-  if (!item) {
-    throw new Error('Not found');
-  }
-  
-  await db.query(
-    'DELETE FROM my_module_items WHERE id = ? AND user_id = ?',
-    [id, userId]
-  );
-  
-  eventBus.emit('my-module:deleted', { id, userId });
-}
-```
+remove 함수도 먼저 존재 여부를 확인한 후, 해당 항목을 삭제합니다. 완료 후 'my-module:deleted' 이벤트를 발행합니다.
 
 ### validation.ts
 
-```typescript
-// modules/my-module/backend/validation.ts
+Zod 라이브러리를 사용하여 입력 데이터의 유효성을 검증합니다.
 
-import { z } from 'zod';
+createSchema는 생성 시 필요한 규칙을 정의합니다: name은 1자 이상 100자 이하의 문자열, description은 선택사항인 문자열, amount는 양수인 숫자입니다.
 
-const createSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().optional(),
-  amount: z.number().positive()
-});
+updateSchema는 createSchema의 모든 필드를 선택사항으로 변경합니다 (부분 수정 가능).
 
-const updateSchema = createSchema.partial();
-
-export function validateCreate(req, res, next) {
-  try {
-    createSchema.parse(req.body);
-    next();
-  } catch (error) {
-    res.status(400).json({ error: error.errors });
-  }
-}
-
-export function validateUpdate(req, res, next) {
-  try {
-    updateSchema.parse(req.body);
-    next();
-  } catch (error) {
-    res.status(400).json({ error: error.errors });
-  }
-}
-```
+validateCreate 미들웨어는 요청 본문을 createSchema로 검증하고, 통과하면 다음 단계로 넘깁니다. 실패하면 400 상태와 에러 내용을 반환합니다. validateUpdate도 동일하게 updateSchema로 검증합니다.
 
 ### schema.ts
 
-```typescript
-// modules/my-module/backend/schema.ts
-
-export const schema = {
-  tableName: 'my_module_items',
-  columns: {
-    id: { type: 'uuid', primaryKey: true },
-    user_id: { type: 'uuid', nullable: false },
-    name: { type: 'string', maxLength: 100 },
-    description: { type: 'text', nullable: true },
-    amount: { type: 'decimal', precision: 10, scale: 2 },
-    created_at: { type: 'timestamp', default: 'now()' },
-    updated_at: { type: 'timestamp', default: 'now()' }
-  },
-  indexes: [
-    { columns: ['user_id'] },
-    { columns: ['created_at'] }
-  ]
-};
-```
+my_module_items 테이블의 스키마를 정의합니다. id는 기본키인 UUID, user_id는 필수의 UUID, name은 최대 100자의 문자열, description은 선택사항인 텍스트, amount는 소수점 2자리까지의 숫자입니다. created_at과 updated_at은 기본값으로 현재 시간을 설정합니다. 인덱스는 user_id와 created_at에 각각 생성됩니다.
 
 ### index.ts (Backend Entry)
 
 > 📌 **핵심:** Module Loader가 이 파일을 런타임에 동적으로 Import합니다.  
 > → `architecture/decisions.md § 결정 #1: Module Loader`
 
-```typescript
-// modules/my-module/backend/index.ts
+백엔드의 진입점입니다. routes를 기본 export하고, initialize와 shutdown 두 함수를 제공합니다.
 
-import routes from './routes';
-import { scheduler } from '@core/scheduler';
-import { eventBus } from '@core/events';
+initialize 함수는 모듈이 시작될 때 호출됩니다. 먼저 DB 마이그레이션을 실행합니다. 그 다음 Scheduler에 'my-module-daily-task'라는 매일 자정에 실행되는 작업을 등록합니다. 마지막으로 Event Bus에서 'user:created' 이벤트를 구독하여 새 사용자가 생성되면 handleNewUser 함수를 실행하도록 합니다.
 
-export default routes;
-
-export async function initialize() {
-  console.log('Initializing my-module...');
-  
-  // DB 마이그레이션
-  await runMigrations();
-  
-  // Scheduler 작업 등록
-  scheduler.register({
-    name: 'my-module-daily-task',
-    schedule: '0 0 * * *',
-    handler: async () => {
-      // 일일 작업
-    }
-  });
-  
-  // Event listener 등록
-  eventBus.on('user:created', handleNewUser);
-}
-
-export async function shutdown() {
-  console.log('Shutting down my-module...');
-  eventBus.off('user:created', handleNewUser);
-}
-
-async function handleNewUser(user: any) {
-  // 새 사용자 처리
-}
-
-async function runMigrations() {
-  // 마이그레이션 실행
-}
-```
+shutdown 함수는 모듈이 종료될 때 호출됩니다. Event Bus에서 등록한 이벤트 리스너를 제거합니다.
 
 > 📖 **Scheduler 사용법:**  
 > → `technical/scheduler.md`
@@ -342,239 +126,54 @@ async function runMigrations() {
 > 📌 **핵심:** Module Loader가 이 파일을 런타임에 동적으로 Import합니다.  
 > → `architecture/decisions.md § 결정 #1`
 
-```typescript
-// modules/my-module/frontend/index.tsx
+프론트엔드의 진입점입니다. React Router를 사용하여 라우팅을 정의합니다. 루트 경로(/)에는 List 페이지, /:id 경로에는 Detail 페이지, /create 경로에는 Create 페이지를 배치합니다.
 
-import { Routes, Route } from 'react-router-dom';
-import List from './pages/List';
-import Detail from './pages/Detail';
-import Create from './pages/Create';
-
-export default function MyModule() {
-  return (
-    <Routes>
-      <Route path="/" element={<List />} />
-      <Route path="/:id" element={<Detail />} />
-      <Route path="/create" element={<Create />} />
-    </Routes>
-  );
-}
-
-// 네비게이션 메뉴 정보
-export const navigation = {
-  label: '내 모듈',
-  icon: '🎯',
-  path: '/my-module'
-};
-```
+navigation 객체를 별도로 export합니다. 이 정보는 앱의 네비게이션 메뉄에 자동으로 표시되며, 라벨은 '내 모듈', 아이콘은 🎯, 경로는 /my-module입니다.
 
 ### pages/List.tsx
 
 > 📖 **Core UI 컴포넌트:**  
 > → `ui/core-components.md`
 
-```typescript
-// modules/my-module/frontend/pages/List.tsx
+목록 페이지입니다. useNavigate 훅으로 페이지 이동을 준비하고, useMyModule 훅에서 항목 목록, 로딩 상태, 삭제 함수를 가져옵니다.
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { PageLayout, DataTable, Button } from '@core/ui';
-import { useMyModule } from '../hooks/useMyModule';
+테이블 열을 4개로 정의합니다: 이름(정렬 가능), 설명, 금액(통화 형식으로 포맷), 작업(각 행에 빨간색 삭제 버튼 표시). 삭제 버튼을 클릭하면 확인 팝업을 표시하고, 확인하면 해당 항목을 삭제합니다.
 
-export default function List() {
-  const navigate = useNavigate();
-  const { items, loading, deleteItem } = useMyModule();
-  
-  const columns = [
-    { key: 'name', label: '이름', sortable: true },
-    { key: 'description', label: '설명' },
-    { key: 'amount', label: '금액', format: 'currency' },
-    {
-      key: 'actions',
-      label: '작업',
-      render: (item) => (
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => handleDelete(item.id)}
-        >
-          삭제
-        </Button>
-      )
-    }
-  ];
-  
-  const handleDelete = async (id: string) => {
-    if (confirm('정말 삭제하시겠습니까?')) {
-      await deleteItem(id);
-    }
-  };
-  
-  return (
-    <PageLayout
-      title="내 모듈"
-      actions={
-        <Button
-          variant="primary"
-          onClick={() => navigate('/my-module/create')}
-        >
-          + 추가
-        </Button>
-      }
-    >
-      <DataTable
-        columns={columns}
-        data={items}
-        loading={loading}
-        searchable
-        sortable
-        pagination
-        onRowClick={(item) => navigate(`/my-module/${item.id}`)}
-      />
-    </PageLayout>
-  );
-}
-```
+PageLayout에 제목을 '내 모듈'로 설정하고 우측 상단에 '+ 추가' 버튼을 배치합니다. DataTable에 열과 데이터를 넘기고, 검색·정렬·페이지네이션을 활성화합니다. 행을 클릭하면 해당 항목의 상세 페이지로 이동합니다.
 
 ### pages/Create.tsx
 
-```typescript
-// modules/my-module/frontend/pages/Create.tsx
+생성 페이지입니다. useNavigate로 이동을 준비하고, useNotification 훅으로 성공/실패 알림을 표시할 준비를 합니다. useMyModule 훅에서 createItem 함수를 가져옵니다.
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FormLayout, Input, useNotification } from '@core/ui';
-import { useMyModule } from '../hooks/useMyModule';
+폼 데이터의 초기값은 name은 빈 문자열, description은 빈 문자열, amount는 0입니다.
 
-export default function Create() {
-  const navigate = useNavigate();
-  const notify = useNotification();
-  const { createItem } = useMyModule();
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    amount: 0
-  });
-  
-  const handleSubmit = async () => {
-    try {
-      await createItem(formData);
-      notify.success('생성되었습니다');
-      navigate('/my-module');
-    } catch (error) {
-      notify.error('생성에 실패했습니다');
-    }
-  };
-  
-  return (
-    <FormLayout
-      title="새 항목 추가"
-      onSubmit={handleSubmit}
-      onCancel={() => navigate('/my-module')}
-    >
-      <Input
-        label="이름"
-        value={formData.name}
-        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-        required
-      />
-      <Input
-        label="설명"
-        value={formData.description}
-        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-      />
-      <Input
-        label="금액"
-        type="number"
-        value={formData.amount}
-        onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
-        required
-      />
-    </FormLayout>
-  );
-}
-```
+handleSubmit 함수는 제출 시 createItem을 호출합니다. 성공하면 '생성되었습니다' 알림을 표시하고 목록 페이지로 이동합니다. 실패하면 '생성에 실패했습니다' 알림을 표시합니다.
+
+FormLayout에 제목을 '새 항목 추가'로 설정하고, 저장과 취소 버튼의 액션을 연결합니다. 본문에는 이름(필수), 설명, 금액(숫자 타입, 필수) 세 개의 Input 컴포넌트를 배치합니다. 각 입력의 값이 변경되면 폼 데이터 상태가 업데이트됩니다.
 
 ### hooks/useMyModule.ts
 
-```typescript
-// modules/my-module/frontend/hooks/useMyModule.ts
+모듈 전용 훅입니다. 항목 목록과 로딩 상태를 상태로 관리합니다. 컴포넌트가 마운트되면 백엔드에서 항목 목록을 가져옵니다.
 
-import { useState, useEffect } from 'react';
-import { api } from '@core/api';
+fetchItems 함수는 로딩을 켜고 /api/my-module에 GET 요청을 보내 목록을 가져옵니다. 완료되면 로딩을 끕니다.
 
-export function useMyModule() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    fetchItems();
-  }, []);
-  
-  const fetchItems = async () => {
-    setLoading(true);
-    try {
-      const data = await api.get('/api/my-module');
-      setItems(data);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const createItem = async (data: any) => {
-    const newItem = await api.post('/api/my-module', data);
-    setItems([...items, newItem]);
-    return newItem;
-  };
-  
-  const updateItem = async (id: string, data: any) => {
-    const updated = await api.put(`/api/my-module/${id}`, data);
-    setItems(items.map(item => item.id === id ? updated : item));
-    return updated;
-  };
-  
-  const deleteItem = async (id: string) => {
-    await api.delete(`/api/my-module/${id}`);
-    setItems(items.filter(item => item.id !== id));
-  };
-  
-  return {
-    items,
-    loading,
-    createItem,
-    updateItem,
-    deleteItem,
-    refresh: fetchItems
-  };
-}
-```
+createItem 함수는 백엔드에 POST 요청으로 새 항목을 생성하고, 생성된 항목을 목록에 추가합니다.
+
+updateItem 함수는 백엔드에 PUT 요청으로 항목을 수정하고, 목록에서 해당 항목을 교체합니다.
+
+deleteItem 함수는 백엔드에 DELETE 요청으로 항목을 삭제하고, 목록에서 해당 항목을 제거합니다.
+
+훅은 items, loading, createItem, updateItem, deleteItem, refresh를 반환합니다.
 
 ---
 
 ## 타입 정의
 
-```typescript
-// modules/my-module/types/index.ts
+MyModuleItem은 항목의 전체 구조입니다: id, userId, name, 선택사항인 description, amount, createdAt, updatedAt.
 
-export interface MyModuleItem {
-  id: string;
-  userId: string;
-  name: string;
-  description?: string;
-  amount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+CreateMyModuleItemDto는 항목 생성 시 필요한 데이터 구조입니다: name, 선택사항인 description, amount.
 
-export interface CreateMyModuleItemDto {
-  name: string;
-  description?: string;
-  amount: number;
-}
-
-export interface UpdateMyModuleItemDto extends Partial<CreateMyModuleItemDto> {}
-```
+UpdateMyModuleItemDto는 항목 수정 시 사용되며, CreateMyModuleItemDto의 모든 필드를 선택사항으로 변경한 구조입니다 (부분 수정 가능).
 
 ---
 
@@ -582,52 +181,15 @@ export interface UpdateMyModuleItemDto extends Partial<CreateMyModuleItemDto> {}
 
 ### Backend 테스트
 
-```typescript
-// modules/my-module/backend/__tests__/service.test.ts
+Vitest를 사용하여 service 함수를 테스트합니다. beforeEach에서 테스트용 DB를 초기화합니다.
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import * as service from '../service';
+첫 번째 테스트는 항목 생성을 확인합니다. name과 amount를 넘기고 create를 호출한 후, 반환된 항목의 name이 'Test'이고 amount가 1000인지 확인합니다.
 
-describe('MyModule Service', () => {
-  beforeEach(async () => {
-    // 테스트 DB 초기화
-  });
-  
-  it('should create item', async () => {
-    const data = {
-      name: 'Test',
-      amount: 1000
-    };
-    
-    const item = await service.create(data, 'user-123');
-    
-    expect(item.name).toBe('Test');
-    expect(item.amount).toBe(1000);
-  });
-  
-  it('should list items', async () => {
-    const items = await service.list('user-123');
-    expect(Array.isArray(items)).toBe(true);
-  });
-});
-```
+두 번째 테스트는 목록 조회를 확인합니다. list를 호출한 후, 반환된 값이 배열인지 확인합니다.
 
 ### Frontend 테스트
 
-```typescript
-// modules/my-module/frontend/__tests__/List.test.tsx
-
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import List from '../pages/List';
-
-describe('List Page', () => {
-  it('should render title', () => {
-    render(<List />);
-    expect(screen.getByText('내 모듈')).toBeInTheDocument();
-  });
-});
-```
+React Testing Library를 사용하여 List 페이지를 테스트합니다. List 컴포넌트를 렌더링한 후, '내 모듈' 텍스트가 화면에 표시되는지 확인합니다.
 
 ---
 
@@ -635,31 +197,11 @@ describe('List Page', () => {
 
 ### 1. GitHub에 업로드
 
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/username/my-module
-git push -u origin main
-```
+git init으로 저장소를 초기화하고, 전체 파일을 추가하여 커밋합니다. GitHub의 원본 저장소를 연결한 후 main 브랜치를 푸시합니다.
 
 ### 2. README 작성
 
-```markdown
-# My Module
-
-모듈 설명
-
-## 설치
-
-\`\`\`bash
-git clone https://github.com/username/my-module modules/my-module
-\`\`\`
-
-## 사용법
-
-...
-```
+모듈의 설명, 설치 방법(git clone 명령어), 사용법을 작성합니다.
 
 ### 3. 공식 레지스트리에 등록
 

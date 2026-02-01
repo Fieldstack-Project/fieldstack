@@ -6,26 +6,17 @@
 
 UI는 Core/Module 로직과 완전 분리되어야 합니다:
 
-```
-❌ 잘못된 예:
-modules/ledger/backend/service.ts에 UI 로직 포함
+잘못된 예: modules/ledger/backend/service.ts (백엔드 로직 파일) 안에 UI 로직이 포함되어 있는 경우입니다.
 
-✅ 올바른 예:
-modules/ledger/frontend/ - UI 코드
-modules/ledger/backend/  - 비즈니스 로직
-```
+올바른 예: modules/ledger/frontend/ 폴더에는 UI 코드만, modules/ledger/backend/ 폴더에는 비즈니스 로직만 들어가야 합니다.
 
 ### 2. Core UI 우선
 
 모듈은 Core에서 제공하는 UI 컴포넌트를 최대한 활용하여 일관된 디자인 유지:
 
-```typescript
-// 권장
-import { Button, Card, Table } from '@core/ui';
+권장하는 방식은 Core에서 제공하는 Button, Card, Table 같은 컴포넌트를 직접 가져와 사용하는 것입니다.
 
-// 피해야 할 방식
-import { Button } from 'some-external-library';
-```
+피해야 할 방식은 외부 라이브러리에서 Button 같은 컴포넌트를 가져오는 것입니다. 이렇게 하면 앱 전체의 디자인 일관성이 무너집니다.
 
 ### 3. 자유로운 교체
 
@@ -43,152 +34,47 @@ apps/web/
 
 ### 색상 팔레트
 
-```typescript
-export const colors = {
-  // Primary
-  primary: {
-    50: '#EFF6FF',
-    100: '#DBEAFE',
-    500: '#3B82F6',   // 메인 색상
-    600: '#2563EB',
-    900: '#1E3A8A'
-  },
-  
-  // Semantic
-  success: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  info: '#3B82F6',
-  
-  // Grayscale
-  gray: {
-    50: '#F9FAFB',
-    100: '#F3F4F6',
-    500: '#6B7280',
-    900: '#111827'
-  }
-};
-```
+주색상(primary)은 파란색 계열로 밝은 음영(50번: 아주 연한 파란색 #EFF6FF)부터 어두운 음영(900번: 진한 네이비 #1E3A8A)까지 단계별로 정의되어 있습니다. 주로 사용되는 것은 500번(파란색 #3B82F6)입니다.
+
+의미가 부여된 색상도 따로 정의되어 있습니다: 성공은 초록색(#10B981), 경고는 주황색(#F59E0B), 위험은 빨간색(#EF4444), 정보는 파란색(#3B82F6)입니다.
+
+회색(gray)도 마찬가지로 가장 밝은 단계(50번: #F9FAFB)부터 가장 어두운 단계(900번: #111827)까지 정의되어 있습니다.
 
 ### 타이포그래피
 
-```typescript
-export const typography = {
-  fontFamily: {
-    sans: 'Inter, -apple-system, sans-serif',
-    mono: 'JetBrains Mono, monospace'
-  },
-  
-  fontSize: {
-    xs: '0.75rem',    // 12px
-    sm: '0.875rem',   // 14px
-    base: '1rem',     // 16px
-    lg: '1.125rem',   // 18px
-    xl: '1.25rem',    // 20px
-    '2xl': '1.5rem',  // 24px
-    '3xl': '1.875rem' // 30px
-  },
-  
-  fontWeight: {
-    normal: 400,
-    medium: 500,
-    semibold: 600,
-    bold: 700
-  }
-};
-```
+폰트는 두 종류로 나뉩니다. 일반 텍스트용으로는 Inter와 시스템 기본 폰트를 조합한 무단 폰트를 사용하고, 코드 표시용으로는 JetBrains Mono라는 등폭 폰트를 사용합니다.
+
+글자 크기는 7단계로 정의되어 있습니다: xs(12px), sm(14px), base(16px, 기본), lg(18px), xl(20px), 2xl(24px), 3xl(30px).
+
+글자 두께도 4단계로 나뉩니다: normal(400), medium(500), semibold(600), bold(700).
 
 ### 간격 (Spacing)
 
-```typescript
-export const spacing = {
-  0: '0',
-  1: '0.25rem',   // 4px
-  2: '0.5rem',    // 8px
-  3: '0.75rem',   // 12px
-  4: '1rem',      // 16px
-  6: '1.5rem',    // 24px
-  8: '2rem',      // 32px
-  12: '3rem',     // 48px
-  16: '4rem'      // 64px
-};
-```
+컴포넌트들 사이의 거리와 내부 여백을 균등하게 유지하기 위한 기준 간격입니다. 가장 작은 단위인 1단계는 4px이며, 단계가 올라갈수록 간격이 커집니다: 2단계(8px), 3단계(12px), 4단계(16px), 6단계(24px), 8단계(32px), 12단계(48px), 16단계(64px).
 
 ### 반경 (Border Radius)
 
-```typescript
-export const borderRadius = {
-  none: '0',
-  sm: '0.125rem',   // 2px
-  md: '0.375rem',   // 6px
-  lg: '0.5rem',     // 8px
-  xl: '0.75rem',    // 12px
-  full: '9999px'
-};
-```
+컴포넌트의 모서리를 둥글게 만드는 정도를 정의합니다. none은 직사각형(0px), sm은 아주 약간의 둥글기(2px), md는 눈에 띄는 둥글기(6px), lg는 제대로 둥근 모양(8px), xl은 더 둥근 모양(12px), full은 완전히 원형으로 만드는 것(9999px)입니다.
 
 ## 반응형 디자인
 
 ### 브레이크포인트
 
-```typescript
-export const breakpoints = {
-  sm: '640px',   // Mobile
-  md: '768px',   // Tablet
-  lg: '1024px',  // Desktop
-  xl: '1280px',  // Large Desktop
-  '2xl': '1536px'
-};
-```
+앱은 세 가지 주요 화면 크기에 맞게 자동으로 레이아웃을 조정합니다. sm은 640px(모바일), md는 768px(타블릿), lg는 1024px(데스크탑), xl은 1280px(큰 데스크탑), 2xl은 1536px입니다.
 
 ### 반응형 사용 예시
 
-```typescript
-<div className="
-  w-full 
-  sm:w-1/2 
-  lg:w-1/3
-  p-4
-  sm:p-6
-  lg:p-8
-">
-  {content}
-</div>
-```
+컴포넌트의 너비와 내부 여백을 화면 크기에 따라 조정합니다. 기본(모바일)에서는 전체 너비와 여백 4를 적용하고, sm(타블릿) 이상에서는 절반 너비로 줄이고 여백을 6으로 늘립니다. lg(데스크탑) 이상에서는 1/3 너비로 줄이고 여백을 8로 늘립니다.
 
 ## 다크모드 지원
 
 ### 자동 전환
 
-```typescript
-// packages/core/ui/theme.ts
-export const darkMode = {
-  enabled: true,
-  strategy: 'class', // 또는 'media'
-  
-  colors: {
-    background: {
-      light: '#FFFFFF',
-      dark: '#111827'
-    },
-    text: {
-      light: '#111827',
-      dark: '#F9FAFB'
-    }
-  }
-};
-```
+다크모드 설정을 정의합니다. enabled로 활성화하고, strategy를 'class'로 설정하면 클래스 기반으로 다크모드를 전환합니다. 배경색은 라이트 모드에서 흰색, 다크 모드에서 진한 회색으로 바뀌고, 텍스트 색상은 라이트 모드에서 검은색, 다크 모드에서 거의 흰색으로 바뀝니다.
 
 ### 사용 예시
 
-```typescript
-<div className="
-  bg-white dark:bg-gray-900
-  text-gray-900 dark:text-gray-100
-">
-  {content}
-</div>
-```
+Tailwind CSS의 dark: 접두사를 사용합니다. 배경색은 기본적으로 흰색이지만 다크모드에서는 진한 회색(gray-900)으로 바뀌고, 텍스트 색상은 기본적으로 검은색(gray-900)이지만 다크모드에서는 거의 흰색(gray-100)으로 바뀝니다.
 
 ## 접근성 (Accessibility)
 
@@ -199,15 +85,8 @@ export const darkMode = {
    - Focus 상태 명확하게 표시
 
 2. **ARIA 속성**
-   ```typescript
-   <button
-     aria-label="메뉴 열기"
-     aria-expanded={isOpen}
-     aria-controls="menu"
-   >
-     메뉴
-   </button>
-   ```
+
+   버튼 컴포넌트에 접근성 속성을 추가합니다. aria-label로 스크린 리더에 '메뉄 열기'라는 설명을 제공합니다. aria-expanded는 메뉄이 열려 있는지 닫혀 있는지의 상태를 전달하고, aria-controls는 이 버튼이 어떤 요소를 제어하는지 연결합니다.
 
 3. **색상 대비**
    - WCAG AA 기준 준수 (최소 4.5:1)
@@ -221,85 +100,35 @@ export const darkMode = {
 
 ### Lucide React 사용
 
-```typescript
-import { Home, Settings, User, ChevronRight } from 'lucide-react';
-
-<Button>
-  <Home size={16} />
-  홈
-</Button>
-```
+Lucide React 라이브러리에서 아이콘을 가져와 사용합니다. 예시로 Home 아이콘을 크기 16으로 설정하여 버튼 안에 배치합니다.
 
 ### 아이콘 크기
 
-```typescript
-export const iconSizes = {
-  xs: 12,
-  sm: 16,
-  md: 20,
-  lg: 24,
-  xl: 32
-};
-```
+아이콘 크기를 5단계로 정의합니다: xs(12px), sm(16px), md(20px), lg(24px), xl(32px).
 
 ## 애니메이션
 
 ### 기본 트랜지션
 
-```typescript
-export const transitions = {
-  fast: '150ms ease-in-out',
-  base: '200ms ease-in-out',
-  slow: '300ms ease-in-out'
-};
-```
+트랜지션 속도를 3단계로 정의합니다: fast(150ms), base(200ms), slow(300ms). 모두 ease-in-out 타이밍 함수를 사용합니다.
 
 ### 사용 예시
 
-```css
-.button {
-  transition: all 200ms ease-in-out;
-}
-
-.button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-```
+버튼에 200ms의 ease-in-out 트랜지션을 적용합니다. 마우스를 올리면 버튼이 1px 위로 올라가고 그림자가 강해져 눌린 느낌을 줍니다.
 
 ## 레이아웃 그리드
 
 ### 12컬럼 그리드 시스템
 
-```typescript
-<div className="grid grid-cols-12 gap-4">
-  <div className="col-span-12 md:col-span-8">
-    메인 콘텐츠
-  </div>
-  <div className="col-span-12 md:col-span-4">
-    사이드바
-  </div>
-</div>
-```
+12컬럼 그리드를 사용하여 레이아웃을 구성합니다. 기본(모바일)에서는 메인 콘텐츠와 사이드바 모두 전체 너비(12컬럼)로 표시됩니다. md(타블릿) 이상에서는 메인 콘텐츠가 8컬럼, 사이드바가 4컬럼으로 나뉩니다.
 
 ## 컴포넌트 변형 (Variants)
 
 ### Button 변형
 
-```typescript
-const buttonVariants = {
-  primary: 'bg-blue-500 text-white hover:bg-blue-600',
-  secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300',
-  danger: 'bg-red-500 text-white hover:bg-red-600',
-  ghost: 'bg-transparent hover:bg-gray-100'
-};
+버튼의 스타일을 종류별로 정의합니다. primary는 파란색 배경과 흰색 텍스트로 호버 시 더 진한 파란색으로 바뀝니다. secondary는 회색 배경과 검은색 텍스트로, danger는 빨간색 배경과 흰색 텍스트로, ghost는 배경이 없고 호버 시 연한 회색 배경이 나타납니다.
 
-const buttonSizes = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-6 py-3 text-lg'
-};
-```
+버튼 크기도 3단계로 정의합니다: sm은 작은 패딩과 작은 글자 크기, md는 기본 크기, lg는 큰 패딩과 큰 글자 크기입니다.
 
 ## UI 교체 가이드
 
@@ -307,40 +136,15 @@ const buttonSizes = {
 
 ### 1. 커스텀 UI 생성
 
-```typescript
-// apps/web/src/custom-ui/Button.tsx
-export function Button({ children, ...props }) {
-  // 완전히 새로운 디자인
-  return (
-    <button className="my-custom-button" {...props}>
-      {children}
-    </button>
-  );
-}
-```
+apps/web/src/custom-ui/ 폴더에 새로운 컴포넌트를 작성합니다. 예시로 Button 컴포넌트를 완전히 새로운 디자인으로 만듭니다. 자식 요소를 받아 my-custom-button이라는 클래스의 button 요소로 감싸서 반환합니다.
 
 ### 2. Import 경로 변경
 
-```typescript
-// 기존
-import { Button } from '@core/ui';
-
-// 변경 후
-import { Button } from '@/custom-ui';
-```
+기존에서는 @core/ui에서 Button을 가져왔지만, 교체 후에는 @/custom-ui에서 가져옵니다.
 
 ### 3. 전역 교체
 
-```typescript
-// apps/web/vite.config.ts
-export default {
-  resolve: {
-    alias: {
-      '@core/ui': '/src/custom-ui'
-    }
-  }
-};
-```
+Vite의 설정 파일에서 경로 별칭(alias)을 정의합니다. @core/ui 경로를 /src/custom-ui로 매핑하면, 앱 전체에서 @core/ui로 가져오는 모든 컴포넌트가 커스텀 UI로 자동으로 교체됩니다.
 
 ## 모범 사례
 
@@ -365,59 +169,22 @@ export default {
 
 ### Tailwind CSS 사용 (권장)
 
-```typescript
-<div className="flex items-center gap-4 p-6 bg-white rounded-lg shadow">
-  <Avatar src={user.avatar} />
-  <div className="flex-1">
-    <h3 className="text-lg font-semibold">{user.name}</h3>
-    <p className="text-gray-600">{user.email}</p>
-  </div>
-</div>
-```
+Tailwind의 유틸리티 클래스를 사용하여 카드 형태의 사용자 정보 컴포넌트를 구성합니다. 가로 방향으로 아바타, 이름, 이메일을 배치하며, 배경은 흰색, 둥글은 모서리, 그림자를 적용합니다. 이름은 큰 볼드 텍스트, 이메일은 회색 텍스트로 표시됩니다.
 
 ### CSS Modules (선택)
 
-```typescript
-import styles from './Card.module.css';
-
-<div className={styles.card}>
-  {content}
-</div>
-```
+Card.module.css 파일에서 정의된 styles 객체를 가져와 클래스명으로 사용합니다. 이렇게 하면 클래스명이 자동으로 고유화되어 다른 컴포넌트와의 충돌을 방지합니다.
 
 ## 성능 최적화
 
 ### 1. 컴포넌트 메모이제이션
 
-```typescript
-import { memo } from 'react';
-
-export const ExpensiveComponent = memo(({ data }) => {
-  // 무거운 렌더링 로직
-  return <div>{data}</div>;
-});
-```
+React의 memo를 사용하여 ExpensiveComponent를 감싸면, 부모 컴포넌트가 재렌더될 때 props가 변경되지 않으면 이 컴포넌트는 불필요한 재렌더를 건너뜁니다.
 
 ### 2. 이미지 최적화
 
-```typescript
-<img
-  src={image}
-  loading="lazy"
-  alt="설명"
-  width={300}
-  height={200}
-/>
-```
+img 태그에 loading="lazy"를 설정하면 화면에 보이지 않는 이미지는 즉시 로드하지 않습니다. 대신 사용자가 스크롤하여 해당 이미지가 화면 근처에 오을 때 로드됩니다. width와 height도 명시적으로 지정하여 레이아웃 변동을 방지합니다.
 
 ### 3. 코드 스플리팅
 
-```typescript
-import { lazy, Suspense } from 'react';
-
-const HeavyComponent = lazy(() => import('./HeavyComponent'));
-
-<Suspense fallback={<Loading />}>
-  <HeavyComponent />
-</Suspense>
-```
+React의 lazy와 Suspense를 사용하여 HeavyComponent를 동적으로 로드합니다. 앱이 처음 로드될 때 이 컴포넌트의 코드는 포함되지 않고, 실제로 사용될 때만 비동기적으로 가져옵니다. 로드 중에는 Loading 컴포넌트가 표시됩니다.

@@ -7,20 +7,7 @@
 
 ### 데이터 구조
 
-```typescript
-interface LedgerEntry {
-  id: string;
-  userId: string;
-  date: Date;
-  amount: number;        // 양수: 수입, 음수: 지출
-  category: string;      // 식비, 교통비, 월급 등
-  description: string;
-  paymentMethod: string; // 현금, 카드, 계좌이체 등
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
+LedgerEntry는 가계부 항목 하나의 구조입니다. id는 고유 식별자, userId는 해당 사용자 ID, date는 날짜, amount는 금액으로 양수이면 수입이고 음수이면 지출입니다. category는 식비·교통비·월급 등의 카테고리, description은 내용 메모, paymentMethod는 현금·카드·계좌이체 등의 결제 수단, tags는 사용자 정의 태그 목록이며, createdAt과 updatedAt은 생성·수정 시간입니다.
 
 ### 주요 기능
 
@@ -68,25 +55,7 @@ Netflix, Spotify 등 정기 구독 서비스를 관리하고 결제일을 추적
 
 ### 데이터 구조
 
-```typescript
-interface Subscription {
-  id: string;
-  userId: string;
-  serviceName: string;     // Netflix, Spotify 등
-  amount: number;
-  currency: string;        // KRW, USD 등
-  billingCycle: 'monthly' | 'yearly';
-  billingDay: number;      // 1-31
-  nextPaymentDate: Date;
-  isActive: boolean;
-  category: string;        // 스트리밍, 클라우드, 게임 등
-  description: string;
-  url: string;             // 구독 관리 페이지 링크
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
+Subscription은 구독 서비스 하나의 구조입니다. id는 고유 식별자, userId는 사용자 ID, serviceName은 Netflix·Spotify 등의 서비스명, amount는 금액, currency는 KRW·USD 등의 통화 단위입니다. billingCycle은 결제 주기로 monthly(월간) 또는 yearly(연간) 중 하나이며, billingDay는 결제일(1~31), nextPaymentDate는 다음 결제 날짜, isActive는 활성화 여부입니다. category는 스트리밍·클라우드·게임 등의 카테고리, description은 설명, url은 구독 관리 페이지 링크, tags는 태그 목록이고, createdAt과 updatedAt은 생성·수정 시간입니다.
 
 ### 주요 기능
 
@@ -126,34 +95,7 @@ POST   /api/subscription/sync-calendar     # Calendar 동기화
 
 ### Google Calendar 연동 구현
 
-```typescript
-// modules/subscription/backend/calendar.ts
-import { google } from 'googleapis';
-
-export async function syncToGoogleCalendar(subscription: Subscription) {
-  const calendar = google.calendar('v3');
-  
-  // 결제일 이벤트 생성
-  await calendar.events.insert({
-    calendarId: 'primary',
-    resource: {
-      summary: `💳 ${subscription.serviceName} 결제일`,
-      description: `금액: ${subscription.amount}원`,
-      start: {
-        date: subscription.nextPaymentDate
-      },
-      end: {
-        date: subscription.nextPaymentDate
-      },
-      recurrence: [
-        subscription.billingCycle === 'monthly' 
-          ? 'RRULE:FREQ=MONTHLY'
-          : 'RRULE:FREQ=YEARLY'
-      ]
-    }
-  });
-}
-```
+Google의 Calendar API를 사용하여 구독 결제일을 캘린더 이벤트로 생성합니다. 이벤트의 제목은 서비스명에 카드 이모지를 붙인 형태로, 설명에는 금액을 표시합니다. 이벤트의 시작일과 종료일은 모두 다음 결제일로 설정하고, 결제 주기에 따라 월간이면 매월 반복, 연간이면 매년 반복하도록 반복 규칙을 적용합니다.
 
 ---
 
@@ -163,39 +105,9 @@ export async function syncToGoogleCalendar(subscription: Subscription) {
 
 구독 결제일에 자동으로 가계부에 지출 기록:
 
-```typescript
-// modules/subscription/backend/index.ts
-import { eventBus } from '@core/events';
+Subscription 모듈에서 매일 자정에 실행되는 스케줄 작업을 등록합니다. 실행되면 오늘이 결제일인 구독 목록을 조회한 후, 각 구독에 대해 Event Bus를 통해 'subscription:payment' 이벤트를 발행합니다. 이벤트의 내용으로는 음수 금액(지출), 카테고리로 'subscription', 설명으로 서비스명 구독료, 날짜로 오늘 날짜를 넘깁니다.
 
-scheduler.register({
-  name: 'subscription-auto-record',
-  schedule: '0 0 * * *',  // 매일 자정
-  handler: async () => {
-    const today = new Date();
-    const dueSubscriptions = await getDueSubscriptions(today);
-    
-    for (const sub of dueSubscriptions) {
-      // Ledger 모듈에 이벤트 발행
-      eventBus.emit('subscription:payment', {
-        amount: -sub.amount,
-        category: 'subscription',
-        description: `${sub.serviceName} 구독료`,
-        date: today
-      });
-    }
-  }
-});
-```
-
-```typescript
-// modules/ledger/backend/index.ts
-export function initialize() {
-  eventBus.on('subscription:payment', async (data) => {
-    await createLedgerEntry(data);
-    console.log(`✅ 구독료 자동 기록: ${data.description}`);
-  });
-}
-```
+Ledger 모듈의 초기화 함수에서 해당 이벤트를 구독합니다. 'subscription:payment' 이벤트가 들어오면 전달된 데이터로 가계부 항목을 자동으로 생성하고, 생성 완료 시 로그를 남깁니다.
 
 ---
 
@@ -203,68 +115,8 @@ export function initialize() {
 
 ### Ledger 목록 화면
 
-```typescript
-import { PageLayout, DataTable, Button } from '@core/ui';
-
-export default function LedgerList() {
-  return (
-    <PageLayout
-      title="가계부"
-      actions={
-        <Button variant="primary" onClick={handleCreate}>
-          + 추가
-        </Button>
-      }
-    >
-      <DataTable
-        columns={[
-          { key: 'date', label: '날짜', sortable: true },
-          { key: 'category', label: '카테고리' },
-          { key: 'description', label: '내용' },
-          { key: 'amount', label: '금액', sortable: true }
-        ]}
-        data={entries}
-        searchable
-        filterable
-        pagination
-      />
-    </PageLayout>
-  );
-}
-```
+Core의 PageLayout과 DataTable 컴포넌트를 사용하여 가계부 목록 페이지를 구성합니다. PageLayout의 제목을 '가계부'로 설정하고, 우측 상단에 '+ 추가' 버튼을 배치합니다. DataTable에는 날짜(정렬 가능), 카테고리, 내용, 금액 열을 정의하며, 검색·필터·페이지네이션 기능을 모두 활성화합니다.
 
 ### Subscription 대시보드
 
-```typescript
-import { PageLayout, Card, StatCard } from '@core/ui';
-
-export default function SubscriptionDashboard() {
-  return (
-    <PageLayout title="구독 관리">
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard
-          title="월간 구독료"
-          value={`${monthlyTotal.toLocaleString()}원`}
-          icon="💰"
-        />
-        <StatCard
-          title="활성 구독"
-          value={`${activeCount}개`}
-          icon="📱"
-        />
-        <StatCard
-          title="다음 결제일"
-          value={nextPaymentDate}
-          icon="📅"
-        />
-      </div>
-      
-      <Card title="구독 목록">
-        {subscriptions.map(sub => (
-          <SubscriptionCard key={sub.id} subscription={sub} />
-        ))}
-      </Card>
-    </PageLayout>
-  );
-}
-```
+Core의 PageLayout과 Card, StatCard 컴포넌트를 사용하여 구독 관리 대시보드를 구성합니다. 상단에는 3개의 요약 카드를 배치합니다: 월간 구독료 합계, 활성 구독 수, 다음 결제일. 그 아래에는 Card 안에 구독 목록을 루프를 돌며 카드 형태로 하나씩 표시합니다.

@@ -48,34 +48,9 @@ packages/core/integrations/
 > 📌 **Provider 패턴:**  
 > → `technical/database.md § DB 추상화` - 동일한 추상화 패턴 사용
 
-```typescript
-// packages/core/integrations/base.ts
+Integration 인터페이스는 모든 통합 서비스가 공통으로 제공해야 할 기능을 정의합니다: name(서비스 이름), authenticate(인증 실행), isAuthenticated(인증 여부 확인), disconnect(연결 종료)입니다.
 
-export interface Integration {
-  name: string;
-  authenticate(credentials: any): Promise<void>;
-  isAuthenticated(): boolean;
-  disconnect(): Promise<void>;
-}
-
-export abstract class BaseIntegration implements Integration {
-  protected credentials: any;
-  
-  abstract name: string;
-  
-  async authenticate(credentials: any) {
-    this.credentials = await encrypt(credentials);
-  }
-  
-  isAuthenticated(): boolean {
-    return !!this.credentials;
-  }
-  
-  async disconnect() {
-    this.credentials = null;
-  }
-}
-```
+BaseIntegration은 이 인터페이스를 구현하는 추상 클래스입니다. authenticate 메서드는 받은 자격증명을 암호화하여 저장합니다. isAuthenticated는 자격증명이 저장되어 있으면 true를 반환합니다. disconnect는 저장된 자격증명을 초기화합니다.
 
 ---
 
@@ -87,391 +62,103 @@ export abstract class BaseIntegration implements Integration {
 > → `modules/default-modules.md § Subscription § Google Calendar 연동`  
 > → `technical/scheduler.md § 작업 예시 § Google Drive 자동 백업`
 
-```typescript
-// packages/core/integrations/google/calendar.ts
+GoogleCalendar 클래스는 BaseIntegration을 상속받습니다.
 
-import { google } from 'googleapis';
-import { BaseIntegration } from '../base';
+authenticate 메서드는 OAuth 클라이언트를 생성하고, 제공된 토큰으로 인증을 완료한 후 Google Calendar API 클라이언트를 초기화합니다.
 
-export class GoogleCalendar extends BaseIntegration {
-  name = 'google-calendar';
-  private calendar: any;
-  
-  async authenticate(credentials: { apiKey?: string, oauth?: any }) {
-    await super.authenticate(credentials);
-    
-    const auth = new google.auth.OAuth2(
-      credentials.oauth.clientId,
-      credentials.oauth.clientSecret
-    );
-    
-    auth.setCredentials(credentials.oauth.tokens);
-    this.calendar = google.calendar({ version: 'v3', auth });
-  }
-  
-  async createEvent(event: CalendarEvent) {
-    return await this.calendar.events.insert({
-      calendarId: 'primary',
-      resource: {
-        summary: event.title,
-        description: event.description,
-        start: { dateTime: event.startTime },
-        end: { dateTime: event.endTime },
-        recurrence: event.recurrence
-      }
-    });
-  }
-  
-  async listEvents(timeMin: Date, timeMax: Date) {
-    const response = await this.calendar.events.list({
-      calendarId: 'primary',
-      timeMin: timeMin.toISOString(),
-      timeMax: timeMax.toISOString(),
-      singleEvents: true,
-      orderBy: 'startTime'
-    });
-    
-    return response.data.items;
-  }
-  
-  async updateEvent(eventId: string, updates: Partial<CalendarEvent>) {
-    return await this.calendar.events.update({
-      calendarId: 'primary',
-      eventId,
-      resource: updates
-    });
-  }
-  
-  async deleteEvent(eventId: string) {
-    return await this.calendar.events.delete({
-      calendarId: 'primary',
-      eventId
-    });
-  }
-}
-```
+createEvent 메서드는 CalendarEvent 객체를 받아 기본 캘린더에 이벤트를 생성합니다. 제목, 설명, 시작·종료 시간, 반복 규칙을 설정합니다.
+
+listEvents 메서드는 시작 시간과 종료 시간 범위를 받아 해당 기간의 이벤트 목록을 조회합니다. 단일 이벤트 기준으로 시작 시간순으로 정렬합니다.
+
+updateEvent 메서드는 이벤트 ID와 수정할 내용을 받아 해당 이벤트를 업데이트합니다.
+
+deleteEvent 메서드는 이벤트 ID로 해당 이벤트를 삭제합니다.
 
 ### Google Drive
 
-```typescript
-// packages/core/integrations/google/drive.ts
+GoogleDrive 클래스는 파일 관리 기능을 제공합니다.
 
-export class GoogleDrive extends BaseIntegration {
-  name = 'google-drive';
-  private drive: any;
-  
-  async uploadFile(file: Buffer, fileName: string, mimeType: string) {
-    const fileMetadata = {
-      name: fileName
-    };
-    
-    const media = {
-      mimeType,
-      body: file
-    };
-    
-    const response = await this.drive.files.create({
-      resource: fileMetadata,
-      media,
-      fields: 'id, name, webViewLink'
-    });
-    
-    return response.data;
-  }
-  
-  async downloadFile(fileId: string) {
-    const response = await this.drive.files.get(
-      { fileId, alt: 'media' },
-      { responseType: 'stream' }
-    );
-    
-    return response.data;
-  }
-  
-  async listFiles(query?: string) {
-    const response = await this.drive.files.list({
-      q: query,
-      fields: 'files(id, name, mimeType, createdTime)'
-    });
-    
-    return response.data.files;
-  }
-  
-  async shareFile(fileId: string, email: string, role: 'reader' | 'writer') {
-    return await this.drive.permissions.create({
-      fileId,
-      resource: {
-        type: 'user',
-        role,
-        emailAddress: email
-      }
-    });
-  }
-}
-```
+uploadFile 메서드는 파일 버퍼, 파일명, MIME 타입을 받아 Google Drive에 파일을 업로드합니다. 업로드 완료 후 파일 ID, 파일명, 웹 뷰 링크를 반환합니다.
+
+downloadFile 메서드는 파일 ID로 해당 파일을 스트리밍하여 다운로드합니다.
+
+listFiles 메서드는 선택사항인 검색 키워드로 파일 목록을 조회합니다. 각 파일의 ID, 이름, MIME 타입, 생성 시간을 반환합니다.
+
+shareFile 메서드는 파일 ID, 공유할 이메일, 권한 역할(reader 또는 writer)을 받아 해당 파일을 특정 사용자와 공유합니다.
 
 ### Google Sheets
 
-```typescript
-// packages/core/integrations/google/sheets.ts
+GoogleSheets 클래스는 스프레드시트 관리 기능을 제공합니다.
 
-export class GoogleSheets extends BaseIntegration {
-  name = 'google-sheets';
-  private sheets: any;
-  
-  async createSpreadsheet(title: string) {
-    const response = await this.sheets.spreadsheets.create({
-      resource: { properties: { title } }
-    });
-    
-    return response.data;
-  }
-  
-  async appendData(spreadsheetId: string, range: string, values: any[][]) {
-    return await this.sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range,
-      valueInputOption: 'USER_ENTERED',
-      resource: { values }
-    });
-  }
-  
-  async readData(spreadsheetId: string, range: string) {
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range
-    });
-    
-    return response.data.values;
-  }
-  
-  async updateData(spreadsheetId: string, range: string, values: any[][]) {
-    return await this.sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range,
-      valueInputOption: 'USER_ENTERED',
-      resource: { values }
-    });
-  }
-}
-```
+createSpreadsheet 메서드는 제목을 받아 새 스프레드시트를 생성합니다.
+
+appendData 메서드는 스프레드시트 ID, 범위, 데이터 배열을 받아 해당 범위의 끝에 데이터를 추가합니다.
+
+readData 메서드는 스프레드시트 ID와 범위로 해당 영역의 데이터를 읽어옵니다.
+
+updateData 메서드는 스프레드시트 ID, 범위, 새 데이터를 받아 해당 영역의 값을 덮어씁니다.
 
 ### Gmail
 
-```typescript
-// packages/core/integrations/google/gmail.ts
+Gmail 클래스는 이메일 발송과 조회 기능을 제공합니다.
 
-export class Gmail extends BaseIntegration {
-  name = 'gmail';
-  private gmail: any;
-  
-  async sendEmail(to: string, subject: string, body: string) {
-    const message = [
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      '',
-      body
-    ].join('\n');
-    
-    const encodedMessage = Buffer.from(message)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-    
-    return await this.gmail.users.messages.send({
-      userId: 'me',
-      resource: { raw: encodedMessage }
-    });
-  }
-  
-  async listEmails(query?: string, maxResults: number = 10) {
-    const response = await this.gmail.users.messages.list({
-      userId: 'me',
-      q: query,
-      maxResults
-    });
-    
-    return response.data.messages;
-  }
-}
-```
+sendEmail 메서드는 수신자, 제목, 본문을 받아 이메일을 구성합니다. To, Subject, 본문을 줄바꿈으로 연결한 후 Base64로 인코딩하여 Gmail API로 발송합니다.
+
+listEmails 메서드는 선택사항인 검색 키워드와 최대 조회 건수를 받아 이메일 목록을 조회합니다. 기본 조회 건수는 10건입니다.
 
 ---
 
 ## Notion 통합
 
-```typescript
-// packages/core/integrations/notion/index.ts
+Notion 클래스는 Notion API와의 통합을 담당합니다.
 
-import { Client } from '@notionhq/client';
-import { BaseIntegration } from '../base';
+authenticate 메서드는 API 키를 받아 Notion 클라이언트를 초기화합니다.
 
-export class Notion extends BaseIntegration {
-  name = 'notion';
-  private client: Client;
-  
-  async authenticate(credentials: { apiKey: string }) {
-    await super.authenticate(credentials);
-    this.client = new Client({ auth: credentials.apiKey });
-  }
-  
-  async createPage(databaseId: string, properties: any) {
-    return await this.client.pages.create({
-      parent: { database_id: databaseId },
-      properties
-    });
-  }
-  
-  async updatePage(pageId: string, properties: any) {
-    return await this.client.pages.update({
-      page_id: pageId,
-      properties
-    });
-  }
-  
-  async queryDatabase(databaseId: string, filter?: any) {
-    return await this.client.databases.query({
-      database_id: databaseId,
-      filter
-    });
-  }
-  
-  async appendBlock(pageId: string, children: any[]) {
-    return await this.client.blocks.children.append({
-      block_id: pageId,
-      children
-    });
-  }
-}
-```
+createPage 메서드는 데이터베이스 ID와 속성 정보를 받아 해당 데이터베이스 안에 새 페이지를 생성합니다.
+
+updatePage 메서드는 페이지 ID와 속성 정보로 기존 페이지를 수정합니다.
+
+queryDatabase 메서드는 데이터베이스 ID와 선택사항인 필터 조건으로 데이터베이스를 조회합니다.
+
+appendBlock 메서드는 페이지 ID와 블록 배열을 받아 해당 페이지에 콘텐츠 블록을 추가합니다.
 
 ---
 
 ## Slack 통합
 
-```typescript
-// packages/core/integrations/slack/index.ts
+Slack 클래스는 Slack API와의 통합을 담당합니다.
 
-import { WebClient } from '@slack/web-api';
-import { BaseIntegration } from '../base';
+authenticate 메서드는 토큰을 받아 Slack WebClient를 초기화합니다.
 
-export class Slack extends BaseIntegration {
-  name = 'slack';
-  private client: WebClient;
-  
-  async authenticate(credentials: { token: string }) {
-    await super.authenticate(credentials);
-    this.client = new WebClient(credentials.token);
-  }
-  
-  async sendMessage(channel: string, text: string, blocks?: any[]) {
-    return await this.client.chat.postMessage({
-      channel,
-      text,
-      blocks
-    });
-  }
-  
-  async uploadFile(channel: string, file: Buffer, filename: string) {
-    return await this.client.files.upload({
-      channels: channel,
-      file,
-      filename
-    });
-  }
-  
-  async listChannels() {
-    const response = await this.client.conversations.list();
-    return response.channels;
-  }
-}
-```
+sendMessage 메서드는 채널, 텍스트, 선택사항인 블록 배열을 받아 해당 채널에 메시지를 전송합니다. blocks를 사용하면 리치 메시지(예: 섹션, 버튼 등)를 구성할 수 있습니다.
+
+uploadFile 메서드는 채널, 파일 버퍼, 파일명을 받아 해당 채널에 파일을 업로드합니다.
+
+listChannels 메서드는 워크스페이스의 채널 목록을 조회합니다.
 
 ---
 
 ## GitHub 통합
 
-```typescript
-// packages/core/integrations/github/index.ts
+GitHub 클래스는 GitHub API와의 통합을 담당합니다.
 
-import { Octokit } from '@octokit/rest';
-import { BaseIntegration } from '../base';
+authenticate 메서드는 토큰을 받아 Octokit 클라이언트를 초기화합니다.
 
-export class GitHub extends BaseIntegration {
-  name = 'github';
-  private client: Octokit;
-  
-  async authenticate(credentials: { token: string }) {
-    await super.authenticate(credentials);
-    this.client = new Octokit({ auth: credentials.token });
-  }
-  
-  async createIssue(owner: string, repo: string, title: string, body: string) {
-    return await this.client.issues.create({
-      owner,
-      repo,
-      title,
-      body
-    });
-  }
-  
-  async listIssues(owner: string, repo: string, state: 'open' | 'closed' | 'all' = 'open') {
-    const response = await this.client.issues.listForRepo({
-      owner,
-      repo,
-      state
-    });
-    
-    return response.data;
-  }
-  
-  async createGist(description: string, files: Record<string, { content: string }>) {
-    return await this.client.gists.create({
-      description,
-      files,
-      public: false
-    });
-  }
-}
-```
+createIssue 메서드는 저장소 소유자, 저장소명, 제목, 본문을 받아 해당 저장소에 이슈를 생성합니다.
+
+listIssues 메서드는 저장소 소유자, 저장소명, 상태 필터(open·closed·all, 기본값 open)를 받아 이슈 목록을 조회합니다.
+
+createGist 메서드는 설명과 파일 정보를 받아 비공개 Gist를 생성합니다.
 
 ---
 
 ## 커스텀 Webhook
 
-```typescript
-// packages/core/integrations/webhook.ts
+Webhook 클래스는 사용자 정의 외부 서비스와의 통합을 위한 범용 Webhook입니다.
 
-import { BaseIntegration } from './base';
+authenticate 메서드는 URL과 선택사항인 헤더를 받아 저장합니다.
 
-export class Webhook extends BaseIntegration {
-  name = 'webhook';
-  private url: string;
-  
-  async authenticate(credentials: { url: string, headers?: Record<string, string> }) {
-    await super.authenticate(credentials);
-    this.url = credentials.url;
-  }
-  
-  async send(data: any, method: 'POST' | 'PUT' = 'POST') {
-    const response = await fetch(this.url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.credentials.headers
-      },
-      body: JSON.stringify(data)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Webhook failed: ${response.statusText}`);
-    }
-    
-    return await response.json();
-  }
-}
-```
+send 메서드는 전송할 데이터와 HTTP 메서드(POST 또는 PUT, 기본값 POST)를 받아 저장된 URL로 요청을 보냅니다. 응답이 실패하면 에러를 발생시키고, 성공하면 응답 본문을 JSON으로 파싱하여 반환합니다.
 
 ---
 
@@ -480,42 +167,15 @@ export class Webhook extends BaseIntegration {
 > 📌 **Factory 패턴:**  
 > → `technical/database.md § Provider 팩토리` - 동일한 패턴 사용
 
-```typescript
-// packages/core/integrations/factory.ts
+IntegrationFactory 클래스는 통합 서비스들을 관리하는 팩토리입니다. 내부에는 서비스명과 Integration 객체를 매핑하는 Map을 사용합니다.
 
-export class IntegrationFactory {
-  private integrations = new Map<string, Integration>();
-  
-  register(integration: Integration) {
-    this.integrations.set(integration.name, integration);
-  }
-  
-  get(name: string): Integration | undefined {
-    return this.integrations.get(name);
-  }
-  
-  async authenticate(name: string, credentials: any) {
-    const integration = this.get(name);
-    if (!integration) {
-      throw new Error(`Integration not found: ${name}`);
-    }
-    
-    await integration.authenticate(credentials);
-  }
-}
+register 메서드는 새 통합 서비스를 등록합니다.
 
-// 전역 인스턴스
-export const integrations = new IntegrationFactory();
+get 메서드는 서비스 이름으로 해당 Integration 객체를 조회합니다.
 
-// 기본 통합 등록
-integrations.register(new GoogleCalendar());
-integrations.register(new GoogleDrive());
-integrations.register(new GoogleSheets());
-integrations.register(new Gmail());
-integrations.register(new Notion());
-integrations.register(new Slack());
-integrations.register(new GitHub());
-```
+authenticate 메서드는 서비스 이름과 자격증명을 받아, 해당 서비스를 먼저 조회한 후 인증을 실행합니다. 해당 서비스가 없으면 에러를 발생시킵니다.
+
+마지막에서 전역 인스턴스를 생성하고, GoogleCalendar, GoogleDrive, GoogleSheets, Gmail, Notion, Slack, GitHub의 7개 통합 서비스를 기본으로 등록합니다.
 
 ---
 
@@ -524,29 +184,7 @@ integrations.register(new GitHub());
 > 📖 **모듈 개발 가이드:**  
 > → `modules/development-guide.md § Backend 개발`
 
-```typescript
-// modules/subscription/backend/index.ts
-
-import { integrations } from '@core/integrations';
-
-export async function syncToCalendar(subscription: Subscription) {
-  const calendar = integrations.get('google-calendar') as GoogleCalendar;
-  
-  if (!calendar.isAuthenticated()) {
-    throw new Error('Google Calendar not authenticated');
-  }
-  
-  await calendar.createEvent({
-    title: `💳 ${subscription.serviceName} 결제일`,
-    description: `금액: ${subscription.amount}원`,
-    startTime: subscription.nextPaymentDate,
-    endTime: subscription.nextPaymentDate,
-    recurrence: subscription.billingCycle === 'monthly' 
-      ? ['RRULE:FREQ=MONTHLY']
-      : ['RRULE:FREQ=YEARLY']
-  });
-}
-```
+Core의 integrations 팩토리에서 'google-calendar'를 조회합니다. 먼저 인증 여부를 확인하고, 인증되지 않은 경우 에러를 발생시킵니다. 인증된 경우 createEvent를 호출하여 구독 서비스 결제일 이벤트를 생성합니다. 이벤트의 제목은 서비스명에 카드 이모지를 붙이고, 설명에는 금액을 표시합니다. 반복 규칙은 결제 주기에 따라 월간 또는 연간으로 설정합니다.
 
 ---
 
@@ -560,73 +198,21 @@ export async function syncToCalendar(subscription: Subscription) {
 > 📌 **암호화 구현:**  
 > → `technical/database.md § 보안 § 암호화`
 
-```typescript
-// packages/core/integrations/security.ts
+AES-256-GCM 암호화를 사용합니다. 환경 변수의 ENCRYPTION_KEY를 사용하며, 없으면 자동으로 생성합니다.
 
-import crypto from 'crypto';
+encrypt 함수는 텍스트를 암호화합니다. 무작위 16바이트의 IV(초기화 벡터)를 생성한 후, AES-256-GCM으로 암호화합니다. 결과를 IV, 인증 태그, 암호화된 텍스트를 콜론(:)으로 구분하여 하나의 문자열로 반환합니다.
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || generateKey();
-const ALGORITHM = 'aes-256-gcm';
-
-export function encrypt(text: string): string {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-  
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  
-  const authTag = cipher.getAuthTag();
-  
-  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
-}
-
-export function decrypt(encrypted: string): string {
-  const [ivHex, authTagHex, encryptedText] = encrypted.split(':');
-  
-  const iv = Buffer.from(ivHex, 'hex');
-  const authTag = Buffer.from(authTagHex, 'hex');
-  const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-  
-  decipher.setAuthTag(authTag);
-  
-  let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  
-  return decrypted;
-}
-```
+decrypt 함수는 암호화된 문자열을 복호화합니다. 콜론으로 분리하여 IV, 인증 태그, 암호화된 텍스트를 추출한 후, 역순으로 복호화하여 원본 텍스트를 반환합니다.
 
 ### 저장
 
-API Key는 암호화하여 데이터베이스에 저장:
-
-```typescript
-await db.userIntegrations.create({
-  userId: user.id,
-  integration: 'google-calendar',
-  credentials: encrypt(JSON.stringify(credentials))
-});
-```
+API Key는 encrypt 함수로 암호화한 후, 사용자 ID, 통합 서비스 이름과 함께 userIntegrations 테이블에 저장합니다.
 
 ---
 
 ## 에러 처리
 
-```typescript
-try {
-  await calendar.createEvent(event);
-} catch (error) {
-  if (error.code === 401) {
-    // 인증 만료
-    throw new Error('Please re-authenticate with Google Calendar');
-  } else if (error.code === 429) {
-    // Rate limit
-    throw new Error('Too many requests. Please try again later.');
-  } else {
-    throw error;
-  }
-}
-```
+외부 서비스 호출 시 에러가 발생할 수 있습니다. 에러 코드에 따라 구분하여 처리합니다. 401 코드는 인증이 만료된 경우로, Google Calendar와 다시 인증해야 함을 안내합니다. 429 코드는 요청 횟수 제한에 걸린 경우로, 잠시 후 다시 시도해달라고 안내합니다. 그 외의 경우는 에러를 그대로 전달합니다.
 
 ---
 
@@ -637,31 +223,7 @@ try {
 
 Scheduler는 통합 서비스와 함께 사용하여 강력한 자동화 구현:
 
-```typescript
-scheduler.register({
-  name: 'automated-workflow',
-  schedule: '0 18 * * 5',  // 매주 금요일 오후 6시
-  handler: async () => {
-    // 1. 주간 데이터 수집
-    const weeklyData = await collectWeeklyData();
-    
-    // 2. AI로 분석
-    const analysis = await ai.analyze(weeklyData);
-    
-    // 3. 리포트 생성
-    const report = generateReport(analysis);
-    
-    // 4. Google Drive에 저장
-    await googleDrive.upload(report);
-    
-    // 5. Slack으로 알림
-    await slack.notify('주간 리포트가 생성되었습니다');
-    
-    // 6. 이메일 발송
-    await email.send(report);
-  }
-});
-```
+작업명은 'automated-workflow'이며, 매주 금요일 오후 6시에 실행됩니다. 실행되면 총 6단계로 진행됩니다. 첫째로 주간 데이터를 수집합니다. 둘째로 AI를 활용하여 데이터를 분석합니다. 셋째로 분석 결과로 리포트를 생성합니다. 넷째로 리포트를 Google Drive에 저장합니다. 다섯째로 Slack에 '주간 리포트가 생성되었습니다' 알림을 보냅니다. 여섯째로 리포트를 이메일로 발송합니다.
 
 ---
 
@@ -696,48 +258,9 @@ scheduler.register({
 
 ### Backend API
 
-```typescript
-// apps/api/src/routes/integrations.ts
+POST /google/setup 엔드포인트는 Google OAuth 설정을 저장합니다. 요청 본문에서 clientId, clientSecret, 연동할 서비스 목록을 받아 사용자의 설정 테이블에 저장합니다. 기존 설정이 있으면 덮어씁니다.
 
-router.post('/google/setup', authMiddleware, async (req, res) => {
-  const { clientId, clientSecret, services } = req.body;
-  
-  // 1. OAuth 설정 저장
-  await db.userSettings.upsert({
-    where: { 
-      user_id: req.user.id,
-      key: 'google_oauth'
-    },
-    update: {
-      value: JSON.stringify({ clientId, clientSecret, services })
-    },
-    create: {
-      user_id: req.user.id,
-      key: 'google_oauth',
-      value: JSON.stringify({ clientId, clientSecret, services })
-    }
-  });
-  
-  res.json({ success: true });
-});
-
-// 연결 테스트
-router.post('/google/test', authMiddleware, async (req, res) => {
-  try {
-    const calendar = integrations.get('google-calendar') as GoogleCalendar;
-    
-    // 간단한 API 호출로 테스트
-    await calendar.listEvents(new Date(), new Date());
-    
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-```
+POST /google/test 엔드포인트는 연결 테스트입니다. Google Calendar 통합을 조회한 후, listEvents를 호출하여 간단한 API 요청을 테스트합니다. 성공하면 success: true를 반환하고, 실패하면 에러 메시지를 반환합니다.
 
 ---
 
@@ -748,146 +271,22 @@ router.post('/google/test', authMiddleware, async (req, res) => {
 > 📖 **실제 구현:**  
 > → `modules/default-modules.md § Subscription § Google Calendar 연동`
 
-```typescript
-// modules/subscription/backend/calendar-sync.ts
-
-export async function syncSubscriptionToCalendar(subscription: Subscription) {
-  const calendar = integrations.get('google-calendar') as GoogleCalendar;
-  
-  if (!calendar.isAuthenticated()) {
-    console.warn('Google Calendar not configured');
-    return;
-  }
-  
-  const event = {
-    title: `💳 ${subscription.serviceName}`,
-    description: `금액: ${subscription.amount}원`,
-    startTime: subscription.nextPaymentDate,
-    endTime: subscription.nextPaymentDate,
-    recurrence: subscription.billingCycle === 'monthly'
-      ? ['RRULE:FREQ=MONTHLY']
-      : ['RRULE:FREQ=YEARLY']
-  };
-  
-  const calendarEvent = await calendar.createEvent(event);
-  
-  // Calendar Event ID 저장
-  await db.subscriptions.update({
-    where: { id: subscription.id },
-    data: { calendar_event_id: calendarEvent.id }
-  });
-}
-```
+syncSubscriptionToCalendar 함수는 구독 정보를 Google Calendar에 동기화합니다. 먼저 Google Calendar 통합이 인증되었는지 확인합니다. 인증되지 않은 경우 경고를 로깅하고 종료합니다. 인증된 경우 서비스명·금액·결제일·반복 규칙으로 이벤트를 생성합니다. 이벤트 생성 완료 후 반환된 Calendar Event ID를 구독 테이블에 저장하여 추후 수정·삭제 시 사용할 수 있도록 합니다.
 
 ### 2. 백업 → Google Drive 업로드
 
 > 📖 **백업 전략:**  
 > → `deployment/installation.md § 백업 전략`
 
-```typescript
-// apps/api/src/plugins/backup/drive-backup.ts
-
-import { scheduler } from '@core/scheduler';
-import { integrations } from '@core/integrations';
-
-scheduler.register({
-  name: 'backup-to-drive',
-  schedule: '0 3 * * *',  // 매일 새벽 3시
-  handler: async () => {
-    // 1. DB 백업 생성
-    const backupFile = await createDatabaseBackup();
-    
-    // 2. Google Drive 통합
-    const drive = integrations.get('google-drive') as GoogleDrive;
-    
-    if (!drive.isAuthenticated()) {
-      console.warn('Google Drive not configured - backup saved locally only');
-      return;
-    }
-    
-    // 3. 업로드
-    const fileBuffer = await fs.readFile(backupFile);
-    const uploaded = await drive.uploadFile(
-      fileBuffer,
-      `backup_${Date.now()}.sql.gz`,
-      'application/gzip'
-    );
-    
-    console.log(`✓ Backup uploaded to Google Drive: ${uploaded.webViewLink}`);
-    
-    // 4. 로컬 백업 파일 삭제 (선택)
-    await fs.unlink(backupFile);
-  }
-});
-```
+Scheduler에 'backup-to-drive' 작업을 등록합니다. 매일 새벽 3시에 실행되며, 총 4단계로 진행됩니다. 첫째로 데이터베이스 백업 파일을 생성합니다. 둘째로 Google Drive 통합이 인증되었는지 확인하고, 안 된 경우 로컬 백업만 유지하고 종료합니다. 셋째로 백업 파일을 읽어 Google Drive에 업로드합니다. 파일명에는 현재 타임스탬프를 포함시킵니다. 넷째로 업로드 완료 후 로컬 백업 파일을 선택적으로 삭제합니다.
 
 ### 3. 리포트 → Slack 알림
 
-```typescript
-// modules/ledger/backend/report.ts
-
-export async function sendMonthlyReport(userId: string) {
-  // 1. 월간 리포트 생성
-  const report = await generateMonthlyReport(userId);
-  
-  // 2. Slack 통합
-  const slack = integrations.get('slack') as Slack;
-  
-  if (!slack.isAuthenticated()) {
-    console.warn('Slack not configured');
-    return;
-  }
-  
-  // 3. 메시지 전송
-  await slack.sendMessage(
-    '#finance-reports',
-    '📊 월간 가계부 리포트',
-    [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `*${report.month}월 요약*\n총 수입: ${report.income}원\n총 지출: ${report.expense}원`
-        }
-      }
-    ]
-  );
-}
-```
+sendMonthlyReport 함수는 월간 리포트를 Slack으로 전송합니다. 먼저 월간 리포트를 생성합니다. 그 다음 Slack 통합이 인증되었는지 확인하고, 안 된 경우 경고를 로깅하고 종료합니다. 인증된 경우 #finance-reports 채널에 메시지를 전송합니다. 메시지의 제목은 '월간 가계부 리포트'이며, blocks를 사용하여 해당 월의 총 수입과 총 지출을 리치 형식으로 표시합니다.
 
 ### 4. 이슈 → GitHub 자동 생성
 
-```typescript
-// apps/api/src/services/error-reporter.ts
-
-export async function reportCriticalError(error: Error, context: any) {
-  const github = integrations.get('github') as GitHub;
-  
-  if (!github.isAuthenticated()) {
-    console.error('GitHub not configured - error not reported');
-    return;
-  }
-  
-  await github.createIssue(
-    'your-org',
-    'finance-system',
-    `[AUTO] ${error.message}`,
-    `
-## Error Details
-
-\`\`\`
-${error.stack}
-\`\`\`
-
-## Context
-
-\`\`\`json
-${JSON.stringify(context, null, 2)}
-\`\`\`
-    `
-  );
-}
-```
+reportCriticalError 함수는 심각한 에러가 발생하면 GitHub에 이슈를 자동으로 생성합니다. 먼저 GitHub 통합이 인증되었는지 확인하고, 안 된 경우 에러를 로깅하고 종료합니다. 인증된 경우 finance-system 저장소에 이슈를 생성합니다. 이슈의 제목에는 [AUTO] 접두사와 에러 메시지를 붙이고, 본문에는 에러의 스택 트레이스와 관련 컨텍스트 정보를 JSON 형식으로 포함시킵니다.
 
 ---
 
