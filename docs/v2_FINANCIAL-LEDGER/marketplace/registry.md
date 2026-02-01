@@ -7,7 +7,7 @@
 ## 레지스트리 구조
 
 ```
-github.com/your-org/module-registry/
+github.com/Fieldstack-Project/module-registry/
 ├── README.md
 ├── modules.json              # 인증된 모듈 목록
 ├── categories.json           # 카테고리 정의
@@ -411,17 +411,17 @@ jobs:
 
 ```
 # 모듈 목록
-GET https://raw.githubusercontent.com/your-org/module-registry/main/modules.json
+GET https://raw.githubusercontent.com/Fieldstack-Project/module-registry/main/modules.json
 
 # 개별 모듈 상세
-GET https://raw.githubusercontent.com/your-org/module-registry/main/modules/{id}.json
+GET https://raw.githubusercontent.com/Fieldstack-Project/module-registry/main/modules/{id}.json
 
 # 카테고리 목록
-GET https://raw.githubusercontent.com/your-org/module-registry/main/categories.json
+GET https://raw.githubusercontent.com/Fieldstack-Project/module-registry/main/categories.json
 
 # 통계
-GET https://raw.githubusercontent.com/your-org/module-registry/main/stats/downloads.json
-GET https://raw.githubusercontent.com/your-org/module-registry/main/stats/trending.json
+GET https://raw.githubusercontent.com/Fieldstack-Project/module-registry/main/stats/downloads.json
+GET https://raw.githubusercontent.com/Fieldstack-Project/module-registry/main/stats/trending.json
 ```
 
 ### 검색 API (Algolia)

@@ -321,5 +321,5 @@ reportCriticalError 함수는 심각한 에러가 발생하면 GitHub에 이슈�
 3. **자동화** → `technical/scheduler.md`
 
 > 💬 **도움이 필요하신가요?**  
-> → Discord: https://discord.gg/...  
+> → Discord: https://discord.gg/5m4aHKmWgg
 > → GitHub Discussions: https://github.com/.../discussions

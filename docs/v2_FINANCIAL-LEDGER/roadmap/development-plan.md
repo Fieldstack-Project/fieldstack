@@ -2,7 +2,7 @@
 
 ## 개요
 
-Finance System은 점진적으로 개발되며, 각 단계는 독립적으로 완성도가 높아야 합니다.
+Fieldstack은 점진적으로 개발되며, 각 단계는 독립적으로 완성도가 높아야 합니다.
 
 ## Phase 1: Core 기반 구축 (3개월)
 
@@ -22,7 +22,7 @@ Finance System은 점진적으로 개발되며, 각 단계는 독립적으로 �
 
 **결과물:**
 ```
-my-finance-system/
+Fieldstack/
 ├── pnpm-workspace.yaml
 ├── package.json
 ├── tsconfig.json

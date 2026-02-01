@@ -268,5 +268,5 @@ module-registry 저장소에 PR 제출
 4. **공유** - 커뮤니티에 소개
 
 > 💬 **도움이 필요하신가요?**  
-> → Discord: https://discord.gg/...  
+> → Discord: https://discord.gg/5m4aHKmWgg
 > → GitHub Discussions: https://github.com/.../discussions

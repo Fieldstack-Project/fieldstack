@@ -37,7 +37,7 @@ Plugins (Optional)
 
 ## 배포 아키텍처
 
-Finance System은 **환경을 자동으로 감지**하여 최적의 모드로 실행됩니다.
+Fieldstack은 **환경을 자동으로 감지**하여 최적의 모드로 실행됩니다.
 
 > ⚠️ **중요:**  
 > 배포 모드는 `NODE_ENV`와 `SERVE_FRONTEND` 환경 변수로 자동 결정됩니다.  
@@ -466,7 +466,7 @@ Module → Core Integration → External API
 └─────────────┘
     ↓  ↓  ↓
 ┌───┐┌───┐┌───┐
-│ 1 ││ 2 ││ 3 │  ← Finance System 인스턴스
+│ 1 ││ 2 ││ 3 │  ← Fieldstack 인스턴스
 └───┘└───┘└───┘
     ↓
 ┌─────────────┐
@@ -506,7 +506,7 @@ Module → Core Integration → External API
   ↓
 리버스 프록시 (HTTPS)
   ↓
-Finance System (:3000)
+Fieldstack (:3000)
   ↓
 내부 DB (외부 접근 차단)
 ```
@@ -607,7 +607,7 @@ PM2 클러스터 모드로 실행합니다. 앱 이름은 'finance-system'이고
 # 1. Docker 설치
 curl -fsSL https://get.docker.com | sh
 
-# 2. Finance System 실행
+# 2. Fieldstack 실행
 docker-compose up -d
 
 # 3. 접속
@@ -735,7 +735,7 @@ rclone copy backup_$(date +%Y%m%d).tar.gz gdrive:backups/
 
 ## 결론
 
-Finance System은 **환경에 따라 자동으로 최적화**되는 유연한 아키텍처를 가지고 있습니다:
+Fieldstack은 **환경에 따라 자동으로 최적화**되는 유연한 아키텍처를 가지고 있습니다:
 
 - **홈서버**: Proxmox처럼 단일 서버로 간단하게 ⭐
 - **개발**: 빠른 개발을 위해 분리 실행

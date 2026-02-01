@@ -123,7 +123,7 @@ InstalledModule은 설치된 모듈 하나의 정보 구조입니다. name은 �
 
 ### URL 구조
 ```
-https://your-finance-system.dev/
+https://Fieldstack.dev/
 ├── /                          # 홈 (프로젝트 소개)
 ├── /docs/                     # 문서
 │   ├── /getting-started

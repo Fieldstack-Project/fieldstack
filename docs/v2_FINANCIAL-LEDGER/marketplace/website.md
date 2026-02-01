@@ -15,7 +15,7 @@
 ## URL 구조
 
 ```
-https://your-finance-system.dev/
+https://Fieldstack.dev/
 ├── /                           # 홈페이지
 ├── /docs/                      # 문서
 │   ├── /getting-started/
@@ -72,7 +72,7 @@ website/
 
 ## docusaurus.config.js
 
-Docusaurus 설정 파일입니다. 사이트의 제목은 'Finance System', 태그라인은 개인용 모듈형 금융 및 생산성 시스템으로 설정합니다. URL과 기본 경로를 정의합니다.
+Docusaurus 설정 파일입니다. 사이트의 제목은 'Fieldstack', 태그라인은 개인용 모듈형 금융 및 생산성 시스템으로 설정합니다. URL과 기본 경로를 정의합니다.
 
 themeConfig에서 네비게이션 바를 설정합니다. 왼쪽에는 문서와 마켓플레이스, 블로그 링크를 배치하고, 오른쪽에는 GitHub 링크를 배치합니다.
 
@@ -88,7 +88,7 @@ presets에서 docs, blog, theme를 설정합니다. docs는 sidebars.js를 사�
 
 Docusaurus의 Layout과 Link 컴포넌트를 사용하여 홈페이지를 구성합니다.
 
-상단 hero 섹션에는 'Finance System' 제목과 '완전 무료, Self-hosted, 모듈형 개인 금융 관리 시스템' 소개문을 표시합니다. 아래에는 '시작하기' 버튼(문서 페이지로 이동)과 '마켓플레이스 둘러보기' 버튼이 배치됩니다.
+상단 hero 섹션에는 'Fieldstack' 제목과 '완전 무료, Self-hosted, 모듈형 개인 금융 관리 시스템' 소개문을 표시합니다. 아래에는 '시작하기' 버튼(문서 페이지로 이동)과 '마켓플레이스 둘러보기' 버튼이 배치됩니다.
 
 main 영역은 두 섹션으로 구성됩니다. 첫 번째 'features' 섹션에는 Feature 컴포넌트를 3개 배치합니다: '완전 무료'(기능 제한 없음), '개인정보 보호'(Self-hosted, 모든 데이터는 본인 서버에), '모듈 시스템'(필요한 기능만 설치, 커뮤니티 모듈 지원). 두 번째 'showcase' 섹션에는 주요 모듈을 ModuleShowcase 컴포넌트로 표시합니다.
 
