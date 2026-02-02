@@ -41,426 +41,53 @@
 
 ### 프로필
 
-```typescript
-// apps/web/src/pages/Settings/Profile.tsx
-
-<Form onSubmit={handleUpdateProfile}>
-  <Input
-    label="이름"
-    value={profile.name}
-    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-  />
-  
-  <Input
-    label="이메일"
-    type="email"
-    value={profile.email}
-    disabled
-    help="이메일은 변경할 수 없습니다"
-  />
-  
-  <Button type="submit">저장</Button>
-</Form>
-```
+프로필 설정 폼입니다. 이름 필드는 직접 입력 가능하며, 이메일 필드는 `disabled` 상태로 변경할 수 없습니다. 저장 버튼 클릭 시 `handleUpdateProfile`이 실행됩니다.
 
 ### 언어 설정
 
-```typescript
-<Select
-  label="언어"
-  options={[
-    { value: 'ko', label: '한국어' },
-    { value: 'en', label: 'English' },
-    { value: 'ja', label: '日本語' }
-  ]}
-  value={language}
-  onChange={setLanguage}
-/>
-```
+언어를 Select 컴포넌트로 선택합니다. 한국어, English, 일본어 세 가지 옵션이 제공되며, 변경 시 `setLanguage`로 상태를 업데이트합니다.
 
 ### 테마 설정
 
-```typescript
-<RadioGroup
-  label="테마"
-  options={[
-    { value: 'light', label: '라이트' },
-    { value: 'dark', label: '다크' },
-    { value: 'auto', label: '시스템 설정 따르기' }
-  ]}
-  value={theme}
-  onChange={setTheme}
-/>
-```
+테마를 RadioGroup로 선택합니다. 라이트, 다크, 시스템 설정 따르기(auto) 세 가지 옵션이 있으며, 변경 시 `setTheme`로 상태를 업데이트합니다.
 
 ## 2. AI 설정
 
-```typescript
-// apps/web/src/pages/Settings/AI.tsx
+AI 설정 페이지는 Provider 선택과 API Key 입력, 연결 테스트 기능을 제공합니다.
 
-export default function AISettings() {
-  const [provider, setProvider] = useState('gemini');
-  const [apiKey, setApiKey] = useState('');
-  const [testing, setTesting] = useState(false);
-  
-  const handleTest = async () => {
-    setTesting(true);
-    try {
-      const response = await fetch('/api/settings/ai/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey })
-      });
-      
-      if (response.ok) {
-        notify.success('연결 성공!');
-      } else {
-        notify.error('연결 실패');
-      }
-    } finally {
-      setTesting(false);
-    }
-  };
-  
-  return (
-    <Card title="AI 설정">
-      <Select
-        label="Provider"
-        options={[
-          { value: 'gemini', label: 'Google Gemini' },
-          { value: 'openai', label: 'OpenAI' },
-          { value: 'claude', label: 'Anthropic Claude' },
-          { value: 'ollama', label: 'Ollama (로컬)' }
-        ]}
-        value={provider}
-        onChange={setProvider}
-      />
-      
-      {provider !== 'ollama' && (
-        <Input
-          label="API Key"
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          help={
-            <a href={getAPIKeyLink(provider)} target="_blank">
-              API Key 발급 방법 →
-            </a>
-          }
-        />
-      )}
-      
-      <div className="actions">
-        <Button onClick={handleTest} loading={testing}>
-          연결 테스트
-        </Button>
-        <Button variant="primary" onClick={handleSave}>
-          저장
-        </Button>
-      </div>
-    </Card>
-  );
-}
-```
+**Frontend (`apps/web/src/pages/Settings/AI.tsx`):**
 
-### Backend - 설정 저장
+`AISettings` 컴포넌트는 provider, apiKey, testing 상태를 관리합니다. Provider는 Google Gemini, OpenAI, Anthropic Claude, Ollama(로컬) 네 가지 옵션을 Select로 제공합니다. Ollama를 제외한 경우에만 API Key 입력 필드가 표시되며, 해당 Provider의 API Key 발급 페이지 링크도 함께 표시됩니다. 연결 테스트 버튼 클릭 시 `/api/settings/ai/test`에 POST 요청을 보내고, 응답에 따라 성공 또는 실패 알림을 표시합니다.
 
-```typescript
-// apps/api/src/routes/settings.ts
+**Backend (`apps/api/src/routes/settings.ts`):**
 
-router.post('/ai', authMiddleware, async (req, res) => {
-  const { provider, apiKey } = req.body;
-  
-  // API Key 암호화
-  const encryptedKey = encrypt(apiKey);
-  
-  // DB에 저장
-  await db.userSettings.upsert({
-    where: { 
-      user_id: req.user.id,
-      key: 'ai'
-    },
-    update: {
-      value: JSON.stringify({
-        provider,
-        apiKey: encryptedKey
-      })
-    },
-    create: {
-      user_id: req.user.id,
-      key: 'ai',
-      value: JSON.stringify({
-        provider,
-        apiKey: encryptedKey
-      })
-    }
-  });
-  
-  res.json({ success: true });
-});
+`POST /ai` 라우트는 요청본문에서 provider와 apiKey를 받아 API Key를 암호화한 후 `user_settings` 테이블에 upsert합니다. 해당 사용자의 `ai` 키가 이미 있으면 update, 없으면 create가 실행됩니다.
 
-// AI 연결 테스트
-router.post('/ai/test', authMiddleware, async (req, res) => {
-  const { provider, apiKey } = req.body;
-  
-  try {
-    const ai = createAIProvider(provider, apiKey);
-    const result = await ai.generate('Hello, test');
-    
-    res.json({ success: true, response: result });
-  } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-```
+`POST /ai/test` 라우트는 provider와 apiKey를 받아 해당 Provider의 AI 클라이언트를 생성하고 테스트 문자열로 생성 요청을 실행합니다. 성공하면 응답을 반환하고, 실패하면 400 상태와 오류 메시지를 반환합니다.
 
 ## 3. 데이터베이스 설정
 
-```typescript
-// apps/web/src/pages/Settings/Database.tsx
-
-export default function DatabaseSettings() {
-  const [config, setConfig] = useState({
-    provider: 'postgres',
-    host: 'localhost',
-    port: 5432,
-    database: 'finance',
-    username: 'finance',
-    password: ''
-  });
-  
-  return (
-    <Card title="데이터베이스">
-      <Alert type="warning">
-        ⚠️ 데이터베이스 설정 변경 시 시스템이 재시작됩니다.
-      </Alert>
-      
-      <Select
-        label="Provider"
-        options={[
-          { value: 'postgres', label: 'PostgreSQL' },
-          { value: 'sqlite', label: 'SQLite' },
-          { value: 'supabase', label: 'Supabase' }
-        ]}
-        value={config.provider}
-        onChange={(v) => setConfig({ ...config, provider: v })}
-      />
-      
-      {config.provider === 'postgres' && (
-        <>
-          <Input label="호스트" value={config.host} />
-          <Input label="포트" value={config.port} />
-          <Input label="데이터베이스" value={config.database} />
-          <Input label="사용자" value={config.username} />
-          <Input 
-            label="비밀번호" 
-            type="password" 
-            value={config.password} 
-          />
-        </>
-      )}
-      
-      <div className="actions">
-        <Button onClick={handleTestConnection}>
-          연결 테스트
-        </Button>
-        <Button variant="primary" onClick={handleSave}>
-          저장 및 재시작
-        </Button>
-      </div>
-    </Card>
-  );
-}
-```
+`DatabaseSettings` 컴포넌트는 provider와 연결 정보를 상태로 관리합니다. Provider를 PostgreSQL, SQLite, Supabase 중 하나로 선택할 수 있으며, PostgreSQL을 선택하면 호스트, 포트, 데이터베이스명, 사용자, 비밀번호 입력 필드가 추가로 표시됩니다. 변경 시 시스템이 재시작됨을 경고하는 Alert가 표시됩니다. 연결 테스트와 저장 및 재시작 버튼이 제공됩니다.
 
 ## 4. 통합 서비스 설정
 
 ### Google OAuth
 
-```typescript
-// apps/web/src/pages/Settings/Integrations/Google.tsx
-
-export default function GoogleIntegration() {
-  const [config, setConfig] = useState({
-    clientId: '',
-    clientSecret: ''
-  });
-  
-  return (
-    <Card title="Google 연동">
-      <Input
-        label="OAuth Client ID"
-        value={config.clientId}
-        onChange={(e) => setConfig({ ...config, clientId: e.target.value })}
-      />
-      
-      <Input
-        label="OAuth Client Secret"
-        type="password"
-        value={config.clientSecret}
-        onChange={(e) => setConfig({ ...config, clientSecret: e.target.value })}
-      />
-      
-      <Alert type="info">
-        <h4>OAuth 설정 방법:</h4>
-        <ol>
-          <li>Google Cloud Console 접속</li>
-          <li>OAuth 2.0 클라이언트 ID 생성</li>
-          <li>승인된 리디렉션 URI 등록:
-            <code>{window.location.origin}/auth/google/callback</code>
-          </li>
-        </ol>
-        <a href="https://docs.google.com/..." target="_blank">
-          자세한 가이드 보기 →
-        </a>
-      </Alert>
-      
-      <h3>연동할 서비스 선택</h3>
-      <Checkbox label="Google Calendar" checked={true} />
-      <Checkbox label="Google Drive" checked={true} />
-      <Checkbox label="Gmail" checked={false} />
-      <Checkbox label="Google Sheets" checked={false} />
-      
-      <Button variant="primary" onClick={handleSave}>
-        저장
-      </Button>
-    </Card>
-  );
-}
-```
+`GoogleIntegration` 컴포넌트는 OAuth Client ID와 Client Secret 입력 필드를 제공합니다. 아래에는 Google Cloud Console에서 OAuth 클라이언트를 생성하고 리다이렉션 URI를 등록하는 방법을 안내하는 Alert가 표시됩니다. 리다이렉션 URI는 현재 페이지의 origin에 `/auth/google/callback`을 붙인 값입니다. Google Calendar, Google Drive, Gmail, Google Sheets 중 연동할 서비스를 Checkbox로 선택할 수 있습니다.
 
 ### Slack, Notion 등
 
-```typescript
-<Card title="Slack">
-  <Input
-    label="Bot Token"
-    type="password"
-    placeholder="xoxb-..."
-  />
-  <Button onClick={handleTestSlack}>연결 테스트</Button>
-</Card>
-
-<Card title="Notion">
-  <Input
-    label="Integration Token"
-    type="password"
-  />
-  <Button onClick={handleTestNotion}>연결 테스트</Button>
-</Card>
-```
+Slack은 Bot Token을, Notion은 Integration Token을 비밀번호 타입 입력 필드로 받습니다. 각각 연결 테스트 버튼이 제공됩니다.
 
 ## 5. 시스템 설정
 
 ### 자동 업데이트
 
-```typescript
-// apps/web/src/pages/Settings/System/Updates.tsx
-
-export default function UpdateSettings() {
-  const [config, setConfig] = useState({
-    enabled: true,
-    schedule: 'daily',
-    time: '03:00',
-    confirmBefore: true,
-    maintenanceMode: true
-  });
-  
-  return (
-    <Card title="자동 업데이트">
-      <Switch
-        label="자동 업데이트 활성화"
-        checked={config.enabled}
-        onChange={(v) => setConfig({ ...config, enabled: v })}
-      />
-      
-      {config.enabled && (
-        <>
-          <Select
-            label="업데이트 주기"
-            options={[
-              { value: 'daily', label: '매일' },
-              { value: 'weekly', label: '매주' },
-              { value: 'monthly', label: '매월' }
-            ]}
-            value={config.schedule}
-            onChange={(v) => setConfig({ ...config, schedule: v })}
-          />
-          
-          <Input
-            label="업데이트 시간"
-            type="time"
-            value={config.time}
-            onChange={(e) => setConfig({ ...config, time: e.target.value })}
-          />
-          
-          <Checkbox
-            label="업데이트 전 확인 받기"
-            checked={config.confirmBefore}
-            onChange={(v) => setConfig({ ...config, confirmBefore: v })}
-          />
-          
-          <Checkbox
-            label="유지보수 모드 사용"
-            checked={config.maintenanceMode}
-            onChange={(v) => setConfig({ ...config, maintenanceMode: v })}
-            help="업데이트 중 일반 사용자 접근 차단"
-          />
-        </>
-      )}
-      
-      <Button variant="primary" onClick={handleSave}>
-        저장
-      </Button>
-    </Card>
-  );
-}
-```
+`UpdateSettings` 컴포넌트는 자동 업데이트 활성화 여부를 Switch로 제어합니다. 활성화하면 업데이트 주기(매일/매주/매월), 업데이트 시간, 업데이트 전 확인 받기, 유지보수 모드 사용 옵션이 추가로 표시됩니다. 유지보수 모드는 업데이트 중 일반 사용자 접근을 차단합니다.
 
 ### 백업 설정
 
-```typescript
-<Card title="백업">
-  <Switch
-    label="자동 백업 활성화"
-    checked={backupEnabled}
-  />
-  
-  <Select
-    label="백업 주기"
-    options={[
-      { value: 'daily', label: '매일' },
-      { value: 'weekly', label: '매주' }
-    ]}
-  />
-  
-  <Input
-    label="백업 시간"
-    type="time"
-  />
-  
-  <Select
-    label="백업 위치"
-    options={[
-      { value: 'local', label: '로컬 (./backups)' },
-      { value: 'gdrive', label: 'Google Drive' },
-      { value: 'custom', label: '커스텀 경로' }
-    ]}
-  />
-  
-  <div className="actions">
-    <Button onClick={handleBackupNow}>
-      지금 백업하기
-    </Button>
-    <Button onClick={handleRestore}>
-      복원하기
-    </Button>
-  </div>
-</Card>
-```
+백업 설정 카드는 자동 백업 활성화 Switch, 백업 주기(매일/매주) Select, 백업 시간 입력, 백업 위치 선택(로컬 `./backups`, Google Drive, 커스텀 경로)을 제공합니다. 지금 백업하기와 복원하기 두 가지 액션 버튼이 있습니다.
 
 ## 설정 저장 위치
 
@@ -480,110 +107,18 @@ CREATE TABLE user_settings (
 
 ### 2. .env 파일 (시스템 설정)
 
-```typescript
-// apps/api/src/services/env-manager.ts
-
-export async function updateEnvFile(updates: Record<string, string>) {
-  const envPath = path.join(process.cwd(), '.env');
-  const content = await fs.readFile(envPath, 'utf-8');
-  
-  let newContent = content;
-  
-  for (const [key, value] of Object.entries(updates)) {
-    const regex = new RegExp(`^${key}=.*$`, 'm');
-    
-    if (regex.test(newContent)) {
-      newContent = newContent.replace(regex, `${key}=${value}`);
-    } else {
-      newContent += `\n${key}=${value}`;
-    }
-  }
-  
-  await fs.writeFile(envPath, newContent);
-  
-  // 환경 변수 리로드
-  process.env = { ...process.env, ...updates };
-}
-```
+`updateEnvFile` 함수는 `.env` 파일을 읽고, 전달받은 키-값 쌍들을 순회하며 각 키가 이미 파일에 존재하면 정규식으로 값을 교체하고, 존재하지 않으면 파일 끝에 추가합니다. 파일 수정 후 `process.env`에도 동일한 값을 반영하여 즉시 환경 변수가 적용되도록 합니다.
 
 ## 설정 변경 시 재시작
 
-```typescript
-// apps/api/src/services/restart.ts
-
-export async function gracefulRestart() {
-  console.log('Restarting server...');
-  
-  // 1. 새 요청 거부
-  server.close();
-  
-  // 2. 진행 중인 요청 완료 대기
-  await new Promise(resolve => {
-    setTimeout(resolve, 5000);
-  });
-  
-  // 3. 연결 종료
-  await closeConnections();
-  
-  // 4. 프로세스 종료 (PM2가 재시작)
-  process.exit(0);
-}
-```
+`gracefulRestart` 함수는 단계별로 안전한 재시작을 수행합니다. 먼저 `server.close()`로 새 요청을 거부한 후, 5초를 대기하여 진행 중인 요청이 완료되도록 합니다. 이후 기존 연결을 종료하고, PM2가 프로세스를 재시작할 수 있도록 `process.exit(0)`으로 종료합니다.
 
 ## 설정 내보내기/가져오기
 
-```typescript
-// 설정 내보내기
-router.get('/export', authMiddleware, async (req, res) => {
-  const settings = await db.userSettings.findMany({
-    where: { user_id: req.user.id }
-  });
-  
-  const config = settings.reduce((acc, s) => {
-    acc[s.key] = JSON.parse(s.value);
-    return acc;
-  }, {});
-  
-  res.json(config);
-});
+**내보내기 (`GET /export`):** 해당 사용자의 `user_settings` 테이블 전체를 조회하여, 키를 속성명으로 하고 값을 파싱한 객체로 변환하여 반환합니다.
 
-// 설정 가져오기
-router.post('/import', authMiddleware, async (req, res) => {
-  const config = req.body;
-  
-  for (const [key, value] of Object.entries(config)) {
-    await db.userSettings.upsert({
-      where: { 
-        user_id: req.user.id,
-        key 
-      },
-      update: { value: JSON.stringify(value) },
-      create: {
-        user_id: req.user.id,
-        key,
-        value: JSON.stringify(value)
-      }
-    });
-  }
-  
-  res.json({ success: true });
-});
-```
+**가져오기 (`POST /import`):** 요청본문의 키-값 쌍들을 순회하며, 각 키에 대해 해당 사용자의 설정을 upsert합니다. 키가 이미 있으면 값을 update하고, 없으면 새로 create합니다.
 
 ## 설정 초기화
 
-```typescript
-<Button 
-  variant="danger"
-  onClick={handleReset}
->
-  설정 초기화
-</Button>
-
-const handleReset = async () => {
-  if (confirm('모든 설정을 초기값으로 되돌리시겠습니까?')) {
-    await fetch('/api/settings/reset', { method: 'POST' });
-    window.location.reload();
-  }
-};
-```
+설정 초기화 버튼은 `variant="danger"`로 표시됩니다. 클릭 시 `confirm` 다이얼로그로 사용자 확인을 받고, 승인하면 `POST /api/settings/reset`을 호출한 후 페이지를 리로드합니다.

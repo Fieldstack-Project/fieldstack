@@ -23,7 +23,7 @@
 
 ### 목표
 
-**"프레임워크로서의 Finance System을 체험하게 하라"**
+**"프레임워크로서의 Fieldstack을 체험하게 하라"**
 
 가계부 앱이 아닌, **확장 가능한 개인 생산성 프레임워크**로서의 정체성을 명확히 전달하는 데모 경험 제공.
 
@@ -232,30 +232,8 @@ DEMO_GEMINI_KEY=<프로젝트 공용 키>
 ```
 
 **구현:**
-```typescript
-// Redis 기반 Rate Limiting
-const key = `demo:ai:${demoInstanceId}`;
-const hourlyKey = `${key}:hourly`;
-const dailyKey = `${key}:daily`;
 
-// 시간당 체크
-const hourlyCount = await redis.incr(hourlyKey);
-if (hourlyCount === 1) {
-  await redis.expire(hourlyKey, 3600); // 1시간
-}
-if (hourlyCount > 10) {
-  throw new Error('Hourly AI limit exceeded');
-}
-
-// 일일 체크
-const dailyCount = await redis.incr(dailyKey);
-if (dailyCount === 1) {
-  await redis.expire(dailyKey, 86400); // 24시간
-}
-if (dailyCount > 30) {
-  throw new Error('Daily AI limit exceeded');
-}
-```
+Redis를 사용하여 데모 인스턴스별 AI 사용량을 추적합니다. 시간당 카운터와 일일 카운터를 별도의 키로 관리합니다. 시간당 카운터를 `incr`로 증가시키고, 처음 증가된 경우(값이 1)에 3600초(1시간) TTL을 설정합니다. 카운터가 10을 초과하면 시간당 제한 초과 오류를 발생시킵니다. 같은 방식으로 일일 카운터도 증가시키며, 처음 증가된 경우에 86400초(24시간) TTL을 설정하고, 30을 초과하면 일일 제한 초과 오류를 발생시킵니다.
 
 **장점:**
 - ✅ 비용 거의 0원
@@ -277,7 +255,7 @@ if (dailyCount > 30) {
 
 **기존 구조:**
 ```
-Finance System
+Fieldstack
 ├─ 가계부
 ├─ 구독 관리
 └─ 기능 소개
@@ -285,7 +263,7 @@ Finance System
 
 **새로운 구조:**
 ```
-Finance System
+Fieldstack
 ├─ Core 인프라
 │  ├─ 인증 & 보안
 │  ├─ DB 추상화
@@ -307,7 +285,7 @@ Finance System
 │                                     │
 │        🎉 데모 체험 완료!           │
 │                                     │
-│   Finance System을 체험해주셔서      │
+│   Fieldstack을 체험해주셔서          │
 │   감사합니다!                        │
 │                                     │
 ├─────────────────────────────────────┤
@@ -322,7 +300,7 @@ Finance System
 │                                     │
 │ 💡 이것은 시작일 뿐입니다            │
 │                                     │
-│ Finance System은 프레임워크입니다.   │
+│ Fieldstack은 프레임워크입니다.       │
 │                                     │
 │ 가계부와 구독 관리는 제가 필요해서    │
 │ 만든 예시 모듈일 뿐입니다.           │
@@ -363,302 +341,45 @@ Finance System
 
 **위치:** `packages/core/demo/index.ts`
 
-```typescript
-export class DemoMode {
-  private static instanceId: string;
-  private static createdAt: Date;
-  
-  /**
-   * 데모 모드 활성화 여부
-   */
-  static isEnabled(): boolean {
-    return process.env.DEMO_MODE === 'true';
-  }
-  
-  /**
-   * OAuth 우회 - 자동 로그인
-   */
-  static async autoLogin(): Promise<User> {
-    if (!this.isEnabled()) return null;
-    
-    const email = process.env.AUTO_LOGIN_USER || 'demo@finance-system.dev';
-    
-    // 데모 사용자 생성 또는 조회
-    let user = await db.users.findUnique({ where: { email } });
-    
-    if (!user) {
-      user = await db.users.create({
-        data: {
-          email,
-          name: 'Demo User',
-          role: 'admin',
-          demo_instance_id: this.getInstanceId(),
-          created_at: new Date()
-        }
-      });
-      
-      // Whitelist에 추가
-      await db.allowedUsers.create({
-        data: {
-          email,
-          role: 'admin',
-          admin_pin_hash: await hashPin('1234'), // 임시 PIN
-          demo: true
-        }
-      });
-    }
-    
-    return user;
-  }
-  
-  /**
-   * 관리자 PIN 반환 (데모용)
-   */
-  static getAdminPin(): string {
-    if (!this.isEnabled()) return null;
-    return process.env.DEFAULT_ADMIN_PIN || '1234';
-  }
-  
-  /**
-   * AI 사용량 제한 체크
-   */
-  static async checkAILimit(instanceId: string): Promise<{
-    allowed: boolean;
-    hourlyRemaining: number;
-    dailyRemaining: number;
-  }> {
-    if (!this.isEnabled()) {
-      return { allowed: true, hourlyRemaining: -1, dailyRemaining: -1 };
-    }
-    
-    const hourlyKey = `demo:ai:${instanceId}:hourly`;
-    const dailyKey = `demo:ai:${instanceId}:daily`;
-    
-    // 시간당 체크
-    const hourlyCount = parseInt(await redis.get(hourlyKey) || '0');
-    if (hourlyCount >= 10) {
-      return { 
-        allowed: false, 
-        hourlyRemaining: 0, 
-        dailyRemaining: -1 
-      };
-    }
-    
-    // 일일 체크
-    const dailyCount = parseInt(await redis.get(dailyKey) || '0');
-    if (dailyCount >= 30) {
-      return { 
-        allowed: false, 
-        hourlyRemaining: 10 - hourlyCount, 
-        dailyRemaining: 0 
-      };
-    }
-    
-    return {
-      allowed: true,
-      hourlyRemaining: 10 - hourlyCount,
-      dailyRemaining: 30 - dailyCount
-    };
-  }
-  
-  /**
-   * AI 사용량 증가
-   */
-  static async incrementAIUsage(instanceId: string): Promise<void> {
-    if (!this.isEnabled()) return;
-    
-    const hourlyKey = `demo:ai:${instanceId}:hourly`;
-    const dailyKey = `demo:ai:${instanceId}:daily`;
-    
-    // 시간당
-    const hourlyCount = await redis.incr(hourlyKey);
-    if (hourlyCount === 1) {
-      await redis.expire(hourlyKey, 3600); // 1시간
-    }
-    
-    // 일일
-    const dailyCount = await redis.incr(dailyKey);
-    if (dailyCount === 1) {
-      await redis.expire(dailyKey, 86400); // 24시간
-    }
-  }
-  
-  /**
-   * 모듈 설치 가능 여부 (모두 허용)
-   */
-  static canInstallModule(moduleId: string): boolean {
-    if (!this.isEnabled()) return true;
-    
-    // 데모 모드에서는 모든 모듈 설치 가능
-    return true;
-  }
-  
-  /**
-   * 데이터 내보내기 가능 여부 (불가)
-   */
-  static canExportData(): boolean {
-    if (!this.isEnabled()) return true;
-    
-    // 데모 데이터는 내보내기 불가
-    return false;
-  }
-  
-  /**
-   * 인스턴스 ID 생성/조회
-   */
-  static getInstanceId(): string {
-    if (!this.instanceId) {
-      this.instanceId = crypto.randomUUID();
-      this.createdAt = new Date();
-    }
-    return this.instanceId;
-  }
-  
-  /**
-   * 남은 시간 (24시간)
-   */
-  static getRemainingTime(): number {
-    if (!this.isEnabled() || !this.createdAt) return -1;
-    
-    const elapsed = Date.now() - this.createdAt.getTime();
-    const remaining = 24 * 60 * 60 * 1000 - elapsed; // 24시간
-    
-    return Math.max(0, remaining);
-  }
-  
-  /**
-   * 데모 인스턴스 삭제 (24시간 후)
-   */
-  static async cleanup(): Promise<void> {
-    if (!this.isEnabled()) return;
-    
-    const instanceId = this.getInstanceId();
-    
-    // 모든 데모 데이터 삭제
-    await db.users.deleteMany({
-      where: { demo_instance_id: instanceId }
-    });
-    
-    await db.ledgerEntries.deleteMany({
-      where: { user: { demo_instance_id: instanceId } }
-    });
-    
-    await db.subscriptions.deleteMany({
-      where: { user: { demo_instance_id: instanceId } }
-    });
-    
-    // Redis 키 삭제
-    await redis.del(`demo:ai:${instanceId}:hourly`);
-    await redis.del(`demo:ai:${instanceId}:daily`);
-    
-    console.log(`✓ Demo instance ${instanceId} cleaned up`);
-  }
-}
-```
+`DemoMode` 클래스는 정적 메서드만 구성된 클래스로, 데모 모드 전체 기능을 관리합니다. 각 메서드의 역할은 다음과 같습니다.
+
+**`isEnabled()`** — `DEMO_MODE` 환경 변수가 `'true'`인지 확인하여 데모 모드 활성화 여부를 반환합니다.
+
+**`autoLogin()`** — OAuth를 우회하여 자동 로그인을 수행합니다. `AUTO_LOGIN_USER` 환경 변수로부터 이메일을 읽고, 해당 이메일의 사용자가 DB에 있는지 조회합니다. 없으면 demo 사용자를 생성하고 admin 역할로 allowedUsers에 추가하며, 관리자 PIN은 환경 변수의 `DEFAULT_ADMIN_PIN` 값(기본 `'1234'`)을 해싱하여 저장합니다. 생성된 또는 기존 사용자 객체를 반환합니다.
+
+**`getAdminPin()`** — 데모 모드에서만 관리자 PIN을 반환합니다. `DEFAULT_ADMIN_PIN` 환경 변수 값 또는 기본값 `'1234'`를 반환합니다.
+
+**`checkAILimit(instanceId)`** — Redis에서 해당 인스턴스의 시간당과 일일 AI 사용 카운터를 조회합니다. 시간당 카운터가 10 이상이면 `allowed: false`와 남은 횟수를 반환하고, 일일 카운터가 30 이상이면 마찬가지로 제한됨을 반환합니다. 제한 내에 있으면 남은 시간당·일일 횟수와 함께 `allowed: true`를 반환합니다.
+
+**`incrementAIUsage(instanceId)`** — Redis의 시간당과 일일 카운터를 각각 1 증가시킵니다. 카운터가 처음 생성된 경우(값이 1)에 시간당은 3600초, 일일은 86400초 TTL을 설정합니다.
+
+**`canInstallModule()`** — 데모 모드에서는 모든 모듈 설치를 허용하여 항상 `true`를 반환합니다.
+
+**`canExportData()`** — 데모 모드에서는 데이터 내보내기를 불가시키여 `false`를 반환합니다.
+
+**`getInstanceId()`** — 정적 변수 `instanceId`가 없으면 `crypto.randomUUID()`로 생성하고 생성 시간을 기록합니다. 반복 호출 시 동일한 ID를 반환합니다.
+
+**`getRemainingTime()`** — 인스턴스 생성 시간으로부터 경과 시간을 계산하여 24시간 남은 시간(밀리초)을 반환합니다. 24시간이 지나면 0을 반환합니다.
+
+**`cleanup()`** — 데모 인스턴스의 모든 데이터를 삭제합니다. `demo_instance_id`로 필터링하여 사용자, 가계부 항목, 구독 정보를 DB에서 삭제하고, Redis의 AI 사용량 키도 삭제합니다.
 
 ### 2. 설치 마법사 통합
 
 **위치:** `apps/web/src/pages/Install/index.tsx`
 
-```typescript
-export default function Install() {
-  const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
-  
-  useEffect(() => {
-    if (isDemoMode) {
-      // 데모 모드 안내
-      notify.info(
-        '데모 모드입니다. 실제 설치와 동일한 과정을 체험하세요.',
-        { duration: 5000 }
-      );
-    }
-  }, []);
-  
-  // 나머지 설치 마법사 로직은 동일
-  // ...
-}
-```
+`Install` 컴포넌트에서 `VITE_DEMO_MODE` 환경 변수를 확인하여 데모 모드 여부를 판단합니다. 데모 모드이면 컴포넌트 초기화 시 `useEffect`를 통해 "실제 설치와 동일한 과정을 체험하세요" 안내 알림을 5초간 표시합니다. 나머지 설치 마법사 로직은 동일합니다.
 
 ### 3. AI 사용량 표시
 
 **위치:** `apps/web/src/components/AIUsageBadge.tsx`
 
-```typescript
-export function AIUsageBadge() {
-  const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
-  const [usage, setUsage] = useState({ hourly: 0, daily: 0 });
-  
-  useEffect(() => {
-    if (!isDemoMode) return;
-    
-    const fetchUsage = async () => {
-      const res = await fetch('/api/demo/ai-usage');
-      const data = await res.json();
-      setUsage({
-        hourly: data.hourlyRemaining,
-        daily: data.dailyRemaining
-      });
-    };
-    
-    fetchUsage();
-    const interval = setInterval(fetchUsage, 60000); // 1분마다
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  if (!isDemoMode) return null;
-  
-  return (
-    <div className="ai-usage-badge">
-      🤖 남은 AI 요청: {usage.hourly}/10 (시간당)
-    </div>
-  );
-}
-```
+`AIUsageBadge` 컴포넌트는 데모 모드에서만 렌더링됩니다. 컴포넌트 초기화 시와 이후 1분 간격으로 `/api/demo/ai-usage`를 호출하여 시간당 남은 요청 수를 조회합니다. 이를 "남은 AI 요청: 8/10 (시간당)" 형태로 표시합니다. 데모 모드가 아니면 아무것도 렌더링하지 않습니다.
 
 ### 4. 데모 배너
 
 **위치:** `apps/web/src/components/DemoBanner.tsx`
 
-```typescript
-export function DemoBanner() {
-  const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
-  const [remaining, setRemaining] = useState(0);
-  
-  useEffect(() => {
-    if (!isDemoMode) return;
-    
-    const updateRemaining = async () => {
-      const res = await fetch('/api/demo/remaining-time');
-      const data = await res.json();
-      setRemaining(data.remaining);
-    };
-    
-    updateRemaining();
-    const interval = setInterval(updateRemaining, 60000); // 1분마다
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  if (!isDemoMode) return null;
-  
-  const hours = Math.floor(remaining / (60 * 60 * 1000));
-  const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-  
-  return (
-    <div className="demo-banner">
-      <div className="banner-content">
-        <span className="badge">🎮 데모 모드</span>
-        <span className="time">⏱️ 남은 시간: {hours}시간 {minutes}분</span>
-        <span className="pin">🔑 관리자 PIN: 1234</span>
-        <a href="https://docs.finance-system.dev/install" className="cta">
-          내 서버에 설치하기 →
-        </a>
-      </div>
-    </div>
-  );
-}
-```
+`DemoBanner` 컴포넌트도 데모 모드에서만 렌더링됩니다. 초기화 시와 1분 간격으로 `/api/demo/remaining-time`을 호출하여 남은 시간(밀리초)을 조회합니다. 이를 시간과 분 단위로 변환하여 배너에 표시합니다. 배너에는 "🎮 데모 모드" 배지, 남은 시간, 관리자 PIN(1234), "내 서버에 설치하기" 링크가 포함됩니다.
 
 ---
 
@@ -676,7 +397,7 @@ export function DemoBanner() {
 4. 자동 로그인 (사용자 입력 없음)
    ↓
 5. 설치 마법사 시작
-   ├─ Welcome: "Finance System 설치를 시작합니다"
+   ├─ Welcome: "Fieldstack 설치를 시작합니다"
    ├─ DB 선택: SQLite 자동 선택 (이미 체크됨)
    ├─ AI 설정: Gemini 이미 설정 (사용량 제한 안내)
    ├─ Google 연동: 건너뛰기 권장
@@ -793,13 +514,8 @@ DEFAULT_ADMIN_PIN=1234
 - [ ] 샘플 데이터 생성 스크립트
 
 **AI Rate Limiting:**
-```typescript
-// 시간당 10회, 일일 30회
-const limit = await DemoMode.checkAILimit(instanceId);
-if (!limit.allowed) {
-  throw new Error('AI limit exceeded');
-}
-```
+
+데모 인스턴스의 AI 사용량을 `DemoMode.checkAILimit`으로 확인합니다. 제한이 초과된 경우 오류를 발생시킵니다. 허용된 경우에만 AI 요청을 진행합니다.
 
 **검증:**
 - ✅ 모든 모듈 설치 가능
@@ -905,13 +621,8 @@ if (!limit.allowed) {
 - ✅ 모니터링 및 알림 설정
 
 **모니터링:**
-```typescript
-// 일일 전체 AI 사용량 체크
-const totalDailyUsage = await redis.get('demo:ai:total:daily');
-if (totalDailyUsage > 1000) {
-  await notifyAdmin('데모 AI 사용량 급증');
-}
-```
+
+일일 전체 AI 사용량을 Redis에서 조회합니다. `demo:ai:total:daily` 키의 값이 1000을 초과하면 관리자에게 "데모 AI 사용량 급증" 알림을 전송합니다.
 
 ### 2. 악의적 사용 🚨
 
@@ -993,13 +704,8 @@ Self-hosted 환경에서는 정상 작동합니다.
 - ✅ 캐싱 최적화
 
 **동시 사용자 제한:**
-```typescript
-// 최대 100개 동시 데모 인스턴스
-const activeInstances = await redis.get('demo:active:count');
-if (activeInstances >= 100) {
-  throw new Error('Demo instances limit reached');
-}
-```
+
+Redis에서 `demo:active:count` 키의 값을 조회합니다. 활성 데모 인스턴스 수가 100 이상이면 "Demo instances limit reached" 오류를 발생시킵니다.
 
 ---
 

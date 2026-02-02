@@ -103,427 +103,89 @@
 
 ### 업데이트 체커 (Scheduler)
 
-```typescript
-// apps/api/src/services/update-checker.ts
+`apps/api/src/services/update-checker.ts`의 `initUpdateChecker` 함수는 자동 업데이트를 초기화합니다.
 
-import { scheduler } from '@core/scheduler';
+먼저 업데이트 설정을 읽어 활성화 여부를 확인합니다. 비활성화되어 있으면 종료합니다.
 
-export function initUpdateChecker() {
-  const config = getUpdateConfig();
-  
-  if (!config.enabled) {
-    return;
-  }
-  
-  // Cron 표현식 생성
-  const cronExpression = buildCronExpression(config);
-  
-  scheduler.register({
-    name: 'auto-update',
-    schedule: cronExpression,
-    handler: async () => {
-      try {
-        await runAutoUpdate();
-      } catch (error) {
-        await notifyAdmin({
-          subject: '자동 업데이트 실패',
-          message: error.message
-        });
-      }
-    }
-  });
-}
+활성화된 경우 `buildCronExpression` 함수로 cron 표현식을 생성합니다. 설정의 시간을 시와 분으로 분리하고, 주기에 따라 다음과 같이 변환합니다: daily는 매일 해당 시간, weekly는 해당 요일의 해당 시간(요일은 0=일요일), monthly는 매월 1일 해당 시간입니다.
 
-function buildCronExpression(config: UpdateConfig): string {
-  const [hour, minute] = config.time.split(':');
-  
-  switch (config.schedule) {
-    case 'daily':
-      return `${minute} ${hour} * * *`;
-    case 'weekly':
-      const dayMap = { sunday: 0, monday: 1, /* ... */ };
-      return `${minute} ${hour} * * ${dayMap[config.day]}`;
-    case 'monthly':
-      return `${minute} ${hour} 1 * *`;
-  }
-}
-```
+생성된 cron 표현식으로 scheduler에 `auto-update` 작업을 등록합니다. 핸들러는 `runAutoUpdate`를 호출하며, 오류가 발생하면 관리자에게 "자동 업데이트 실패" 알림을 전송합니다.
 
 ### 업데이트 실행
 
-```typescript
-// apps/api/src/services/updater.ts
+`apps/api/src/services/updater.ts`의 `runAutoUpdate` 함수는 전체 업데이트 과정을 관리합니다.
 
-export async function runAutoUpdate() {
-  logger.info('Starting auto update...');
-  
-  // 1. 새 버전 확인
-  const latestVersion = await checkLatestVersion();
-  const currentVersion = await getCurrentVersion();
-  
-  if (latestVersion === currentVersion) {
-    logger.info('Already up to date');
-    return { upToDate: true };
-  }
-  
-  logger.info(`Update available: ${currentVersion} → ${latestVersion}`);
-  
-  // 2. 활성 사용자 확인
-  const activeUsers = await getActiveUsers();
-  
-  if (activeUsers.length > 0) {
-    logger.info(`Active users detected (${activeUsers.length}), postponing update`);
-    return { postponed: true, reason: 'active_users' };
-  }
-  
-  // 3. 승인 대기 (설정에 따라)
-  const config = getUpdateConfig();
-  
-  if (config.confirmBefore) {
-    await requestUpdateApproval(latestVersion);
-    return { pending: true, reason: 'awaiting_approval' };
-  }
-  
-  // 4. 유지보수 모드 활성화
-  if (config.maintenanceMode) {
-    await enableMaintenanceMode();
-  }
-  
-  try {
-    // 5. 백업
-    logger.info('Creating backup...');
-    await createBackup();
-    
-    // 6. 업데이트 실행
-    logger.info('Pulling latest code...');
-    await gitPull();
-    
-    logger.info('Installing dependencies...');
-    await installDependencies();
-    
-    logger.info('Running migrations...');
-    await runMigrations();
-    
-    logger.info('Building...');
-    await build();
-    
-    // 7. 검증
-    logger.info('Validating...');
-    await validateUpdate();
-    
-    // 8. 재시작
-    logger.info('Restarting server...');
-    await gracefulRestart();
-    
-  } catch (error) {
-    // 실패 시 롤백
-    logger.error('Update failed, rolling back...', error);
-    await rollback();
-    throw error;
-    
-  } finally {
-    // 유지보수 모드 해제
-    if (config.maintenanceMode) {
-      await disableMaintenanceMode();
-    }
-  }
-}
+먼저 최신 버전과 현재 버전을 확인합니다. 이미 최신이면 로그를 남기고 `{ upToDate: true }`를 반환합니다.
 
-async function checkLatestVersion(): Promise<string> {
-  // GitHub API로 최신 릴리스 확인
-  const response = await fetch(
-    'https://api.github.com/repos/your-org/finance-system/releases/latest'
-  );
-  const data = await response.json();
-  return data.tag_name.replace('v', '');
-}
+새 버전이 있으면 활성 사용자를 확인합니다. 활성 사용자가 있으면 업데이트를 연기하고 `{ postponed: true, reason: 'active_users' }`를 반환합니다.
 
-async function gitPull() {
-  const { stdout, stderr } = await execAsync('git pull origin main');
-  logger.info(stdout);
-  if (stderr) logger.warn(stderr);
-}
+업데이트 설정에서 `confirmBefore`가 활성화되어 있으면 관리자에게 승인 요청을 보내고 `{ pending: true, reason: 'awaiting_approval' }`을 반환합니다.
 
-async function installDependencies() {
-  await execAsync('pnpm install');
-}
+승인이 필요 없거나 승인된 경우, `maintenanceMode`가 활성화되어 있으면 유지보수 모드를 켭니다.
 
-async function runMigrations() {
-  // DB 마이그레이션 실행
-  const modules = await getModules();
-  for (const module of modules) {
-    await runModuleMigrations(module);
-  }
-}
+try 블록 내에서 백업을 생성하고, `gitPull`로 최신 코드를 가져오고, `installDependencies`로 의존성을 설치하고, `runMigrations`로 DB 마이그레이션을 실행하고, `build`로 빌드합니다. 이후 `validateUpdate`로 업데이트를 검증하고, `gracefulRestart`로 서버를 재시작합니다.
 
-async function build() {
-  await execAsync('pnpm build');
-}
+catch 블록에서 오류가 발생하면 롤백을 실행하고 오류를 throw합니다. finally 블록에서는 유지보수 모드가 활성화되어 있었다면 해제합니다.
 
-async function validateUpdate(): Promise<void> {
-  // Health check
-  const health = await fetch('http://localhost:3000/health');
-  if (!health.ok) {
-    throw new Error('Health check failed');
-  }
-  
-  // 기본 API 테스트
-  const api = await fetch('http://localhost:3000/api/ping');
-  if (!api.ok) {
-    throw new Error('API test failed');
-  }
-}
-```
+`checkLatestVersion` 함수는 GitHub API의 `/releases/latest` 엔드포인트를 호출하여 최신 릴리스의 `tag_name`에서 `v`를 제거하여 반환합니다.
+
+`gitPull` 함수는 `git pull origin main`을 실행하고 표준 출력과 에러를 로그로 기록합니다.
+
+`installDependencies` 함수는 `pnpm install`을 실행합니다.
+
+`runMigrations` 함수는 설치된 모듈 목록을 조회하여 각 모듈의 마이그레이션을 실행합니다.
+
+`build` 함수는 `pnpm build`를 실행합니다.
+
+`validateUpdate` 함수는 `http://localhost:3000/health`와 `/api/ping`에 fetch 요청을 보내 응답이 정상인지 확인합니다. 비정상이면 오류를 발생시킵니다.
 
 ### 백업 & 롤백
 
-```typescript
-// apps/api/src/services/backup.ts
+`apps/api/src/services/backup.ts`의 `createBackup` 함수는 현재 타임스탬프로 백업 디렉터리를 생성합니다.
 
-export async function createBackup(): Promise<string> {
-  const timestamp = Date.now();
-  const backupDir = `./backups/${timestamp}`;
-  
-  await fs.ensureDir(backupDir);
-  
-  // 1. DB 백업
-  logger.info('Backing up database...');
-  await backupDatabase(path.join(backupDir, 'database.sql.gz'));
-  
-  // 2. Git tag 생성 (코드 백업)
-  const currentVersion = await getCurrentVersion();
-  await execAsync(`git tag backup-${timestamp}-v${currentVersion}`);
-  
-  // 3. 설정 파일 백업
-  await fs.copy('.env', path.join(backupDir, '.env'));
-  await fs.copy('modules', path.join(backupDir, 'modules'));
-  
-  logger.info(`Backup created: ${backupDir}`);
-  return backupDir;
-}
+먼저 `backupDatabase`로 DB를 gzip 압축하여 백업하고, `git tag backup-{timestamp}-v{version}`으로 현재 코드 상태를 태그로 기록합니다. 이후 `.env` 파일과 `modules` 디렉터리를 백업 디렉터리로 복사합니다. 백업 완료 후 백업 경로를 반환합니다.
 
-export async function rollback() {
-  logger.info('Rolling back to previous version...');
-  
-  // 최신 백업 찾기
-  const backups = await fs.readdir('./backups');
-  const latest = backups.sort().pop();
-  const backupDir = `./backups/${latest}`;
-  
-  // Git 롤백
-  const tag = `backup-${latest.split('-')[1]}`;
-  await execAsync(`git checkout ${tag}`);
-  
-  // DB 복원
-  await restoreDatabase(path.join(backupDir, 'database.sql.gz'));
-  
-  // 의존성 재설치
-  await execAsync('pnpm install');
-  
-  // 빌드
-  await execAsync('pnpm build');
-  
-  // 재시작
-  await gracefulRestart();
-}
-```
+`rollback` 함수는 롤백을 수행합니다. 백업 디렉터리 목록을 조회하여 가장 최근 백업을 찾습니다. 해당 백업의 태그를 체크아웃하고, 백업된 DB를 복원하고, `pnpm install`로 의존성을 재설치하고, `pnpm build`로 빌드하고, 서버를 재시작합니다.
 
 ### 유지보수 모드
 
-```typescript
-// apps/api/src/services/maintenance.ts
+`apps/api/src/services/maintenance.ts`는 전역 변수 `maintenanceMode`로 상태를 관리합니다.
 
-let maintenanceMode = false;
+`enableMaintenanceMode` 함수는 이 변수를 `true`로 설정하고 로그를 기록합니다. `disableMaintenanceMode` 함수는 `false`로 설정합니다. `isMaintenanceMode` 함수는 현재 상태를 반환합니다.
 
-export function enableMaintenanceMode() {
-  maintenanceMode = true;
-  logger.info('Maintenance mode enabled');
-}
-
-export function disableMaintenanceMode() {
-  maintenanceMode = false;
-  logger.info('Maintenance mode disabled');
-}
-
-export function isMaintenanceMode(): boolean {
-  return maintenanceMode;
-}
-
-// Middleware
-export function maintenanceMiddleware(req, res, next) {
-  if (maintenanceMode) {
-    // 관리자는 접근 가능
-    if (req.user?.role === 'admin') {
-      return next();
-    }
-    
-    // 일반 사용자 차단
-    return res.status(503).json({
-      error: 'System is under maintenance',
-      message: '시스템 업데이트 중입니다. 잠시 후 다시 시도해주세요.',
-      retryAfter: 300 // 5분
-    });
-  }
-  
-  next();
-}
-```
+`maintenanceMiddleware`는 Express 미들웨어로 사용됩니다. 유지보수 모드가 활성화되어 있고 사용자가 관리자가 아니면, 503 상태와 "시스템 업데이트 중입니다" 메시지, 5분 후 재시도 안내를 반환합니다. 관리자이거나 유지보수 모드가 아니면 다음 미들웨어로 진행합니다.
 
 ## Frontend 구현
 
 ### 업데이트 알림
 
-```typescript
-// apps/web/src/components/UpdateNotification.tsx
+`apps/web/src/components/UpdateNotification.tsx`의 `UpdateNotification` 컴포넌트는 1시간마다 `/api/system/update/check`를 호출하여 새 버전 확인합니다.
 
-export function UpdateNotification() {
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [newVersion, setNewVersion] = useState('');
-  
-  useEffect(() => {
-    // 주기적으로 업데이트 확인
-    const interval = setInterval(async () => {
-      const response = await fetch('/api/system/update/check');
-      const data = await response.json();
-      
-      if (data.available) {
-        setUpdateAvailable(true);
-        setNewVersion(data.version);
-      }
-    }, 60 * 60 * 1000); // 1시간마다
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  if (!updateAvailable) return null;
-  
-  return (
-    <Alert type="info" dismissible>
-      <strong>새 버전 사용 가능!</strong>
-      <p>
-        버전 {newVersion}으로 업데이트할 수 있습니다.
-      </p>
-      <Button onClick={handleUpdateNow}>
-        지금 업데이트
-      </Button>
-      <Button variant="secondary" onClick={handleDismiss}>
-        나중에
-      </Button>
-    </Alert>
-  );
-}
-```
+응답에서 `available`이 true이면 `updateAvailable` 상태를 true로 설정하고 새 버전 번호를 저장합니다.
+
+업데이트가 가능하면 "새 버전 사용 가능!" 알림과 버전 번호, "지금 업데이트"와 "나중에" 버튼을 표시합니다. 업데이트가 없으면 아무것도 렌더링하지 않습니다.
 
 ### 유지보수 모드 화면
 
-```typescript
-// apps/web/src/pages/Maintenance.tsx
+`apps/web/src/pages/Maintenance.tsx`는 유지보수 화면을 렌더링합니다.
 
-export default function Maintenance() {
-  return (
-    <div className="maintenance-screen">
-      <div className="maintenance-content">
-        <div className="icon">🔧</div>
-        <h1>시스템 업데이트 중</h1>
-        <p>
-          Finance System을 더 나은 버전으로 업데이트하고 있습니다.
-        </p>
-        <Progress indeterminate />
-        <p className="estimate">
-          예상 완료 시간: 약 5분
-        </p>
-        <p className="note">
-          💡 이 페이지는 자동으로 새로고침됩니다.
-        </p>
-      </div>
-    </div>
-  );
-}
-```
+중앙에 🔧 아이콘, "시스템 업데이트 중" 제목, 안내 문구를 표시합니다. 무한 로딩 프로그레스 바와 "예상 완료 시간: 약 5분" 안내, 그리고 "이 페이지는 자동으로 새로고침됩니다" 알림이 포함됩니다.
 
 ## 수동 업데이트
 
 ### UI
 
-```typescript
-// apps/web/src/pages/Settings/System/Updates.tsx
+`apps/web/src/pages/Settings/System/Updates.tsx`는 현재 버전과 최신 버전을 표시합니다.
 
-<Card title="업데이트">
-  <div className="version-info">
-    <div>
-      <strong>현재 버전:</strong> v2.1.0
-    </div>
-    <div>
-      <strong>최신 버전:</strong> v2.2.0
-    </div>
-  </div>
-  
-  <Button 
-    variant="primary"
-    onClick={handleCheckUpdate}
-    loading={checking}
-  >
-    업데이트 확인
-  </Button>
-  
-  {updateAvailable && (
-    <>
-      <Alert type="info">
-        새 버전(v{latestVersion})이 사용 가능합니다!
-      </Alert>
-      
-      <div className="changelog">
-        <h4>변경 사항:</h4>
-        <ul>
-          {changelog.map((change, i) => (
-            <li key={i}>{change}</li>
-          ))}
-        </ul>
-      </div>
-      
-      <Button 
-        variant="primary"
-        onClick={handleUpdateNow}
-        loading={updating}
-      >
-        지금 업데이트
-      </Button>
-    </>
-  )}
-</Card>
-```
+"업데이트 확인" 버튼을 클릭하면 `handleCheckUpdate`가 실행됩니다. 업데이트가 가능하면 새 버전 안내 Alert와 변경 사항 목록, "지금 업데이트" 버튼이 표시됩니다. 변경 사항은 changelog 배열을 순회하며 리스트 형태로 렌더링됩니다.
 
 ### API
 
-```typescript
-// apps/api/src/routes/system.ts
+`apps/api/src/routes/system.ts`에 두 가지 라우트가 정의됩니다.
 
-// 업데이트 확인
-router.get('/update/check', requireAdmin, async (req, res) => {
-  const latest = await checkLatestVersion();
-  const current = await getCurrentVersion();
-  
-  res.json({
-    available: latest !== current,
-    current,
-    latest,
-    changelog: await getChangelog(latest)
-  });
-});
+**`GET /update/check`** — 관리자 권한을 확인한 후 최신 버전과 현재 버전을 조회합니다. 두 버전이 다르면 `available: true`와 함께 현재 버전, 최신 버전, changelog를 반환합니다.
 
-// 수동 업데이트 시작
-router.post('/update/start', requireAdmin, async (req, res) => {
-  // 백그라운드에서 업데이트 실행
-  runAutoUpdate().catch(error => {
-    logger.error('Update failed:', error);
-  });
-  
-  res.json({ 
-    success: true,
-    message: 'Update started in background' 
-  });
-});
-```
+**`POST /update/start`** — 관리자 권한을 확인한 후 백그라운드에서 `runAutoUpdate`를 실행합니다. 오류가 발생하면 로그에 기록합니다. 즉시 "백그라운드에서 업데이트 시작됨" 응답을 반환합니다.
 
 ## Docker 환경
 
@@ -553,78 +215,22 @@ services:
 
 ### 업데이트 알림
 
-```typescript
-// apps/api/src/services/notifications.ts
+`apps/api/src/services/notifications.ts`의 `sendUpdateNotifications` 함수는 업데이트 전 알림을 스케줄링합니다.
 
-export async function sendUpdateNotifications(version: string) {
-  // 24시간 전 알림
-  await scheduler.schedule({
-    name: 'update-notification-24h',
-    runAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    handler: async () => {
-      await notifyAdmins({
-        subject: '자동 업데이트 예정',
-        message: `내일 새벽 3시에 v${version}으로 자동 업데이트됩니다.`
-      });
-    }
-  });
-  
-  // 1시간 전 경고
-  await scheduler.schedule({
-    name: 'update-warning-1h',
-    runAt: new Date(Date.now() + 1 * 60 * 60 * 1000),
-    handler: async () => {
-      await notifyAdmins({
-        subject: '자동 업데이트 1시간 전',
-        message: `1시간 후 자동 업데이트가 시작됩니다. 작업 중인 내용을 저장하세요.`,
-        priority: 'high'
-      });
-    }
-  });
-}
+24시간 전 알림은 scheduler에 `update-notification-24h` 작업으로 등록되며, 24시간 후 실행되어 관리자에게 "내일 새벽 3시에 자동 업데이트됩니다" 메시지를 전송합니다.
 
-// 업데이트 완료 알림
-export async function notifyUpdateComplete(version: string) {
-  await notifyAdmins({
-    subject: '자동 업데이트 완료',
-    message: `v${version}으로 업데이트가 완료되었습니다.`,
-    priority: 'normal'
-  });
-}
+1시간 전 경고는 `update-warning-1h` 작업으로 등록되며, 1시간 후 실행되어 "1시간 후 자동 업데이트가 시작됩니다. 작업 중인 내용을 저장하세요"라는 높은 우선순위 메시지를 전송합니다.
 
-// 업데이트 실패 알림
-export async function notifyUpdateFailed(error: Error) {
-  await notifyAdmins({
-    subject: '자동 업데이트 실패',
-    message: `업데이트 중 오류가 발생했습니다:\n${error.message}`,
-    priority: 'critical'
-  });
-}
-```
+`notifyUpdateComplete` 함수는 업데이트 완료 후 관리자에게 버전 정보와 함께 완료 알림을 전송합니다.
+
+`notifyUpdateFailed` 함수는 업데이트 실패 시 오류 메시지를 포함하여 critical 우선순위로 관리자에게 알림을 전송합니다.
 
 ## 롤백
 
 ### UI
 
-```typescript
-<Card title="롤백">
-  <Alert type="warning">
-    ⚠️ 이전 버전으로 되돌립니다. 최신 데이터가 손실될 수 있습니다.
-  </Alert>
-  
-  <Select
-    label="복원 지점"
-    options={backups.map(b => ({
-      value: b.id,
-      label: `${b.version} - ${b.date}`
-    }))}
-  />
-  
-  <Button 
-    variant="danger"
-    onClick={handleRollback}
-  >
-    롤백 실행
-  </Button>
-</Card>
-```
+롤백 설정 카드는 warning 타입의 Alert로 "이전 버전으로 되돌립니다. 최신 데이터가 손실될 수 있습니다"는 경고를 표시합니다.
+
+백업 목록을 Select로 제공하며, 각 옵션은 백업 ID를 값으로, 버전과 날짜를 레이블로 표시합니다.
+
+"롤백 실행" 버튼은 `variant="danger"`로 강조되어 표시됩니다.

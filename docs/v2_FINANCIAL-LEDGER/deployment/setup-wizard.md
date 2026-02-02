@@ -33,17 +33,17 @@
 ```
 ┌─────────────────────────────────────┐
 │                                     │
-│        🏦 Finance System            │
+│        🏦 Fieldstack                │
 │                                     │
-│   개인용 금융 & 생산성 관리 시스템      │
+│   개인용 금융 & 생산성 관리 시스템    │
 │                                     │
-│   이 마법사를 통해 5분 안에             │
-│   시스템을 설정할 수 있습니다.          │
+│   이 마법사를 통해 5분 안에           │
+│   시스템을 설정할 수 있습니다.        │
 │                                     │
-│   📋 시스템 요구사항                   │
-│   • Node.js 20+                    │
-│   • 500MB RAM                      │
-│   • 1GB Storage                    │
+│   📋 시스템 요구사항                 │
+│   • Node.js 20+                     │
+│   • 500MB RAM                       │
+│   • 1GB Storage                     │
 │                                     │
 │   ⏱️ 예상 소요 시간: 10-15분         │
 │                                     │
@@ -69,9 +69,9 @@
 │                                     │
 │ 비밀번호:                            │
 │ [                    ]              │
-│ ※ 최소 8자, 영문+숫자 조합              │
+│ ※ 최소 8자, 영문+숫자 조합           │
 │                                     │
-│ 비밀번호 확인:                        │
+│ 비밀번호 확인:                       │
 │ [                    ]              │
 │                                     │
 └─────────────────────────────────────┘
@@ -240,24 +240,24 @@
 ```
 ┌─────────────────────────────────────┐
 │                                     │
-│            🎉 설치 완료!             │
+│            🎉 설치 완료!            │
 │                                     │
-│   Finance System이 성공적으로         │
-│   설치되었습니다!                     │
+│   Fieldstack이 성공적으로            │
+│   설치되었습니다!                    │
 │                                     │
-│ 📦 설치된 항목:                      │
-│ ✅ 데이터베이스 (SQLite)              │
-│ ✅ 관리자 계정 (admin@example.com)   │
-│ ✅ 모듈: 가계부, 구독 관리             │
+│ 📦 설치된 항목:                     │
+│ ✅ 데이터베이스 (SQLite)            │
+│ ✅ 관리자 계정 (admin@example.com)  │
+│ ✅ 모듈: 가계부, 구독 관리           │
 │                                     │
-│ 🚀 다음 단계:                        │
-│ 1. 로그인하여 시작하기                 │
-│ 2. 마켓플레이스에서 추가 모듈 탐색      │
-│ 3. 설정에서 Google 연동 (선택)        │
+│ 🚀 다음 단계:                       │
+│ 1. 로그인하여 시작하기                │
+│ 2. 마켓플레이스에서 추가 모듈 탐색    │
+│ 3. 설정에서 Google 연동 (선택)       │
 │                                     │
-│ 📚 유용한 링크:                      │
-│ • 사용자 가이드                       │
-│ • 튜토리얼 영상                       │
+│ 📚 유용한 링크:                     │
+│ • 사용자 가이드                      │
+│ • 튜토리얼 영상                      │
 │ • 커뮤니티 (Discord)                 │
 │                                     │
 │         [로그인하러 가기 →]           │
@@ -269,315 +269,48 @@
 
 ### 설치 API
 
-```typescript
-// apps/api/src/routes/install.ts
+`apps/api/src/routes/install.ts`에 세 가지 라우트가 정의됩니다.
 
-import { Router } from 'express';
-import { runInstallation } from '../services/installer';
+**`POST /start`** — 설치를 시작합니다. 요청본문의 설정 객체를 받아 `runInstallation`을 호출하며, WebSocket을 통해 각 단계의 진행 상황(단계 번호, 퍼센트, 메시지, 타임스탬프)을 실시간으로 클라이언트에 전송합니다. 설치 완료 시 성공 응답을 반환하고, 실패 시 오류 메시지와 실패 단계를 반환합니다.
 
-const router = Router();
+**`GET /status`** — 현재 설치 완료 여부를 조회합니다. `checkInstallation`의 결과를 `{ installed: boolean }` 형태로 반환합니다.
 
-// 설치 시작
-router.post('/start', async (req, res) => {
-  const config = req.body;
-  
-  try {
-    // WebSocket으로 진행 상황 전송
-    const ws = req.app.get('websocket');
-    
-    await runInstallation(config, {
-      onProgress: (step, percent, message) => {
-        ws.emit('install:progress', {
-          step,
-          percent,
-          message,
-          timestamp: new Date()
-        });
-      }
-    });
-    
-    res.json({ success: true });
-    
-  } catch (error) {
-    res.status(500).json({ 
-      error: error.message,
-      step: error.step 
-    });
-  }
-});
-
-// 설치 상태 확인
-router.get('/status', async (req, res) => {
-  const isInstalled = await checkInstallation();
-  res.json({ installed: isInstalled });
-});
-
-// DB 연결 테스트
-router.post('/test-db', async (req, res) => {
-  const { provider, config } = req.body;
-  
-  try {
-    await testDatabaseConnection(provider, config);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ 
-      error: 'Connection failed',
-      message: error.message 
-    });
-  }
-});
-
-export default router;
-```
+**`POST /test-db`** — 요청본문의 provider와 설정 정보를 받아 데이터베이스 연결을 테스트합니다. 성공 시 `{ success: true }`, 실패 시 400 상태와 연결 실패 메시지를 반환합니다.
 
 ### 설치 서비스
 
-```typescript
-// apps/api/src/services/installer.ts
+`apps/api/src/services/installer.ts`의 `runInstallation` 함수는 설치 전체 과정을 단계별로 실행합니다. 각 단계마다 콜백을 통해 진행율을 보고합니다.
 
-export async function runInstallation(
-  config: InstallConfig,
-  callbacks?: InstallCallbacks
-) {
-  try {
-    // 1. 설정 검증
-    callbacks?.onProgress?.(1, 10, '설정 검증 중...');
-    await validateConfig(config);
-    
-    // 2. 데이터베이스 연결
-    callbacks?.onProgress?.(2, 20, '데이터베이스 연결 중...');
-    await connectDatabase(config.database);
-    
-    // 3. DB 마이그레이션
-    callbacks?.onProgress?.(3, 40, '데이터베이스 초기화 중...');
-    await runMigrations();
-    
-    // 4. 의존성 설치
-    callbacks?.onProgress?.(4, 60, '의존성 설치 중...');
-    await installDependencies();
-    
-    // 5. 모듈 다운로드 및 설치
-    if (config.modules?.length > 0) {
-      callbacks?.onProgress?.(5, 70, '모듈 설치 중...');
-      
-      for (const moduleId of config.modules) {
-        await installModule(moduleId);
-      }
-    }
-    
-    // 6. 관리자 계정 생성
-    callbacks?.onProgress?.(6, 85, '관리자 계정 생성 중...');
-    await createAdminAccount(config.admin);
-    
-    // 7. 최종 설정
-    callbacks?.onProgress?.(7, 95, '최종 설정 중...');
-    await finalizeInstallation(config);
-    
-    // 8. FIRST_RUN 플래그 제거
-    callbacks?.onProgress?.(8, 100, '설치 완료!');
-    await setInstalled();
-    
-  } catch (error) {
-    throw {
-      message: error.message,
-      step: error.step || 'unknown'
-    };
-  }
-}
+**1단계 — 설정 검증 (10%):** `validateConfig`를 호출하여 관리자 이메일 형식, 비밀번호 길이(최소 8자), 데이터베이스 provider 유무를 확인합니다.
 
-async function validateConfig(config: InstallConfig) {
-  // 이메일 형식 확인
-  if (!isValidEmail(config.admin.email)) {
-    throw new Error('Invalid email format');
-  }
-  
-  // 비밀번호 강도 확인
-  if (config.admin.password.length < 8) {
-    throw new Error('Password must be at least 8 characters');
-  }
-  
-  // DB 설정 확인
-  if (!config.database.provider) {
-    throw new Error('Database provider is required');
-  }
-}
+**2단계 — 데이터베이스 연결 (20%):** `connectDatabase`를 호출하여 provider 종류에 따라 SQLite, PostgreSQL, Supabase 중 하나의 설정 함수를 실행합니다.
 
-async function connectDatabase(dbConfig: DatabaseConfig) {
-  switch (dbConfig.provider) {
-    case 'sqlite':
-      await setupSQLite(dbConfig);
-      break;
-    case 'postgres':
-      await setupPostgreSQL(dbConfig);
-      break;
-    case 'supabase':
-      await setupSupabase(dbConfig);
-      break;
-  }
-}
+**3단계 — DB 마이그레이션 (40%):** `runMigrations`로 테이블 스키마를 생성합니다.
 
-async function createAdminAccount(adminConfig: AdminConfig) {
-  const passwordHash = await bcrypt.hash(adminConfig.password, 10);
-  
-  await db.allowedUsers.create({
-    data: {
-      email: adminConfig.email,
-      name: adminConfig.name,
-      password_hash: passwordHash,
-      role: 'admin'
-    }
-  });
-}
+**4단계 — 의존성 설치 (60%):** `installDependencies`로 모듈 등의 의존성을 설치합니다.
 
-async function setInstalled() {
-  // .env 파일 업데이트
-  await updateEnvFile({ FIRST_RUN: 'false' });
-  
-  // 설치 완료 플래그 파일 생성
-  await fs.writeFile('.installed', new Date().toISOString());
-}
-```
+**5단계 — 모듈 설치 (70%):** 설정에서 선택된 모듈 목록이 있으면 각 모듈을 순회하며 `installModule`을 호출합니다.
+
+**6단계 — 관리자 계정 생성 (85%):** `createAdminAccount`를 호출합니다. 비밀번호를 bcrypt으로 해싱하여 `allowedUsers` 테이블에 admin 역할로 저장합니다.
+
+**7단계 — 최종 설정 (95%):** `finalizeInstallation`으로 마지막 설정을 적용합니다.
+
+**8단계 — 완료 (100%):** `setInstalled`를 호출하여 `.env` 파일의 `FIRST_RUN`을 `'false'`로 업데이트하고, `.installed` 파일에 현재 시간을 기록합니다.
+
+오류가 발생하면 오류 메시지와 실패 단계를 포함하여 throw합니다.
 
 ## Frontend 구현
 
 ### 설치 마법사 컴포넌트
 
-```typescript
-// apps/web/src/pages/Install/index.tsx
+`apps/web/src/pages/Install/index.tsx`의 `Install` 컴포넌트는 `step` 상태로 현재 단계를 관리합니다. 단계별로 다음 컴포넌트를 조건부 렌더링합니다: 1단계는 Welcome, 2단계는 Configuration, 3단계는 Progress, 4단계는 Complete입니다.
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Welcome from './Welcome';
-import Configuration from './Configuration';
-import Progress from './Progress';
-import Complete from './Complete';
-
-export default function Install() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [config, setConfig] = useState({});
-  
-  const handleStart = () => setStep(2);
-  
-  const handleConfigSubmit = async (formData) => {
-    setConfig(formData);
-    setStep(3);
-    
-    try {
-      await fetch('/api/install/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      
-      setStep(4);
-    } catch (error) {
-      alert('설치 실패: ' + error.message);
-      setStep(2);
-    }
-  };
-  
-  const handleComplete = () => {
-    navigate('/login');
-  };
-  
-  return (
-    <div className="install-wizard">
-      {step === 1 && <Welcome onStart={handleStart} />}
-      {step === 2 && <Configuration onSubmit={handleConfigSubmit} />}
-      {step === 3 && <Progress />}
-      {step === 4 && <Complete onComplete={handleComplete} />}
-    </div>
-  );
-}
-```
+Welcome에서 시작하기를 누르면 2단계로 이동합니다. Configuration에서 폼을 제출하면 설정 객체를 저장하고 3단계(Progress)로 전환되며, `/api/install/start`에 POST 요청을 보냅니다. 설치가 완료되면 4단계(Complete)로 이동합니다. 오류가 발생하면 알림을 표시하고 2단계로 돌아감합니다. Complete에서 완료 버튼을 누르면 `/login`으로 네비게이트합니다.
 
 ### WebSocket 진행 상황
 
-```typescript
-// apps/web/src/pages/Install/Progress.tsx
-
-import { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
-
-export default function Progress() {
-  const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState('');
-  const [logs, setLogs] = useState([]);
-  
-  useEffect(() => {
-    const socket = io();
-    
-    socket.on('install:progress', (data) => {
-      setProgress(data.percent);
-      setCurrentStep(data.message);
-      setLogs(prev => [...prev, {
-        time: data.timestamp,
-        message: data.message
-      }]);
-    });
-    
-    return () => socket.disconnect();
-  }, []);
-  
-  return (
-    <div className="progress-screen">
-      <h2>설치 중...</h2>
-      
-      <div className="progress-bar">
-        <div 
-          className="progress-fill" 
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <p>{progress}%</p>
-      
-      <p className="current-step">{currentStep}</p>
-      
-      <div className="steps">
-        {/* 단계별 체크리스트 */}
-      </div>
-      
-      <div className="logs">
-        <h3>설치 로그</h3>
-        <div className="log-content">
-          {logs.map((log, i) => (
-            <div key={i}>
-              [{new Date(log.time).toLocaleTimeString()}] {log.message}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-```
+`apps/web/src/pages/Install/Progress.tsx`는 Socket.IO를 사용하여 백엔드와 실시간 통신합니다. 컴포넌트가 마운트되면 소켓 연결을 생성하고 `install:progress` 이벤트를 구독합니다. 이벤트가 발생하면 퍼센트, 현재 단계 메시지, 로그 목록 상태를 업데이트합니다. 컴포넌트가 언마운트되면 소켓을 해제합니다. 렌더링 시에는 퍼센트에 맞게 width가 변하는 프로그레스 바, 현재 진행 단계 텍스트, 시간대와 메시지가 포함된 로그 목록을 표시합니다.
 
 ## 첫 실행 감지
 
-```typescript
-// apps/api/src/index.ts
-
-import express from 'express';
-
-const app = express();
-
-// 첫 실행 확인
-const isFirstRun = process.env.FIRST_RUN === 'true' || 
-                   !await fs.pathExists('.installed');
-
-if (isFirstRun) {
-  // 설치 마법사 라우트만 활성화
-  app.use('/api/install', installRoutes);
-  
-  // 모든 요청을 /install로 리다이렉트
-  app.get('*', (req, res) => {
-    res.redirect('/install');
-  });
-  
-} else {
-  // 일반 모드
-  app.use('/api', apiRoutes);
-  // ...
-}
-```
+`apps/api/src/index.ts`에서 서버 시작 시 `FIRST_RUN` 환경 변수가 `'true'`이거나 `.installed` 파일이 존재하지 않으면 첫 실행으로 판단합니다. 첫 실행 시에는 설치 마법사 라우트(`/api/install`)만 활성화되고, 그 외 모든 요청은 `/install` 페이지로 리다이렉트됩니다. 설치가 완료된 후에는 일반 API 라우트가 활성화됩니다.

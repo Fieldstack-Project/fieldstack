@@ -2,7 +2,7 @@
 
 ## 개요
 
-Finance System은 **3개의 업데이트 채널**을 제공하여 사용자가 안정성과 최신 기능 사이에서 선택할 수 있도록 합니다.
+Fieldstack은 **3개의 업데이트 채널**을 제공하여 사용자가 안정성과 최신 기능 사이에서 선택할 수 있도록 합니다.
 
 ---
 
@@ -72,7 +72,7 @@ v2.2.0  ← Release로 승격
 ```
 
 **권장 사용자:**
-- 기술에 익숙한 사용자
+- 기술에 익숑한 사용자
 - 피드백 제공 가능한 사람
 - 테스트 환경
 - 새 기능에 관심 있는 사람
@@ -211,251 +211,41 @@ UPDATE_CHANNEL=alpha
 
 ### 채널 정의
 
-```typescript
-// apps/api/src/types/update.ts
+`apps/api/src/types/update.ts`에서 `UpdateChannel` enum과 각 채널의 상세 정보를 정의합니다.
 
-export enum UpdateChannel {
-  RELEASE = 'release',
-  BETA = 'beta',
-  ALPHA = 'alpha'
-}
+`UpdateChannel` enum은 `RELEASE`, `BETA`, `ALPHA` 세 가지 값을 가집니다.
 
-export interface UpdateChannelInfo {
-  channel: UpdateChannel;
-  displayName: string;
-  description: string;
-  stability: number;        // 1-5 (5 = 가장 안정적)
-  updateFrequency: string;
-  recommended: boolean;
-  warnings: string[];
-}
+`UpdateChannelInfo` 인터페이스는 채널명, 표시명, 설명, 안정도(1~5 스케일), 업데이트 주기, 권장 여부, 경고 메시지 목록을 속성으로 구성합니다.
 
-export const UPDATE_CHANNELS: Record<UpdateChannel, UpdateChannelInfo> = {
-  [UpdateChannel.RELEASE]: {
-    channel: UpdateChannel.RELEASE,
-    displayName: 'Release (Stable)',
-    description: '가장 안정적인 버전',
-    stability: 5,
-    updateFrequency: '2-4주',
-    recommended: true,
-    warnings: []
-  },
-  
-  [UpdateChannel.BETA]: {
-    channel: UpdateChannel.BETA,
-    displayName: 'Beta (Preview)',
-    description: '새 기능 미리 체험',
-    stability: 4,
-    updateFrequency: '1주',
-    recommended: false,
-    warnings: [
-      '일부 버그가 있을 수 있습니다',
-      '백업을 권장합니다'
-    ]
-  },
-  
-  [UpdateChannel.ALPHA]: {
-    channel: UpdateChannel.ALPHA,
-    displayName: 'Alpha (Dev/Nightly)',
-    description: '개발자용 최신 버전',
-    stability: 2,
-    updateFrequency: '매일',
-    recommended: false,
-    warnings: [
-      '⚠️ 프로덕션 환경 사용 금지',
-      '⚠️ 불안정할 수 있음',
-      '⚠️ 브레이킹 체인지 가능',
-      '⚠️ 데이터 백업 필수'
-    ]
-  }
-};
-```
+`UPDATE_CHANNELS` 상수 객체는 각 채널별로 다음과 같이 정의됩니다. Release는 안정도 5, 업데이트 주기 2~4주, 권장 채널로 경고 없이 설정됩니다. Beta는 안정도 4, 업데이트 주기 1주, 권장하지 않으며 "일부 버그가 있을 수 있다"와 "백업을 권장한다"는 경고가 포함됩니다. Alpha는 안정도 2, 업데이트 주기 매일, 권장하지 않으며 프로덕션 사용 금지, 불안정 가능, 브레이킹 체인지 가능, 백업 필수 등 네 가지 경고가 포함됩니다.
 
 ### 채널별 버전 확인
 
-```typescript
-// apps/api/src/services/update-checker.ts
+`apps/api/src/services/update-checker.ts`의 `checkLatestVersion` 함수는 채널에 따라 GitHub API의 서로 다른 엔드포인트를 호출합니다.
 
-export async function checkLatestVersion(
-  channel: UpdateChannel = UpdateChannel.RELEASE
-): Promise<string> {
-  
-  const apiUrl = getApiUrl(channel);
-  
-  const response = await fetch(apiUrl);
-  const data = await response.json();
-  
-  return data.tag_name.replace('v', '');
-}
+`getApiUrl` 함수로 결정되는 URL은 다음과 같습니다. Release 채널은 `/releases/latest`를 호출하여 정식 릴리스만 조회합니다. Beta 채널은 `/releases?per_page=1`을 호출하여 Pre-release를 포함한 최신 릴리스를 조회합니다. Alpha 채널은 `/tags?per_page=1`을 호출하여 nightly 빌드 태그를 포함한 모든 태그 중 최신 것을 조회합니다.
 
-function getApiUrl(channel: UpdateChannel): string {
-  const baseUrl = 'https://api.github.com/repos/your-org/finance-system';
-  
-  switch (channel) {
-    case UpdateChannel.RELEASE:
-      // 정식 릴리스만
-      return `${baseUrl}/releases/latest`;
-    
-    case UpdateChannel.BETA:
-      // 베타 포함
-      return `${baseUrl}/releases?per_page=1`;
-    
-    case UpdateChannel.ALPHA:
-      // 모든 태그 (nightly 포함)
-      return `${baseUrl}/tags?per_page=1`;
-  }
-}
-```
+응답에서 `tag_name`의 앞의 `v`를 제거하여 버전 문자열로 반환합니다.
 
 ### 채널 변경 API
 
-```typescript
-// apps/api/src/routes/settings.ts
+`apps/api/src/routes/settings.ts`의 `POST /update-channel` 라우트는 관리자 권한을 확인한 후 처리됩니다.
 
-router.post('/update-channel', requireAdmin, async (req, res) => {
-  const { channel } = req.body;
-  
-  // 채널 검증
-  if (!Object.values(UpdateChannel).includes(channel)) {
-    return res.status(400).json({ 
-      error: 'Invalid channel',
-      validChannels: Object.values(UpdateChannel)
-    });
-  }
-  
-  // Alpha 채널 경고
-  if (channel === UpdateChannel.ALPHA) {
-    const confirmed = req.body.confirmed;
-    
-    if (!confirmed) {
-      return res.status(400).json({
-        error: 'Alpha channel requires confirmation',
-        warnings: UPDATE_CHANNELS[UpdateChannel.ALPHA].warnings,
-        message: '프로덕션 환경에서 Alpha 채널 사용은 권장하지 않습니다.'
-      });
-    }
-  }
-  
-  // 채널 변경
-  await updateSettings(req.user.id, 'update', {
-    channel,
-    changedAt: new Date(),
-    changedBy: req.user.id
-  });
-  
-  // 최신 버전 확인
-  const latestVersion = await checkLatestVersion(channel);
-  const currentVersion = await getCurrentVersion();
-  
-  res.json({
-    success: true,
-    channel,
-    currentVersion,
-    latestVersion,
-    updateAvailable: latestVersion !== currentVersion
-  });
-});
+먼저 요청본문의 channel 값이 유효한 UpdateChannel 값인지 검증합니다. 유효하지 않으면 400 상태와 가능한 채널 목록을 반환합니다.
 
-// 채널 정보 조회
-router.get('/update-channels', async (req, res) => {
-  res.json({
-    channels: UPDATE_CHANNELS,
-    current: await getCurrentChannel(),
-    recommended: UpdateChannel.RELEASE
-  });
-});
-```
+Alpha 채널로 변경하려면 추가 확인이 필요합니다. 요청본문에 `confirmed: true`가 포함되지 않으면, Alpha 채널의 경고 메시지와 권장하지 않음을 안내하는 400 응답을 반환합니다.
+
+검증이 통과하면 사용자 설정에 새 채널과 변경 시간, 변경자 정보를 저장합니다. 이후 해당 채널의 최신 버전과 현재 버전을 비교하여 업데이트 가능 여부와 함께 성공 응답을 반환합니다.
+
+`GET /update-channels` 라우트는 모든 채널 정보, 현재 채널, 권장 채널(Release)을 반환합니다.
 
 ### 자동 업데이트 (채널별)
 
-```typescript
-// apps/api/src/services/updater.ts
+`apps/api/src/services/updater.ts`의 `runAutoUpdate` 함수는 현재 채널과 현재 버전을 조회한 후 해당 채널의 최신 버전을 확인합니다. 이미 최신 버전이면 종료합니다.
 
-export async function runAutoUpdate() {
-  logger.info('Checking for updates...');
-  
-  // 현재 채널 확인
-  const channel = await getCurrentChannel();
-  const currentVersion = await getCurrentVersion();
-  
-  // 채널별 최신 버전 확인
-  const latestVersion = await checkLatestVersion(channel);
-  
-  if (currentVersion === latestVersion) {
-    logger.info(`Already up to date (${channel}: ${currentVersion})`);
-    return { upToDate: true };
-  }
-  
-  logger.info(`Update available: ${currentVersion} → ${latestVersion} (${channel})`);
-  
-  // Alpha 채널 추가 확인
-  if (channel === UpdateChannel.ALPHA) {
-    logger.warn('⚠️ Alpha channel update - proceeding with caution');
-    
-    // 추가 백업 생성
-    await createExtraBackup('alpha-update');
-  }
-  
-  // 업데이트 실행
-  try {
-    await performUpdate(latestVersion, channel);
-    
-    logger.info(`✅ Updated to ${latestVersion} (${channel})`);
-    
-    return {
-      success: true,
-      previousVersion: currentVersion,
-      currentVersion: latestVersion,
-      channel
-    };
-    
-  } catch (error) {
-    logger.error(`❌ Update failed (${channel})`, error);
-    throw error;
-  }
-}
+Alpha 채널인 경우 경고 로그를 출력하고 추가 백업을 생성합니다.
 
-async function performUpdate(version: string, channel: UpdateChannel) {
-  // 1. 백업
-  await createBackup();
-  
-  // 2. Git fetch
-  await execAsync('git fetch --all --tags');
-  
-  // 3. 채널별 체크아웃
-  switch (channel) {
-    case UpdateChannel.RELEASE:
-      // 정식 릴리스 태그
-      await execAsync(`git checkout v${version}`);
-      break;
-    
-    case UpdateChannel.BETA:
-      // 베타 태그 (v2.0.0-beta.1)
-      await execAsync(`git checkout v${version}`);
-      break;
-    
-    case UpdateChannel.ALPHA:
-      // 최신 커밋 또는 nightly 태그
-      await execAsync(`git checkout ${version}`);
-      break;
-  }
-  
-  // 4. 의존성 설치
-  await execAsync('pnpm install');
-  
-  // 5. 마이그레이션
-  await runMigrations();
-  
-  // 6. 빌드
-  await execAsync('pnpm build');
-  
-  // 7. 검증
-  await validateUpdate();
-  
-  // 8. 재시작
-  await gracefulRestart();
-}
-```
+`performUpdate` 함수는 업데이트를 단계별로 수행합니다. 먼저 백업을 생성한 후 `git fetch --all --tags`로 원본 저장소를 가져옵니다. 채널에 따라 체크아웃 방식이 달라집니다: Release와 Beta는 해당 버전의 태그를 체크아웃하고(`git checkout v{version}`), Alpha는 최신 커밋 또는 nightly 태그를 체크아웃합니다. 이후 `pnpm install`로 의존성을 설치하고, DB 마이그레이션을 실행하고, `pnpm build`로 빌드합니다. 마지막으로 업데이트 결과를 검증한 후 서버를 재시작합니다.
 
 ---
 
@@ -463,231 +253,19 @@ async function performUpdate(version: string, channel: UpdateChannel) {
 
 ### 채널 선택 UI
 
-```typescript
-// apps/web/src/pages/Settings/UpdateChannel.tsx
+`apps/web/src/pages/Settings/UpdateChannel.tsx`의 `UpdateChannelSettings` 컴포넌트는 현재 채널 상태와 Alpha 경고 모달 표시 여부를 관리합니다.
 
-import { useState } from 'react';
-import { Card, Radio, Alert, Button, Modal } from '@core/ui';
+채널 변경 시 Alpha가 아니면 바로 `updateChannel`을 호출합니다. Alpha를 선택하면 경고 모달을 표시합니다. 모달에서 확인하면 Alpha로 변경을 진행합니다.
 
-export default function UpdateChannelSettings() {
-  const [channel, setChannel] = useState<UpdateChannel>('release');
-  const [showAlphaWarning, setShowAlphaWarning] = useState(false);
-  const [loading, setLoading] = useState(false);
-  
-  const handleChannelChange = async (newChannel: UpdateChannel) => {
-    // Alpha 채널 선택 시 경고
-    if (newChannel === 'alpha') {
-      setShowAlphaWarning(true);
-      return;
-    }
-    
-    await updateChannel(newChannel);
-  };
-  
-  const handleAlphaConfirm = async () => {
-    setShowAlphaWarning(false);
-    await updateChannel('alpha');
-  };
-  
-  const updateChannel = async (newChannel: UpdateChannel) => {
-    setLoading(true);
-    
-    try {
-      const response = await fetch('/api/settings/update-channel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          channel: newChannel,
-          confirmed: newChannel === 'alpha'
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setChannel(newChannel);
-        
-        notify.success(`채널이 ${newChannel}로 변경되었습니다`);
-        
-        if (data.updateAvailable) {
-          notify.info(
-            `새 버전 사용 가능: ${data.currentVersion} → ${data.latestVersion}`
-          );
-        }
-      }
-    } catch (error) {
-      notify.error('채널 변경에 실패했습니다');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <>
-      <Card title="업데이트 채널">
-        <div className="space-y-4">
-          {/* Release */}
-          <div className="channel-option">
-            <Radio
-              value="release"
-              checked={channel === 'release'}
-              onChange={() => handleChannelChange('release')}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold">
-                  Release (Stable)
-                </span>
-                <span className="badge badge-success">권장</span>
-              </div>
-            </Radio>
-            <div className="ml-7 mt-2 text-sm text-gray-600">
-              <p>✅ 가장 안정적인 버전</p>
-              <p>✅ 프로덕션 환경에 적합</p>
-              <p>⏱️ 업데이트 주기: 2-4주</p>
-            </div>
-          </div>
-          
-          {/* Beta */}
-          <div className="channel-option">
-            <Radio
-              value="beta"
-              checked={channel === 'beta'}
-              onChange={() => handleChannelChange('beta')}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold">
-                  Beta (Preview)
-                </span>
-                <span className="badge badge-info">미리보기</span>
-              </div>
-            </Radio>
-            <div className="ml-7 mt-2 text-sm text-gray-600">
-              <p>🔵 새 기능 먼저 체험</p>
-              <p>⚠️ 일부 버그 있을 수 있음</p>
-              <p>⏱️ 업데이트 주기: 1주</p>
-            </div>
-          </div>
-          
-          {/* Alpha */}
-          <div className="channel-option">
-            <Radio
-              value="alpha"
-              checked={channel === 'alpha'}
-              onChange={() => handleChannelChange('alpha')}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold">
-                  Alpha (Dev/Nightly)
-                </span>
-                <span className="badge badge-danger">개발자용</span>
-              </div>
-            </Radio>
-            <div className="ml-7 mt-2 text-sm text-gray-600">
-              <p className="text-red-600">
-                ⚠️ 프로덕션 환경 사용 금지
-              </p>
-              <p>🔴 매일 최신 빌드</p>
-              <p>🔴 불안정할 수 있음</p>
-              <p>⏱️ 업데이트 주기: 매일</p>
-            </div>
-          </div>
-        </div>
-        
-        <Alert type="info" className="mt-4">
-          <strong>현재 버전:</strong> v2.1.0 ({channel})
-          <br />
-          채널을 변경하면 즉시 해당 채널의 최신 버전을 확인합니다.
-        </Alert>
-      </Card>
-      
-      {/* Alpha 경고 모달 */}
-      <Modal
-        isOpen={showAlphaWarning}
-        onClose={() => setShowAlphaWarning(false)}
-        title="⚠️ Alpha 채널 경고"
-      >
-        <div className="space-y-4">
-          <Alert type="danger">
-            <strong>주의:</strong> Alpha 채널은 매우 불안정합니다!
-          </Alert>
-          
-          <div className="space-y-2">
-            <p className="font-semibold">다음 사항을 확인하세요:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>프로덕션 환경이 아님</li>
-              <li>중요한 데이터가 없음</li>
-              <li>언제든 문제가 발생할 수 있음</li>
-              <li>데이터 백업이 완료됨</li>
-              <li>롤백 방법을 알고 있음</li>
-            </ul>
-          </div>
-          
-          <div className="bg-gray-100 p-4 rounded">
-            <p className="text-sm">
-              💡 <strong>권장:</strong> Alpha 채널은 별도의 테스트 환경에서만 사용하세요.
-            </p>
-          </div>
-          
-          <div className="flex gap-2 justify-end">
-            <Button
-              variant="secondary"
-              onClick={() => setShowAlphaWarning(false)}
-            >
-              취소
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleAlphaConfirm}
-              loading={loading}
-            >
-              위험을 이해하고 계속하기
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </>
-  );
-}
-```
+`updateChannel` 함수는 `/api/settings/update-channel`에 POST 요청을 보냅니다. 응답이 성공하면 채널 상태를 업데이트하고 성공 알림을 표시합니다. 응답에 업데이트 가능 정보가 포함되어 있으면 새 버전 사용 가능 알림도 표시합니다.
+
+렌더링 시에는 Release, Beta, Alpha 세 가지 Radio 옵션이 표시됩니다. 각 옵션 아래에 안정성, 주의사항, 업데이트 주기 등의 설명이 포함됩니다. Release 옵션에는 "권장" 배지가, Beta에는 "미리보기" 배지가, Alpha에는 "개발자용" 배지가 붙습니다. Alpha 옵션의 설명에는 빨간색으로 프로덕션 사용 금지를 강조합니다.
+
+Alpha 경고 모달은 danger 타입의 Alert로 불안정성을 강조하고, 프로덕션 환경이 아님, 중요한 데이터가 없음, 백업이 완료됨, 롤백 방법을 알고 있음 등의 확인 항목을 표시합니다. 취소 버튼과 "위험을 이해하고 계속하기" 버튼이 제공됩니다.
 
 ### 채널 정보 표시
 
-```typescript
-// apps/web/src/components/VersionBadge.tsx
-
-export function VersionBadge({ channel }: { channel: UpdateChannel }) {
-  const config = {
-    release: {
-      color: 'green',
-      label: 'Stable',
-      icon: '✅'
-    },
-    beta: {
-      color: 'blue',
-      label: 'Preview',
-      icon: '🔵'
-    },
-    alpha: {
-      color: 'red',
-      label: 'Dev',
-      icon: '🔴'
-    }
-  };
-  
-  const { color, label, icon } = config[channel];
-  
-  return (
-    <span className={`badge badge-${color}`}>
-      {icon} {label}
-    </span>
-  );
-}
-
-// 사용
-<div className="version-info">
-  <span>v2.1.0</span>
-  <VersionBadge channel="release" />
-</div>
-```
+`apps/web/src/components/VersionBadge.tsx`의 `VersionBadge` 컴포넌트는 현재 채널에 맞는 배지를 렌더링합니다. Release는 초록색 배지에 "✅ Stable" 표시, Beta는 파란색 배지에 "🔵 Preview" 표시, Alpha는 빨간색 배지에 "🔴 Dev" 표시됩니다. 버전 정보와 함께 사용할 때는 버전 텍스트 옆에 배지가 표시됩니다.
 
 ---
 
@@ -835,90 +413,19 @@ jobs:
 
 ## 채널 전환 시나리오
 
-### Release → Beta
+**Release → Beta:** 안전한 전환입니다. `updateChannel('beta')`를 호출하면 Beta 채널의 새 버전이 즉시 확인됩니다.
 
-```typescript
-// 안전한 전환
-const result = await updateChannel('beta');
+**Beta → Release (다운그레이드):** 현재 Beta 버전이 Release 최신 버전보다 높을 수 있습니다. 이 경우 시스템이 자동으로 다운그레이드임을 감지하여 경고를 표시합니다.
 
-if (result.updateAvailable) {
-  // Beta 채널의 새 버전 바로 확인됨
-  console.log(`Update to ${result.latestVersion}?`);
-}
-```
-
-### Beta → Release (다운그레이드)
-
-```typescript
-// 현재: v2.2.0-beta.3
-// Release 최신: v2.1.0
-
-await updateChannel('release');
-
-// 경고: 다운그레이드
-if (betaVersion > releaseVersion) {
-  showWarning('채널을 변경하면 이전 버전으로 다운그레이드됩니다.');
-}
-```
-
-### Release → Alpha (주의!)
-
-```typescript
-// 추가 확인 필수
-const confirmed = await showAlphaWarning();
-
-if (confirmed) {
-  // 백업 생성
-  await createBackup();
-  
-  // 채널 변경
-  await updateChannel('alpha');
-  
-  // 즉시 최신 Alpha 버전 다운로드 가능
-}
-```
+**Release → Alpha (주의!):** 추가 확인이 필수입니다. Alpha 경고 모달을 통해 사용자 확인을 받은 후, 백업을 생성하고 채널을 변경합니다. 변경 후 즉시 최신 Alpha 버전을 다운로드할 수 있습니다.
 
 ---
 
 ## 롤백 전략
 
-### 채널별 롤백
+`apps/api/src/services/rollback.ts`의 `rollbackUpdate` 함수는 백업 목록을 조회하여 대상 채널의 안정적인 백업을 찾습니다. 해당 백업이 있으면 복원을 실행합니다. 대상 채널이 지정되지 않으면 현재 채널의 백업을 사용합니다.
 
-```typescript
-// apps/api/src/services/rollback.ts
-
-export async function rollbackUpdate(targetChannel?: UpdateChannel) {
-  logger.info('Starting rollback...');
-  
-  const currentChannel = await getCurrentChannel();
-  const backups = await listBackups();
-  
-  // 채널별 최신 안정 백업 찾기
-  const targetBackup = backups.find(b => 
-    b.channel === (targetChannel || currentChannel) &&
-    b.stable === true
-  );
-  
-  if (!targetBackup) {
-    throw new Error('No stable backup found');
-  }
-  
-  // 롤백 실행
-  await restoreBackup(targetBackup);
-  
-  logger.info(`Rolled back to ${targetBackup.version} (${targetBackup.channel})`);
-}
-
-// Alpha 채널에서 문제 발생 시 → Beta로 긴급 롤백
-async function emergencyRollback() {
-  const currentChannel = await getCurrentChannel();
-  
-  if (currentChannel === UpdateChannel.ALPHA) {
-    logger.warn('⚠️ Alpha channel issue - rolling back to Beta');
-    await rollbackUpdate(UpdateChannel.BETA);
-  }
-}
-```
+`emergencyRollback` 함수는 Alpha 채널에서 문제가 발생했을 때 사용됩니다. 현재 채널이 Alpha이면 경고 로그를 출력하고 Beta 채널로 긴급 롤백을 실행합니다.
 
 ---
 
@@ -945,27 +452,11 @@ async function emergencyRollback() {
 
 ### 문서화
 
-```markdown
-# 업데이트 채널 선택 가이드
+Release를 선택해야 하는 경우: 처음 사용하는 경우, 프로덕션 환경, 안정성이 최우선인 경우, 중요한 데이터를 관리하는 경우에 해당합니다.
 
-## Release를 선택하세요:
-- ✅ 처음 사용하는 경우
-- ✅ 프로덕션 환경
-- ✅ 안정성이 최우선
-- ✅ 중요한 데이터 관리
+Beta를 선택해야 하는 경우: 얼리 어답터이거나, 새 기능에 관심이 있거나, 피드백을 제공할 수 있거나, 테스트 환경을 보유한 경우에 해당합니다.
 
-## Beta를 선택하세요:
-- 🔵 얼리 어답터
-- 🔵 새 기능에 관심
-- 🔵 피드백 제공 가능
-- 🔵 테스트 환경 보유
-
-## Alpha는 다음 경우만:
-- 🔴 개발자
-- 🔴 버그 테스터
-- 🔴 별도 테스트 환경
-- 🔴 데이터 손실 감수
-```
+Alpha는 개발자, 버그 테스터, 별도의 테스트 환경을 사용하거나, 데이터 손실을 감수할 수 있는 경우에만 사용합니다.
 
 ---
 
@@ -992,35 +483,11 @@ async function emergencyRollback() {
 
 ### 채널별 사용 통계
 
-```typescript
-// 채널별 활성 사용자 추적
-interface ChannelStats {
-  channel: UpdateChannel;
-  activeUsers: number;
-  percentage: number;
-}
-
-// 예상 분포
-// Release: 85%
-// Beta: 12%
-// Alpha: 3%
-```
+채널별 활성 사용자 수를 추적합니다. 예상 분포는 Release 85%, Beta 12%, Alpha 3%입니다.
 
 ### 채널별 버그 리포트
 
-```typescript
-// 채널별 버그 발생률 모니터링
-interface BugStats {
-  channel: UpdateChannel;
-  bugCount: number;
-  severity: 'critical' | 'major' | 'minor';
-}
-
-// 목표
-// Release: < 0.1 bugs/version
-// Beta: < 1 bugs/version
-// Alpha: 무제한 (expected)
-```
+채널별 버그 발생률을 모니터링합니다. 목표 기준은 Release는 버전당 0.1건 미만, Beta는 버전당 1건 미만이며, Alpha는 제한 없이 예상됩니다.
 
 ---
 

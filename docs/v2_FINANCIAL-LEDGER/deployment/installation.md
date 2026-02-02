@@ -2,7 +2,7 @@
 
 ## 배포 모드
 
-Finance System은 **환경을 자동으로 감지**하여 최적의 모드로 실행됩니다.
+Fieldstack은 **환경을 자동으로 감지**하여 최적의 모드로 실행됩니다.
 
 ### 🏠 홈서버 모드 (권장)
 - **단일 서버**에서 Frontend + Backend 통합 실행
@@ -129,7 +129,7 @@ volumes:
 
 ```bash
 # 1. 저장소 클론
-git clone https://github.com/your-org/finance-system.git
+git clone https://github.com/Fieldstack-Project/Fieldstack.git
 cd finance-system
 
 # 2. 의존성 설치
@@ -234,8 +234,8 @@ bucket_name = "finance-uploads"
 ### 1. 프로젝트 클론
 
 ```bash
-git clone https://github.com/your-org/finance-system.git
-cd finance-system
+git clone https://github.com/Fieldstack-Project/Fieldstack.git
+cd Fieldstack
 ```
 
 ### 2. 의존성 설치
@@ -275,20 +275,8 @@ PORT=3000
 ```
 
 **Frontend 개발 서버 설정:**
-```typescript
-// apps/web/vite.config.ts
-export default defineConfig({
-  server: {
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      }
-    }
-  }
-})
-```
+
+Vite 개발 서버는 포트 5173에서 실행되며, `/api` 경로의 요청은 `http://localhost:3000`으로 프록시됩니다.
 
 ---
 
@@ -327,7 +315,7 @@ export default defineConfig({
 ### Nginx 리버스 프록시 (선택)
 
 ```nginx
-# /etc/nginx/sites-available/finance-system
+# /etc/nginx/sites-available/Fieldstack
 
 server {
     listen 80;
@@ -391,7 +379,7 @@ sudo certbot renew --dry-run
 # /etc/systemd/system/finance-system.service
 
 [Unit]
-Description=Finance System
+Description=Fieldstack
 After=network.target
 
 [Service]
@@ -411,16 +399,16 @@ WantedBy=multi-user.target
 **서비스 관리:**
 ```bash
 # 서비스 시작
-sudo systemctl start finance-system
+sudo systemctl start Fieldstack
 
 # 부팅 시 자동 시작
-sudo systemctl enable finance-system
+sudo systemctl enable Fieldstack
 
 # 상태 확인
-sudo systemctl status finance-system
+sudo systemctl status Fieldstack
 
 # 재시작
-sudo systemctl restart finance-system
+sudo systemctl restart Fieldstack
 ```
 
 ---
@@ -541,36 +529,7 @@ echo "Files backup completed: files_$DATE.tar.gz"
 
 ### Google Drive 자동 백업 (선택)
 
-```typescript
-// apps/api/src/plugins/backup/drive-backup.ts
-
-import { google } from 'googleapis';
-import { scheduler } from '@core/scheduler';
-
-scheduler.register({
-  name: 'backup-to-drive',
-  schedule: '0 3 * * *',  // 매일 새벽 3시
-  handler: async () => {
-    // 1. DB 백업 생성
-    const backupFile = await createDatabaseBackup();
-    
-    // 2. Google Drive에 업로드
-    const drive = google.drive('v3');
-    await drive.files.create({
-      requestBody: {
-        name: `backup_${Date.now()}.sql.gz`,
-        parents: ['backup-folder-id']
-      },
-      media: {
-        body: fs.createReadStream(backupFile)
-      }
-    });
-    
-    // 3. 로컬 백업 파일 삭제
-    await fs.unlink(backupFile);
-  }
-});
-```
+`apps/api/src/plugins/backup/drive-backup.ts`에 구현됩니다. Core의 scheduler에 `backup-to-drive` 작업을 등록하며, 실행 주기는 매일 새벽 3시(cron: `0 3 * * *`)입니다. 핸들러는 세 단계로 구성됩니다: 먼저 `createDatabaseBackup()`으로 DB 백업 파일을 생성하고, Google Drive API v3의 `files.create`를 사용하여 백업 파일을 지정된 폴더에 타임스탬프 기반 파일명으로 업로드합니다. 마지막으로 로컬 백업 파일을 삭제합니다.
 
 ---
 
@@ -578,59 +537,11 @@ scheduler.register({
 
 ### Health Check
 
-```typescript
-// apps/api/src/routes/health.ts
-
-router.get('/health', async (req, res) => {
-  const checks = {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    mode: process.env.SERVE_FRONTEND === 'true' ? 'integrated' : 'api-only',
-    
-    database: await checkDatabase(),
-    modules: await checkModules(),
-    disk: await checkDiskSpace(),
-    memory: process.memoryUsage()
-  };
-  
-  const isHealthy = checks.database.connected && 
-                    checks.disk.available > 1000;
-  
-  res.status(isHealthy ? 200 : 503).json(checks);
-});
-```
+`GET /health` 엔드포인트는 시스템 상태를 종합적으로 반환합니다. 응답에는 현재 타임스탬프, 서버 업타임, 배포 모드(통합/API전용), 데이터베이스 연결 상태, 설치된 모듈 상태, 디스크 사용량, 메모리 사용량이 포함됩니다. 데이터베이스가 연결되어 있고 디스크 가용 용량이 1000MB 이상이면 200, 아니면 503 상태를 반환합니다.
 
 ### 로그 관리
 
-```typescript
-// packages/core/logger.ts
-
-import winston from 'winston';
-
-export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.File({ 
-      filename: 'logs/error.log', 
-      level: 'error' 
-    }),
-    new winston.transports.File({ 
-      filename: 'logs/combined.log' 
-    })
-  ]
-});
-
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple()
-  }));
-}
-```
+Winston 로거를 사용합니다. 로그 레벨은 `LOG_LEVEL` 환경 변수로 설정되며 기본값은 `info`입니다. 형식은 타임스탬프와 JSON을 조합합니다. 파일 트랜스포트로 `logs/error.log`에 error 레벨만, `logs/combined.log`에 전체 로그를 저장합니다. 개발 환경에서는 Console 트랜스포트를 추가하여 간단한 텍스트 형식으로 출력합니다.
 
 ---
 
@@ -742,8 +653,8 @@ NODE_OPTIONS="--max-old-space-size=2048" npm start
 # 1. Docker 설치
 curl -fsSL https://get.docker.com | sh
 
-# 2. Finance System 설치
-git clone https://github.com/your-org/finance-system.git
+# 2. Fieldstack 설치
+git clone https://github.com/Fieldstack-Project/Fieldstack.git
 cd finance-system
 docker-compose up -d
 
@@ -762,8 +673,8 @@ sudo apt-get install -y nodejs
 # 2. pnpm 설치
 npm install -g pnpm
 
-# 3. Finance System 설치
-git clone https://github.com/your-org/finance-system.git
+# 3. Fieldstack 설치
+git clone https://github.com/Fieldstack-Project/Fieldstack.git
 cd finance-system
 pnpm install
 pnpm build
@@ -786,7 +697,7 @@ apt update
 apt install -y git nodejs npm
 npm install -g pnpm
 
-git clone https://github.com/your-org/finance-system.git
+git clone https://github.com/Fieldstack-Project/Fieldstack.git
 cd finance-system
 pnpm install && pnpm build
 
@@ -806,7 +717,7 @@ node dist/index.js
   ↓
 홈서버 (192.168.0.10:3000)
   ↓
-Finance System
+Fieldstack
 ```
 
 **설정 예시:**
