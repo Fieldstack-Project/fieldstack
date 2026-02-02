@@ -85,14 +85,16 @@ npm run start
 ## 📚 문서
 
 ### 시작하기
-- [📦 빠른 설치](deployment/installation.md)
+- [📦 설치 가이드](deployment/installation.md)
 - [🧙 설치 마법사](deployment/setup-wizard.md)
 - [⚙️ 설정 관리](deployment/configuration.md)
+- [🏗️ 빌드 프로세스](deployment/build-process.md)
 
 ### 아키텍처
 - [🏗️ 전체 개요](architecture/overview.md)
 - [📁 디렉터리 구조](architecture/directory-structure.md)
 - [💡 핵심 원칙](architecture/core-principles.md)
+- [📋 설계 결정](architecture/decisions.md)
 
 ### 기술 문서
 - [🔧 기술 스택](technical/tech-stack.md)
@@ -112,7 +114,7 @@ npm run start
 - [🖼️ 디자인 시스템](ui/design-system.md)
 
 ### 마켓플레이스
-- [🏪 개요](marketplace/overview.md)
+- [🏪 마켓플레이스 개요](marketplace/overview.md)
 - [📥 모듈 설치](marketplace/installation.md)
 - [📝 레지스트리](marketplace/registry.md)
 - [🌐 공식 웹사이트](marketplace/website.md)
@@ -120,6 +122,8 @@ npm run start
 ### 배포 & 운영
 - [🚀 배포 전략](deployment/installation.md)
 - [🔄 자동 업데이트](deployment/updates.md)
+- [📡 업데이트 채널](deployment/update-channels.md)
+- [🎭 데모 전략](deployment/demo-strategy.md)
 
 ### 커뮤니티
 - [💭 프로젝트 철학](community/philosophy.md)
