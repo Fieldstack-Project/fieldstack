@@ -15,7 +15,7 @@
 
 ### 데이터베이스
 **다중 Provider 지원:**
-- **PostgreSQL** (권장) - 고성능, 안정적
+- **PostgreSQL** (권장/Default) - 고성능, 안정적
 - **SQLite** - 간단한 배포, 파일 기반
 - **Supabase** - 클라우드 DB, 무료 티어
 - **MongoDB** - NoSQL 옵션
@@ -101,6 +101,40 @@
   - 경량
   - 모듈화
   - i18n 지원
+
+---
+
+## Hard-Core
+
+### 런타임 & 언어
+- **Node.js** 20+ [MVP/초기에만]
+- **GO** Stable(1.22+) [Release]
+
+### Hard-Core 동작 방식
+
+Hard-Core는 Fieldstack의 시스템 안정성과 운영을 담당하는 독립 계층이다.
+Main Core 및 Module과는 **프로세스 수준에서 분리**되어 동작한다.
+
+이 계층은 비즈니스 로직을 수행하지 않으며,
+Core의 기능을 대체하거나 직접 실행하지 않는다.
+
+### Execution Model
+
+* Hard-Core는 Core 프로세스를 직접 실행하지 않는다.
+* Core의 상태를 주기적으로 감시한다.
+* 비정상 상태 감지 시, 로그 기록 및 사용자에게 상태를 전달한다.
+* 자동 복구가 아닌 **복구 보조 역할**을 수행한다.
+
+### Communication with Core
+
+Hard-Core와 Core 간의 통신은 다음 방식 중 하나로 제한된다.
+
+* 명시적으로 정의된 IPC
+* 상태 파일 또는 소켓 기반 통신
+* 이벤트 알림(단방향)
+
+Hard-Core는 Core의 내부 구현에 접근하지 않으며,
+정의된 인터페이스를 통해서만 상태를 확인한다.
 
 ---
 
