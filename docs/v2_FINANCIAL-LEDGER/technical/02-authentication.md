@@ -266,7 +266,7 @@ GET /auth/callback 엔드포인트는 Google에서 돌아온 콜백을 처리합
 
 - 📌 `architecture/decisions.md § 결정 #2` - PIN 방식 선택 근거
 - 📖 `deployment/setup-wizard.md` - 초기 관리자 설정
-- 📖 `community/github-policy.md` - 보안 정책
+- 📖 `community/02-github-policy.md` - 보안 정책
 
 ---
 

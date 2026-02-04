@@ -334,22 +334,23 @@ modules/[module-name]/
 docs/
 ├── README.md                     # 문서 인덱스
 ├── architecture/                 # 아키텍처 문서
-│   ├── overview.md
-│   ├── core-principles.md
-│   └── directory-structure.md
+│   ├── 00-overview.md
+│   ├── 01-decisions.md
+│   ├── 02-core-principles.md
+│   └── 04-directory-structure.md
 ├── technical/                    # 기술 문서
-│   ├── tech-stack.md
-│   ├── database.md
-│   └── ai-integration.md
+│   ├── 00-tech-stack.md
+│   ├── 01-database.md
+│   └── 03-ai-integration.md
 ├── modules/                      # 모듈 문서
-│   ├── system-design.md
-│   └── development-guide.md
+│   ├── 03-system-design.md
+│   └── 01-development-guide.md
 ├── deployment/                   # 배포 문서
-│   ├── installation.md
-│   └── setup-wizard.md
+│   ├── 01-installation.md
+│   └── 02-setup-wizard.md
 └── community/                    # 커뮤니티 문서
-    ├── philosophy.md
-    └── contributing.md
+    ├── 00-philosophy.md
+    └── 01-contributing.md
 ```
 
 ---

@@ -1,7 +1,7 @@
 # 모듈 개발 가이드
 
 > 📌 **핵심 아키텍처 결정:**  
-> → `architecture/decisions.md § 결정 #1: Module Loader` - 런타임 동적 로드 방식
+> → `architecture/01-decisions.md § 결정 #1: Module Loader` - 런타임 동적 로드 방식
 
 **최종 업데이트:** 2025-01-29
 
@@ -10,7 +10,7 @@
 ## 시작하기
 
 > 📖 **모듈 시스템 개요:**  
-> → `modules/system-design.md`
+> → `modules/03-system-design.md`
 
 ### 1. 모듈 템플릿 복사
 
@@ -51,7 +51,7 @@ modules/my-module/
 ```
 
 > 📖 **디렉터리 구조 전체:**  
-> → `architecture/directory-structure.md § modules/`
+> → `architecture/04-directory-structure.md § modules/`
 
 ---
 
@@ -74,8 +74,8 @@ DELETE /:id 엔드포인트는 삭제입니다. service.remove를 호출하여 �
 ### service.ts
 
 > 📖 **DB 추상화 레이어:**  
-> → `technical/database.md`  
-> → `architecture/decisions.md § 결정 #3: DB 추상화`
+> → `technical/01-database.md`  
+> → `architecture/01-decisions.md § 결정 #3: DB 추상화`
 
 Core의 db와 eventBus를 가져와 사용합니다.
 
@@ -106,7 +106,7 @@ my_module_items 테이블의 스키마를 정의합니다. id는 기본키인 UU
 ### index.ts (Backend Entry)
 
 > 📌 **핵심:** Module Loader가 이 파일을 런타임에 동적으로 Import합니다.  
-> → `architecture/decisions.md § 결정 #1: Module Loader`
+> → `architecture/01-decisions.md § 결정 #1: Module Loader`
 
 백엔드의 진입점입니다. routes를 기본 export하고, initialize와 shutdown 두 함수를 제공합니다.
 
@@ -115,7 +115,7 @@ initialize 함수는 모듈이 시작될 때 호출됩니다. 먼저 DB 마이�
 shutdown 함수는 모듈이 종료될 때 호출됩니다. Event Bus에서 등록한 이벤트 리스너를 제거합니다.
 
 > 📖 **Scheduler 사용법:**  
-> → `technical/scheduler.md`
+> → `technical/04-scheduler.md`
 
 ---
 
@@ -124,7 +124,7 @@ shutdown 함수는 모듈이 종료될 때 호출됩니다. Event Bus에서 등�
 ### index.tsx (Frontend Entry)
 
 > 📌 **핵심:** Module Loader가 이 파일을 런타임에 동적으로 Import합니다.  
-> → `architecture/decisions.md § 결정 #1`
+> → `architecture/01-decisions.md § 결정 #1`
 
 프론트엔드의 진입점입니다. React Router를 사용하여 라우팅을 정의합니다. 루트 경로(/)에는 List 페이지, /:id 경로에는 Detail 페이지, /create 경로에는 Create 페이지를 배치합니다.
 
@@ -133,7 +133,7 @@ navigation 객체를 별도로 export합니다. 이 정보는 앱의 네비게�
 ### pages/List.tsx
 
 > 📖 **Core UI 컴포넌트:**  
-> → `ui/core-components.md`
+> → `ui/01-core-components.md`
 
 목록 페이지입니다. useNavigate 훅으로 페이지 이동을 준비하고, useMyModule 훅에서 항목 목록, 로딩 상태, 삭제 함수를 가져옵니다.
 
@@ -217,7 +217,7 @@ module-registry 저장소에 PR 제출
 ### ✅ 해야 할 것
 
 > 📖 **Core UI 컴포넌트 사용:**  
-> → `ui/core-components.md`
+> → `ui/01-core-components.md`
 
 - Core UI 컴포넌트 사용
 - 타입 정의 명확하게
@@ -239,22 +239,22 @@ module-registry 저장소에 PR 제출
 ## 📚 관련 문서
 
 ### 아키텍처
-- 📌 `architecture/decisions.md § 결정 #1` - Module Loader 설계
-- 📖 `architecture/overview.md § Module Layer` - 모듈 레이어 설명
-- 📖 `architecture/directory-structure.md` - 디렉터리 구조
+- 📌 `architecture/01-decisions.md § 결정 #1` - Module Loader 설계
+- 📖 `architecture/00-overview.md § Module Layer` - 모듈 레이어 설명
+- 📖 `architecture/04-directory-structure.md` - 디렉터리 구조
 
 ### 기술
-- 📖 `technical/database.md` - DB 추상화 레이어
-- 📖 `technical/scheduler.md` - Scheduler 사용법
-- 📖 `modules/integrations.md` - 외부 서비스 통합
+- 📖 `technical/01-database.md` - DB 추상화 레이어
+- 📖 `technical/04-scheduler.md` - Scheduler 사용법
+- 📖 `modules/02-integrations.md` - 외부 서비스 통합
 
 ### UI
-- 📖 `ui/core-components.md` - Core UI 컴포넌트
-- 📖 `ui/design-system.md` - 디자인 시스템
+- 📖 `ui/01-core-components.md` - Core UI 컴포넌트
+- 📖 `ui/00-design-system.md` - 디자인 시스템
 
 ### 마켓플레이스
 - 📖 `marketplace/registry.md` - 레지스트리 등록
-- 📖 `marketplace/installation.md` - 모듈 설치
+- 📖 `marketplace/02-installation.md` - 모듈 설치
 
 ---
 

@@ -130,9 +130,9 @@ npm run start
 ```markdown
 ## 📚 문서
 
-- [📦 설치 가이드](docs/deployment/installation.md)
-- [🛠️ 개발 가이드](docs/modules/development-guide.md)
-- [🏗️ 아키텍처](docs/architecture/overview.md)
+- [📦 설치 가이드](deployment/01-installation.md)
+- [🛠️ 개발 가이드](modules/01-development-guide.md)
+- [🏗️ 아키텍처](architecture/00-overview.md)
 - [🏪 마켓플레이스](https://your-finance-system.dev/marketplace)
 ```
 

@@ -221,15 +221,15 @@ checkDatabaseHealth 함수는 간단한 SELECT 1 쿼리를 실행하여 DB 연�
 
 ### 핵심 아키텍처
 - 📌 `architecture/decisions.md § 결정 #3` - DB 추상화 설계 결정
-- 📖 `architecture/overview.md` - 전체 아키텍처
-- 📖 `architecture/directory-structure.md` - 디렉터리 구조
+- 📖 `architecture/00-overview.md` - 전체 아키텍처
+- 📖 `architecture/04-directory-structure.md` - 디렉터리 구조
 
 ### 모듈 개발
 - 📖 `modules/development-guide.md § Backend 개발` - DB 사용 예시
 - 📖 `modules/system-design.md § 데이터베이스 격리` - 격리 원칙
 
 ### 배포
-- 📖 `deployment/installation.md` - DB 설정
+- 📖 `deployment/01-installation.md` - DB 설정
 - 📖 `deployment/configuration.md § 데이터베이스` - 설정 관리
 
 ---

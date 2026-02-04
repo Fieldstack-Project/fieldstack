@@ -1,7 +1,7 @@
 # Scheduler 설계
 
 > 📖 **관련 아키텍처:**  
-> → `architecture/overview.md § Plugin Layer` - Scheduler는 Backend Plugin으로 구현  
+> → `architecture/00-overview.md § Plugin Layer` - Scheduler는 Backend Plugin으로 구현  
 > → `modules/system-design.md § 모듈 생명주기` - initialize() Hook에서 작업 등록
 
 **최종 업데이트:** 2025-01-29
@@ -229,7 +229,7 @@ runningTasks라는 집합(Set)을 사용하여 현재 실행 중인 작업명을
 ## 📚 관련 문서
 
 ### 아키텍처
-- 📖 `architecture/overview.md § Plugin Layer` - Scheduler의 위치
+- 📖 `architecture/00-overview.md § Plugin Layer` - Scheduler의 위치
 - 📖 `modules/system-design.md § 모듈 생명주기` - 작업 등록 시점
 
 ### 모듈 개발

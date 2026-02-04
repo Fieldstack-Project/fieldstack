@@ -125,10 +125,10 @@ reloadModule 메서드는 개발 모드에서 사용되는 Hot Reload 기능입�
 > → `technical/module-loader.md` (작성 예정)
 
 > 📖 **모듈 개발 가이드:**  
-> → `modules/development-guide.md`
+> → `modules/01-development-guide.md`
 
 > 📖 **사용자 설치 가이드:**  
-> → `marketplace/installation.md`
+> → `marketplace/02-installation.md`
 
 ### ⚠️ 주의사항
 
@@ -264,7 +264,7 @@ Rate Limiting은 5회 연속 실패 시 5분간 로그인을 잠급니다. 잠�
 ### 📚 관련 문서
 
 > 📖 **상세 인증 가이드:**  
-> → `technical/authentication.md § 3. 관리자 인증`
+> → `technical/02-authentication.md § 3. 관리자 인증`
 
 > 📖 **보안 정책:**  
 > → `security/access-control.md` (작성 예정)
@@ -384,7 +384,7 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 ### 📚 관련 문서
 
 > 📖 **상세 DB 가이드:**  
-> → `technical/database.md § 2. DB 추상화`
+> → `technical/01-database.md § 2. DB 추상화`
 
 > 📖 **Provider 개발:**  
 > → `technical/database-providers.md` (작성 예정)
@@ -433,9 +433,9 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 - 🔄 기존 문서에 교차 참조 추가 시작
 
 ### 문서 정리 (Step 3)
-1. `architecture/overview.md` - Frontend 서빙 로직 명확화
-2. `technical/authentication.md` - OAuth + PIN으로 수정
-3. `modules/development-guide.md` - 교차 참조 추가
+1. `architecture/00-overview.md` - Frontend 서빙 로직 명확화
+2. `technical/02-authentication.md` - OAuth + PIN으로 수정
+3. `modules/01-development-guide.md` - 교차 참조 추가
 
 ### 구현 시작 (Step 2)
 - 문서 정리 완료 후 코어 구현 시작

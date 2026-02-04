@@ -1,8 +1,8 @@
 # 통합 서비스 시스템
 
 > 📖 **아키텍처 위치:**  
-> → `architecture/overview.md § Core Layer § AI Abstraction` - 통합 서비스 추상화  
-> → `modules/system-design.md § 외부 서비스 통합` - 모듈에서의 사용
+> → `architecture/00-overview.md § Core Layer § AI Abstraction` - 통합 서비스 추상화  
+> → `modules/03-system-design.md § 외부 서비스 통합` - 모듈에서의 사용
 
 **최종 업데이트:** 2025-01-30
 
@@ -13,7 +13,7 @@
 Core는 다양한 외부 서비스와의 통합을 위한 추상화 레이어를 제공합니다. 모듈은 이를 활용하여 쉽게 외부 서비스를 연동할 수 있습니다.
 
 > 💡 **설계 철학:**  
-> → `architecture/core-principles.md § 5. 최소한의 의존성` - Core는 필수만, 모듈은 자유
+> → `architecture/02-core-principles.md § 5. 최소한의 의존성` - Core는 필수만, 모듈은 자유
 
 ---
 
@@ -39,14 +39,14 @@ packages/core/integrations/
 ```
 
 > 📖 **디렉터리 구조:**  
-> → `architecture/directory-structure.md § packages/core/integrations`
+> → `architecture/04-directory-structure.md § packages/core/integrations`
 
 ---
 
 ## 기본 인터페이스
 
 > 📌 **Provider 패턴:**  
-> → `technical/database.md § DB 추상화` - 동일한 추상화 패턴 사용
+> → `technical/01-database.md § DB 추상화` - 동일한 추상화 패턴 사용
 
 Integration 인터페이스는 모든 통합 서비스가 공통으로 제공해야 할 기능을 정의합니다: name(서비스 이름), authenticate(인증 실행), isAuthenticated(인증 여부 확인), disconnect(연결 종료)입니다.
 
@@ -59,8 +59,8 @@ BaseIntegration은 이 인터페이스를 구현하는 추상 클래스입니다
 ### Google Calendar
 
 > 📖 **실제 사용 예시:**  
-> → `modules/default-modules.md § Subscription § Google Calendar 연동`  
-> → `technical/scheduler.md § 작업 예시 § Google Drive 자동 백업`
+> → `modules/00-default-modules.md § Subscription § Google Calendar 연동`  
+> → `technical/04-scheduler.md § 작업 예시 § Google Drive 자동 백업`
 
 GoogleCalendar 클래스는 BaseIntegration을 상속받습니다.
 
@@ -165,7 +165,7 @@ send 메서드는 전송할 데이터와 HTTP 메서드(POST 또는 PUT, 기본�
 ## 통합 서비스 팩토리
 
 > 📌 **Factory 패턴:**  
-> → `technical/database.md § Provider 팩토리` - 동일한 패턴 사용
+> → `technical/01-database.md § Provider 팩토리` - 동일한 패턴 사용
 
 IntegrationFactory 클래스는 통합 서비스들을 관리하는 팩토리입니다. 내부에는 서비스명과 Integration 객체를 매핑하는 Map을 사용합니다.
 
@@ -191,12 +191,12 @@ Core의 integrations 팩토리에서 'google-calendar'를 조회합니다. 먼�
 ## 보안
 
 > 📖 **보안 정책:**  
-> → `technical/authentication.md § 보안 고려사항`
+> → `technical/02-authentication.md § 보안 고려사항`
 
 ### API Key 암호화
 
 > 📌 **암호화 구현:**  
-> → `technical/database.md § 보안 § 암호화`
+> → `technical/01-database.md § 보안 § 암호화`
 
 AES-256-GCM 암호화를 사용합니다. 환경 변수의 ENCRYPTION_KEY를 사용하며, 없으면 자동으로 생성합니다.
 
@@ -219,7 +219,7 @@ API Key는 encrypt 함수로 암호화한 후, 사용자 ID, 통합 서비스 �
 ## Scheduler 연계
 
 > 📖 **Scheduler 활용:**  
-> → `technical/scheduler.md § 통합 서비스 연계`
+> → `technical/04-scheduler.md § 통합 서비스 연계`
 
 Scheduler는 통합 서비스와 함께 사용하여 강력한 자동화 구현:
 
@@ -269,14 +269,14 @@ POST /google/test 엔드포인트는 연결 테스트입니다. Google Calendar 
 ### 1. 구독 → Google Calendar 동기화
 
 > 📖 **실제 구현:**  
-> → `modules/default-modules.md § Subscription § Google Calendar 연동`
+> → `modules/00-default-modules.md § Subscription § Google Calendar 연동`
 
 syncSubscriptionToCalendar 함수는 구독 정보를 Google Calendar에 동기화합니다. 먼저 Google Calendar 통합이 인증되었는지 확인합니다. 인증되지 않은 경우 경고를 로깅하고 종료합니다. 인증된 경우 서비스명·금액·결제일·반복 규칙으로 이벤트를 생성합니다. 이벤트 생성 완료 후 반환된 Calendar Event ID를 구독 테이블에 저장하여 추후 수정·삭제 시 사용할 수 있도록 합니다.
 
 ### 2. 백업 → Google Drive 업로드
 
 > 📖 **백업 전략:**  
-> → `deployment/installation.md § 백업 전략`
+> → `deployment/01-installation.md § 백업 전략`
 
 Scheduler에 'backup-to-drive' 작업을 등록합니다. 매일 새벽 3시에 실행되며, 총 4단계로 진행됩니다. 첫째로 데이터베이스 백업 파일을 생성합니다. 둘째로 Google Drive 통합이 인증되었는지 확인하고, 안 된 경우 로컬 백업만 유지하고 종료합니다. 셋째로 백업 파일을 읽어 Google Drive에 업로드합니다. 파일명에는 현재 타임스탬프를 포함시킵니다. 넷째로 업로드 완료 후 로컬 백업 파일을 선택적으로 삭제합니다.
 
@@ -293,22 +293,22 @@ reportCriticalError 함수는 심각한 에러가 발생하면 GitHub에 이슈�
 ## 📚 관련 문서
 
 ### 아키텍처
-- 📖 `architecture/overview.md § Core Layer` - 통합 서비스 위치
-- 📖 `modules/system-design.md § 외부 서비스 통합` - 모듈 사용법
+- 📖 `architecture/00-overview.md § Core Layer` - 통합 서비스 위치
+- 📖 `modules/03-system-design.md § 외부 서비스 통합` - 모듈 사용법
 
 ### 기술
-- 📖 `technical/database.md § Provider 패턴` - 유사한 추상화 패턴
-- 📖 `technical/database.md § 암호화` - API Key 암호화
-- 📖 `technical/authentication.md § 보안` - 보안 정책
-- 📖 `technical/scheduler.md § 통합 서비스 연계` - 자동화 워크플로우
+- 📖 `technical/01-database.md § Provider 패턴` - 유사한 추상화 패턴
+- 📖 `technical/01-database.md § 암호화` - API Key 암호화
+- 📖 `technical/02-authentication.md § 보안` - 보안 정책
+- 📖 `technical/04-scheduler.md § 통합 서비스 연계` - 자동화 워크플로우
 
 ### 모듈 개발
 - 📖 `modules/development-guide.md § Backend 개발` - 통합 서비스 사용
-- 📖 `modules/default-modules.md § Subscription` - 실제 사용 예시
+- 📖 `modules/00-default-modules.md § Subscription` - 실제 사용 예시
 
 ### 배포
 - 📖 `deployment/configuration.md § 통합 서비스` - 설정 관리
-- 📖 `deployment/installation.md § 백업` - Google Drive 백업
+- 📖 `deployment/01-installation.md § 백업` - Google Drive 백업
 
 ---
 
@@ -318,7 +318,7 @@ reportCriticalError 함수는 심각한 에러가 발생하면 GitHub에 이슈�
 
 1. **설정** → `deployment/configuration.md`
 2. **모듈 개발** → `modules/development-guide.md`
-3. **자동화** → `technical/scheduler.md`
+3. **자동화** → `technical/04-scheduler.md`
 
 > 💬 **도움이 필요하신가요?**  
 > → Discord: https://discord.gg/5m4aHKmWgg

@@ -1,7 +1,7 @@
 # 아키텍처 개요
 
 > 📌 **핵심 결정 사항:**  
-> → `architecture/decisions.md` - 모든 아키텍처 결정의 근거
+> → `architecture/01-decisions.md` - 모든 아키텍처 결정의 근거
 
 **최종 업데이트:** 2025-01-29
 
@@ -28,10 +28,10 @@ Plugins (Optional)
 ```
 
 > 📖 **Core 설계 원칙:**  
-> → `architecture/core-principles.md`
+> → `architecture/02-core-principles.md`
 
 > 📖 **디렉터리 구조:**  
-> → `architecture/directory-structure.md`
+> → `architecture/04-directory-structure.md`
 
 ---
 
@@ -214,7 +214,7 @@ Vite 개발 서버를 포트 5173에서 실행하며, /api 경로로 향하는 �
 - 🐛 디버깅 작업
 
 > 📖 **개발 환경 설정:**  
-> → `modules/development-guide.md`
+> → `modules/01-development-guide.md`
 
 ---
 
@@ -279,7 +279,7 @@ cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 
 ## Core Layer
 
 > 📌 **설계 원칙:**  
-> → `architecture/core-principles.md § 2. Core / Module / Plugin 분리`
+> → `architecture/02-core-principles.md § 2. Core / Module / Plugin 분리`
 
 ### 역할
 - 인프라 레이어 (절대 최소 변경)
@@ -289,17 +289,17 @@ cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 
 ### 구성 요소
 
 #### Auth
-> 📖 → `technical/authentication.md`
+> 📖 → `technical/02-authentication.md`
 
 - **Google OAuth 인증** - 일반 로그인
 - **Whitelist 기반 접근 제어** - 허용된 사용자만
 - **관리자 PIN** - 중요 설정 보호
 
 > 📌 **핵심 결정:**  
-> → `architecture/decisions.md § 결정 #2: 관리자 인증`
+> → `architecture/01-decisions.md § 결정 #2: 관리자 인증`
 
 #### DB Connector
-> 📖 → `technical/database.md`
+> 📖 → `technical/01-database.md`
 
 - **다양한 DB Provider 지원**
   - PostgreSQL, SQLite, Supabase, MongoDB
@@ -307,31 +307,31 @@ cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 
 - **자동 마이그레이션**
 
 > 📌 **핵심 결정:**  
-> → `architecture/decisions.md § 결정 #3: DB 추상화`
+> → `architecture/01-decisions.md § 결정 #3: DB 추상화`
 
 #### Module Loader
-> 📖 → `modules/development-guide.md`
+> 📖 → `modules/01-development-guide.md`
 
 - **런타임 동적 Import** - 서버 재시작 불필요
 - **VSCode 확장 방식** - 설치 후 자동 새로고침
 - **Hot Reload** - 개발 모드 지원
 
 > 📌 **핵심 결정:**  
-> → `architecture/decisions.md § 결정 #1: Module Loader`
+> → `architecture/01-decisions.md § 결정 #1: Module Loader`
 
 #### Event Bus
 
 모듈 간 통신은 이벤트 발행/구독 패턴으로 느슨한 결합을 유지합니다. 예를 들어 Subscription 모듈에서 'subscription:payment' 이벤트를 발행하면, Ledger 모듈이 그 이벤트를 구독하여 자동으로 가계부 항목을 생성합니다.
 
 #### AI Abstraction
-> 📖 → `technical/ai-integration.md`
+> 📖 → `technical/03-ai-integration.md`
 
 - **Provider 추상화** (Gemini, OpenAI, Claude, Ollama)
 - **사용자 API Key 관리**
 - **통일된 인터페이스**
 
 #### Common UI Components
-> 📖 → `ui/core-components.md`
+> 📖 → `ui/01-core-components.md`
 
 - Button, Input, Table, Modal 등
 - Layout 컴포넌트
@@ -343,8 +343,8 @@ cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 
 ## Module Layer
 
 > 📖 **상세 가이드:**  
-> → `modules/system-design.md`  
-> → `modules/development-guide.md`
+> → `modules/03-system-design.md`  
+> → `modules/01-development-guide.md`
 
 ### 특징
 - 실제 기능 단위
@@ -371,7 +371,7 @@ modules/[module-name]/
 7. WebSocket으로 Frontend 알림 → 자동 새로고침
 
 > 📌 **VSCode 방식 구현:**  
-> → `architecture/decisions.md § 결정 #1`
+> → `architecture/01-decisions.md § 결정 #1`
 
 ---
 
@@ -383,7 +383,7 @@ modules/[module-name]/
 - 깨져도 Core/Module에 영향 없음
 
 ### 예시
-> 📖 → `technical/scheduler.md`
+> 📖 → `technical/04-scheduler.md`
 
 - **Scheduler**: 정기 작업 실행
 - **AI Assistant**: 백그라운드 분석
@@ -437,7 +437,7 @@ Module A → Event Bus → Module B
 직접 import 금지, Event Bus로만 통신
 
 ### 4. 통합 서비스 사용
-> 📖 → `modules/integrations.md`
+> 📖 → `modules/02-integrations.md`
 
 ```
 Module → Core Integration → External API
@@ -479,7 +479,7 @@ Module → Core Integration → External API
 ## 보안 모델
 
 > 📖 **상세 보안 정책:**  
-> → `technical/authentication.md § 보안 고려사항`
+> → `technical/02-authentication.md § 보안 고려사항`
 
 ### 계층별 보안
 
@@ -525,7 +525,7 @@ Fieldstack (:3000)
 express.static 미들웨어로 public 폴더을 서빙합니다. 캐시 유효기간은 1년으로 설정하고, etag과 lastModified를 활성화하여 조건부 요청을 지원합니다. immutable 옵션도 켜서 해시가 포함된 파일명의 캐시를 더 효과적으로 활용합니다.
 
 ### DB 최적화
-> 📖 → `technical/database.md § 성능 최적화`
+> 📖 → `technical/01-database.md § 성능 최적화`
 
 - Connection Pooling
 - 쿼리 최적화
@@ -712,15 +712,15 @@ rclone copy backup_$(date +%Y%m%d).tar.gz gdrive:backups/
 ## 📚 관련 문서
 
 ### 아키텍처
-- 📌 `architecture/decisions.md` - 핵심 결정 사항
-- 📖 `architecture/core-principles.md` - 설계 원칙
-- 📖 `architecture/directory-structure.md` - 폴더 구조
+- 📌 `architecture/01-decisions.md` - 핵심 결정 사항
+- 📖 `architecture/02-core-principles.md` - 설계 원칙
+- 📖 `architecture/04-directory-structure.md` - 폴더 구조
 
 ### 기술
-- 📖 `technical/tech-stack.md` - 기술 스택
-- 📖 `technical/database.md` - DB 추상화
-- 📖 `technical/authentication.md` - 인증 시스템
-- 📖 `technical/scheduler.md` - Scheduler
+- 📖 `technical/00-tech-stack.md` - 기술 스택
+- 📖 `technical/01-database.md` - DB 추상화
+- 📖 `technical/02-authentication.md` - 인증 시스템
+- 📖 `technical/04-scheduler.md` - Scheduler
 
 ### 배포
 - 📖 `deployment/01-installation.md` - 설치 가이드
@@ -728,8 +728,8 @@ rclone copy backup_$(date +%Y%m%d).tar.gz gdrive:backups/
 - 📖 `deployment/04-updates.md` - 자동 업데이트
 
 ### 모듈
-- 📖 `modules/system-design.md` - 모듈 시스템
-- 📖 `modules/development-guide.md` - 개발 가이드
+- 📖 `modules/03-system-design.md` - 모듈 시스템
+- 📖 `modules/01-development-guide.md` - 개발 가이드
 
 ---
 
