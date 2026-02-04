@@ -129,7 +129,7 @@ apps/api/
 ```
 
 > 📖 **빌드 프로세스 상세:**  
-> → `deployment/build-process.md`
+> → `deployment/98-build-process.md`
 
 #### 특징
 
@@ -153,7 +153,7 @@ apps/api/
 - 🔧 Proxmox LXC 컨테이너
 
 > 📖 **홈서버 배포 가이드:**  
-> → `deployment/installation.md § 1. Docker Compose`
+> → `deployment/01-installation.md § 1. Docker 버전`
 
 ---
 
@@ -214,7 +214,7 @@ Vite 개발 서버를 포트 5173에서 실행하며, /api 경로로 향하는 �
 - 🐛 디버깅 작업
 
 > 📖 **개발 환경 설정:**  
-> → `deployment/installation.md § 2. 개발 환경`
+> → `modules/development-guide.md`
 
 ---
 
@@ -272,7 +272,7 @@ cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 
 - 💼 엔터프라이즈
 
 > 📖 **분리 배포 가이드:**  
-> → `deployment/installation.md § 4. Cloudflare Pages + Workers`
+> → `deployment/01-installation.md § 2. Cloudflare 버전`
 
 ---
 
@@ -522,7 +522,7 @@ Fieldstack (:3000)
 
 ### 정적 파일 캐싱 (홈서버 모드)
 
-express.static 미들웨어로 public 폴더를 서빙합니다. 캐시 유효기간은 1년으로 설정하고, etag과 lastModified를 활성화하여 조건부 요청을 지원합니다. immutable 옵션도 켜서 해시가 포함된 파일명의 캐시를 더 효과적으로 활용합니다.
+express.static 미들웨어로 public 폴더을 서빙합니다. 캐시 유효기간은 1년으로 설정하고, etag과 lastModified를 활성화하여 조건부 요청을 지원합니다. immutable 옵션도 켜서 해시가 포함된 파일명의 캐시를 더 효과적으로 활용합니다.
 
 ### DB 최적화
 > 📖 → `technical/database.md § 성능 최적화`
@@ -562,7 +562,7 @@ PM2 클러스터 모드로 실행합니다. 앱 이름은 'finance-system'이고
 ## 업데이트 전략
 
 > 📖 **상세 가이드:**  
-> → `deployment/updates.md`
+> → `deployment/04-updates.md`
 
 ### Core 업데이트
 - 하위 호환성 유지
@@ -686,7 +686,7 @@ services:
 ## 백업 전략
 
 > 📖 **상세 가이드:**  
-> → `deployment/installation.md § 백업 전략`
+> → `deployment/01-installation.md`
 
 ### 홈서버 백업
 
@@ -723,9 +723,9 @@ rclone copy backup_$(date +%Y%m%d).tar.gz gdrive:backups/
 - 📖 `technical/scheduler.md` - Scheduler
 
 ### 배포
-- 📖 `deployment/installation.md` - 설치 가이드
-- 📖 `deployment/build-process.md` - 빌드 프로세스
-- 📖 `deployment/updates.md` - 자동 업데이트
+- 📖 `deployment/01-installation.md` - 설치 가이드
+- 📖 `deployment/98-build-process.md` - 빌드 프로세스
+- 📖 `deployment/04-updates.md` - 자동 업데이트
 
 ### 모듈
 - 📖 `modules/system-design.md` - 모듈 시스템
@@ -745,4 +745,4 @@ Fieldstack은 **환경에 따라 자동으로 최적화**되는 유연한 아키
 
 > 💡 **추천:**  
 > 처음 시작하시는 분은 **홈서버 모드**로 시작하세요!  
-> → `deployment/installation.md § 1. Docker Compose`
+> → `deployment/01-installation.md § 1. Docker 버전`

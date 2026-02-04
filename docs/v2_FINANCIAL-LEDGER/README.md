@@ -85,10 +85,10 @@ npm run start
 ## 📚 문서
 
 ### 시작하기
-- [📦 설치 가이드](deployment/installation.md)
-- [🧙 설치 마법사](deployment/setup-wizard.md)
-- [⚙️ 설정 관리](deployment/configuration.md)
-- [🏗️ 빌드 프로세스](deployment/build-process.md)
+- [📦 설치 가이드](deployment/01-installation.md)
+- [🧙 설치 마법사](deployment/02-setup-wizard.md)
+- [⚙️ 설정 관리](deployment/03-configuration.md)
+- [🏗️ 빌드 프로세스](deployment/98-build-process.md)
 
 ### 아키텍처
 - [🏗️ 전체 개요](architecture/overview.md)
@@ -120,10 +120,10 @@ npm run start
 - [🌐 공식 웹사이트](marketplace/website.md)
 
 ### 배포 & 운영
-- [🚀 배포 전략](deployment/installation.md)
-- [🔄 자동 업데이트](deployment/updates.md)
-- [📡 업데이트 채널](deployment/update-channels.md)
-- [🎭 데모 전략](deployment/demo-strategy.md)
+- [🚀 배포 전략](deployment/00-overview.md)
+- [🔄 자동 업데이트](deployment/04-updates.md)
+- [📡 업데이트 채널](deployment/05-update-channels.md)
+- [🎭 데모 전략](deployment/99-demo-strategy.md)
 
 ### 커뮤니티
 - [💭 프로젝트 철학](community/philosophy.md)
