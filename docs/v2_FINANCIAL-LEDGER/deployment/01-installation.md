@@ -195,7 +195,7 @@ module.exports = {
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template/...)
 
-- Railway 템플릿을 통해 5분 내 배포 가능
+- Railway 템플릿을 통해 5분 내 배포 가능(Docker Image)
 - PostgreSQL 플러그인 자동 연결
 
 ---
