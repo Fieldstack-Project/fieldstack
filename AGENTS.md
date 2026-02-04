@@ -21,7 +21,7 @@
 
 ```bash
 # Development (when implemented)
-pnpm dev            # Run dev workflow (see build-process.md)
+pnpm dev            # Run dev workflow (see 98-build-process.md)
 pnpm dev:web        # Vite dev server (port 5173)
 pnpm dev:api        # Express backend (port 3000)
 
@@ -54,7 +54,7 @@ pnpm typecheck      # TypeScript type checking
 
 ## Build Process Details (Docs)
 
-Reference: `docs/v2_FINANCIAL-LEDGER/deployment/build-process.md`
+Reference: `docs/v2_FINANCIAL-LEDGER/deployment/98-build-process.md`
 
 **Root scripts (planned)**:
 
@@ -191,7 +191,7 @@ Design tokens (from `docs/v2_FINANCIAL-LEDGER/ui/design-system.md`):
 ## Key References
 
 - `docs/v2_FINANCIAL-LEDGER/technical/tech-stack.md`
-- `docs/v2_FINANCIAL-LEDGER/deployment/build-process.md`
+- `docs/v2_FINANCIAL-LEDGER/deployment/98-build-process.md`
 - `docs/v2_FINANCIAL-LEDGER/ui/design-system.md`
 - `docs/v2_FINANCIAL-LEDGER/ui/core-components.md`
 - `README.md`
