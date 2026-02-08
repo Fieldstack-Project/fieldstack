@@ -112,6 +112,7 @@ Google의 Calendar API를 사용하여 구독 결제일을 캘린더 이벤트�
   - 포모도로는 추가되지 않음
 - 프로젝트·외주 관리
   - 정산 시스템 포함
+  - 이메일, Form(API, Webhook / Tally, Google Form, Typeform, Notion(API를 사용하여 DB를 글거오는 방식)), 커스텀 API
 - 플레너
   - 여행 계획(국내, 해외 등)
 
