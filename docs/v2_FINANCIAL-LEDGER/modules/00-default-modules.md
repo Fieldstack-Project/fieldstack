@@ -53,14 +53,19 @@ GET    /api/ledger/categories       # 카테고리 목록
 ## Subscription (정기 구독)
 
 ### 기능 개요
-Netflix, Spotify 등 정기 구독 서비스를 관리하고 결제일을 추적
+Netflix, Spotify 등 정기 구독 서비스를 관리하고 결제일을 추적하며, 가격 변동 히스토리를 기록하여 정확한 누적 결제 금액을 계산
 
 ### 데이터 구조
 
 Subscription은 구독 서비스 하나의 구조입니다.<br>
-id는 고유 식별자, userId는 사용자 ID, serviceName은 Netflix·Spotify 등의 서비스명, amount는 금액, currency는 KRW·USD 등의 통화 단위입니다.<br>
+id는 고유 식별자, userId는 사용자 ID, serviceName은 Netflix·Spotify 등의 서비스명, currentAmount는 현재 적용 중인 금액, currency는 KRW·USD 등의 통화 단위입니다.<br>
 billingCycle은 결제 주기로 monthly(월간) 또는 yearly(연간) 중 하나이며, billingDay는 결제일(1~31), nextPaymentDate는 다음 결제 날짜, isActive는 활성화 여부입니다.<br>
-category는 스트리밍·클라우드·게임 등의 카테고리, description은 설명, url은 구독 관리 페이지 링크, tags는 태그 목록이고, createdAt과 updatedAt은 생성·수정 시간입니다.
+category는 스트리밍·클라우드·게임 등의 카테고리, description은 설명, url은 구독 관리 페이지 링크, tags는 태그 목록입니다.<br>
+totalPaid는 전체 누적 결제 금액, priceHistory는 가격 변동 히스토리 배열, calendarEventId는 Google Calendar 연동 이벤트 ID이고, createdAt과 updatedAt은 생성·수정 시간입니다.
+
+PriceHistory는 구독 서비스의 가격 변동 기록 하나의 구조입니다.<br>
+id는 고유 식별자, subscriptionId는 해당 구독 서비스 ID, effectiveDate는 이 가격이 적용되기 시작한 날짜, amount는 해당 시점의 금액, currency는 통화 단위입니다.<br>
+reason은 가격 변경 사유(예: 가격 인상, 프로모션 종료, 플랜 변경 등), note는 사용자가 직접 작성한 메모이고, createdAt은 기록 생성 시간입니다.
 
 ### 주요 기능
 
@@ -70,39 +75,107 @@ category는 스트리밍·클라우드·게임 등의 카테고리, description�
 - 구독 활성화/비활성화
 - 구독 해지일 기록
 
-#### 2. 결제 알림
+#### 2. 가격 변동 히스토리 관리
+- 가격 변경 기록 및 적용일 설정
+- 변경 사유 및 메모 작성
+- 히스토리 타임라인 조회
+- 가격 변동 그래프 시각화
+
+#### 3. 누적 결제 금액 계산
+- 전체 기간 누적 결제 금액
+- 특정 기간 누적 결제 금액
+- 가격 구간별 누적 금액 계산
+- 현재 가격으로 계산된 누적 금액
+
+#### 4. 결제 알림
 - 결제일 D-7, D-3, D-1 알림
 - 이메일/푸시 알림 지원
-- dicsord, Slack 알림 연동 (선택)
+- Discord, Slack 알림 연동 (선택)
 
-#### 3. 통계
+#### 5. 통계 및 분석
 - 월간/연간 총 구독료 계산
 - 카테고리별 구독료 분석
 - 구독 서비스 수 추적
 - 가장 비싼 구독 서비스 표시
+- 가격 변동 트렌드 분석
+- 평균 월 지출 계산
 
-#### 4. Google Calendar 연동
+#### 6. Google Calendar 연동
 - 결제일을 자동으로 Google Calendar에 등록
 - 캘린더에서 바로 확인 가능
 - 결제일 변경 시 자동 동기화
+- 가격 변경 시 이벤트 설명 업데이트
 
 ### API 엔드포인트
 
 ```
-GET    /api/subscription/services         # 목록 조회
-GET    /api/subscription/services/:id     # 상세 조회
-POST   /api/subscription/services         # 신규 생성
-PUT    /api/subscription/services/:id     # 수정
-DELETE /api/subscription/services/:id     # 삭제
-GET    /api/subscription/summary           # 요약 통계
-POST   /api/subscription/sync-calendar     # Calendar 동기화
+GET    /api/subscription/services              # 목록 조회
+GET    /api/subscription/services/:id          # 상세 조회
+POST   /api/subscription/services              # 신규 생성
+PUT    /api/subscription/services/:id          # 수정
+DELETE /api/subscription/services/:id          # 삭제
+GET    /api/subscription/summary                # 요약 통계
+
+# 가격 히스토리 관련
+POST   /api/subscription/services/:id/price    # 가격 변경 기록
+GET    /api/subscription/services/:id/history  # 가격 히스토리 조회
+GET    /api/subscription/services/:id/cumulative  # 누적 결제 금액 조회
+
+# 기타
+POST   /api/subscription/sync-calendar          # Calendar 동기화
 ```
+
+### 가격 변동 처리 로직
+
+가격 변경 요청을 받으면 다음 순서로 처리됩니다.
+
+먼저 새로운 PriceHistory 항목을 생성합니다. 구독 서비스 ID, 적용 시작일, 새 금액, 통화, 변경 사유, 사용자 메모를 포함합니다.
+
+그 다음 Subscription의 currentAmount를 새 금액으로 업데이트하고, priceHistory 배열에 새 히스토리 항목을 추가합니다.
+
+Event Bus를 통해 'subscription:price-changed' 이벤트를 발행합니다. 이벤트에는 구독 ID, 이전 금액, 새 금액, 적용일을 포함합니다.
+
+만약 Google Calendar가 연동되어 있다면, 해당 이벤트의 설명을 새 금액으로 업데이트합니다.
+
+### 기간별 누적 금액 계산
+
+특정 기간의 누적 결제 금액을 계산하는 방식입니다.
+
+먼저 해당 구독의 가격 히스토리를 적용 시작일 순으로 정렬합니다.
+
+각 가격 구간을 순회하며 다음을 계산합니다:
+- 현재 가격이 적용된 시작일과 종료일 결정
+- 해당 기간 내에 발생한 결제 횟수 계산 (결제 주기와 결제일 기준)
+- 결제 횟수 × 해당 가격 = 구간별 누적 금액
+
+모든 구간의 금액을 합산하여 최종 누적 금액을 반환합니다.
+
+예시:
+- 2024년 1월: 월 10,000원 (3개월 사용 = 30,000원)
+- 2024년 4월부터: 월 12,000원 (6개월 사용 = 72,000원)
+- 전체 누적: 102,000원
+
+### 통계 및 분석 기능
+
+구독별 상세 통계 조회 시 다음 정보를 제공합니다:
+
+전체 기간 누적 결제 금액: 구독 시작부터 현재까지의 총 결제 금액
+
+현재 가격으로 누적된 금액: 가장 최근 가격 변경 이후부터 현재까지 해당 가격으로 결제한 총 금액
+
+가격 변동 횟수: 지금까지 몇 번 가격이 변경되었는지
+
+평균 월 지출: 전체 사용 기간 동안의 월 평균 지출액
+
+가격 변동 트렌드: 가격이 상승 추세인지 하락 추세인지, 또는 안정적인지 분석
 
 ### Google Calendar 연동 구현
 
 Google의 Calendar API를 사용하여 구독 결제일을 캘린더 이벤트로 생성합니다.<br>
-이벤트의 제목은 서비스명에 카드 이모지를 붙인 형태로, 설명에는 금액을 표시합니다.<br>
+이벤트의 제목은 서비스명에 카드 이모지를 붙인 형태로, 설명에는 현재 금액을 표시합니다.<br>
 이벤트의 시작일과 종료일은 모두 다음 결제일로 설정하고, 결제 주기에 따라 월간이면 매월 반복, 연간이면 매년 반복하도록 반복 규칙을 적용합니다.
+
+가격이 변경되면 해당 이벤트의 설명을 새 금액으로 자동 업데이트합니다.
 
 ---
 
@@ -164,12 +237,21 @@ Subscription 모듈에서 매일 자정에 실행되는 스케줄 작업을 등�
 실행되면 오늘이 결제일인 구독 목록을 조회한 후,<br>
 각 구독에 대해 Event Bus를 통해 'subscription:payment' 이벤트를 발행합니다.
 
-이벤트의 내용에는 음수 금액(지출), 카테고리 'subscription',<br>
-설명으로 서비스명 구독료, 날짜로 오늘 날짜를 포함합니다.
+이벤트의 내용에는 음수 금액(지출, 현재 적용 중인 currentAmount 사용), 카테고리 'subscription',<br>
+설명으로 서비스명 구독료 및 현재 금액, 날짜로 오늘 날짜, 메타데이터로 구독 ID와 가격 히스토리 ID를 포함합니다.
 
 Ledger 모듈의 초기화 함수에서 해당 이벤트를 구독합니다.<br>
 'subscription:payment' 이벤트가 들어오면 전달된 데이터로<br>
 가계부 항목을 자동으로 생성하고, 생성 완료 시 로그를 남깁니다.
+
+### Subscription 가격 변경 시 자동 처리
+
+가격이 변경되면 'subscription:price-changed' 이벤트가 발행됩니다.
+
+이 이벤트를 수신한 다른 모듈이나 기능에서 다음 작업을 수행할 수 있습니다:
+- 사용자에게 가격 변경 알림 발송
+- Google Calendar 이벤트 설명 업데이트
+- 분석 데이터 재계산
 
 ---
 
@@ -186,6 +268,47 @@ DataTable에는 날짜(정렬 가능), 카테고리, 내용, 금액 열을 정�
 Core의 PageLayout과 Card, StatCard 컴포넌트를 사용하여 구독 관리 대시보드를 구성합니다.<br>
 상단에는 3개의 요약 카드를 배치합니다: 월간 구독료 합계, 활성 구독 수, 다음 결제일.<br>
 그 아래에는 Card 안에 구독 목록을 루프를 돌며 카드 형태로 하나씩 표시합니다.
+
+각 구독 카드에는 다음 정보를 표시합니다:
+- 서비스명과 현재 금액
+- 다음 결제일
+- 전체 누적 결제 금액
+- 가격 변동 횟수 (변동이 있는 경우 아이콘 표시)
+
+### Subscription 상세 화면
+
+구독 서비스의 상세 정보를 표시하는 페이지입니다.
+
+상단 섹션에는 기본 정보를 표시합니다: 서비스명, 현재 금액, 결제 주기, 다음 결제일, 카테고리, 활성 상태.
+
+가격 히스토리 섹션에는 타임라인 형태로 가격 변동 내역을 표시합니다:
+- 각 가격 변경 시점을 시간순으로 나열
+- 적용일, 금액, 변경 사유, 메모 표시
+- 각 구간별 누적 결제 금액 표시
+- 선 그래프로 가격 변동 추이 시각화
+
+통계 섹션에는 여러 StatCard를 배치합니다:
+- 전체 누적 결제 금액
+- 현재 가격으로 누적된 금액
+- 평균 월 지출
+- 가격 변동 횟수
+- 첫 구독일로부터 경과 일수
+
+하단에는 '가격 변경', '수정', '삭제' 버튼을 배치합니다.
+
+### 가격 변경 모달
+
+가격 변경 버튼을 클릭하면 나타나는 모달입니다.
+
+FormLayout을 사용하여 다음 입력 필드를 배치합니다:
+- 새 금액 (숫자 입력, 필수)
+- 적용 시작일 (날짜 선택, 기본값은 오늘)
+- 변경 사유 (선택 드롭다운: 가격 인상, 프로모션 종료, 플랜 변경, 기타)
+- 메모 (텍스트 영역, 선택사항)
+
+미리보기 섹션을 추가하여 변경 후 예상 월 지출을 표시합니다.
+
+'저장' 버튼을 클릭하면 가격 변경이 적용되고, 히스토리에 기록됩니다.
 
 ---
 
