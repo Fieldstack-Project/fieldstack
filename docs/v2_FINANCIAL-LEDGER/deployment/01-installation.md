@@ -149,11 +149,16 @@ sudo systemctl enable fieldstack
 sudo systemctl start fieldstack
 ```
 
+> 참고: systemd는 단일 프로세스 상시 구동에 적합합니다.
+> 멀티코어 활용이 필요하면 PM2(클러스터)나 Node.js 클러스터 방식을 고려하세요.
+
 ---
 
 ## 4. Native (CLI) 버전
 
 Docker를 사용할 수 없는 환경(저사양 기기, 호스팅 제약 등)에서 **PM2**를 사용하여 백그라운드 프로세스로 실행하는 방식입니다.
+
+> 참고: PM2는 멀티프로세스/클러스터 관리에 유리합니다.
 
 ### 4.1 설치 및 실행
 
