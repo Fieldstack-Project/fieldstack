@@ -92,6 +92,7 @@ npm run start
 
 ### 아키텍처
 - [🏗️ 전체 개요](architecture/00-overview.md)
+- [🛡️ 탄력성 운영](architecture/03-resilience-operations.md)
 - [📁 디렉터리 구조](architecture/04-directory-structure.md)
 - [💡 핵심 원칙](architecture/02-core-principles.md)
 - [📋 설계 결정](architecture/01-decisions.md)

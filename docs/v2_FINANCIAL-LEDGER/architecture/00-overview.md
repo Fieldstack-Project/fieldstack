@@ -33,6 +33,9 @@ Plugins (Optional)
 > 📖 **디렉터리 구조:**  
 > → `architecture/04-directory-structure.md`
 
+> 📖 **탄력성 운영 아키텍처:**  
+> → `architecture/03-resilience-operations.md`
+
 ---
 
 ## 배포 아키텍처
@@ -714,6 +717,7 @@ rclone copy backup_$(date +%Y%m%d).tar.gz gdrive:backups/
 ### 아키텍처
 - 📌 `architecture/01-decisions.md` - 핵심 결정 사항
 - 📖 `architecture/02-core-principles.md` - 설계 원칙
+- 📖 `architecture/03-resilience-operations.md` - 장애 대응/복구 운영
 - 📖 `architecture/04-directory-structure.md` - 폴더 구조
 
 ### 기술
