@@ -337,6 +337,7 @@ docs/
 │   ├── 00-overview.md
 │   ├── 01-decisions.md
 │   ├── 02-core-principles.md
+│   ├── 03-resilience-operations.md
 │   └── 04-directory-structure.md
 ├── technical/                    # 기술 문서
 │   ├── 00-tech-stack.md
