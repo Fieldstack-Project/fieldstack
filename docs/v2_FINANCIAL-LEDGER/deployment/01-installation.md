@@ -8,11 +8,12 @@ Fieldstack은 **00-overview.md**에서 정의된 4가지 실행 모델을 지원
 ## 📋 목차
 
 1. [Docker 버전 (권장)](#1-docker-버전-권장) - 가장 표준적이고 쉬운 방법
-2. [Cloudflare 버전](#2-cloudflare-버전) - 외부 접속 및 무료 SSL/TLS 자동화
+2. [Cloudflare 버전](#2-cloudflare-버전) - Cloudflare 클라우드(Pages + Workers + D1) 배포
 3. [OS Native 버전](#3-os-native-버전) - Linux 서버 운영자용 (Systemd)
 4. [Native (CLI) 버전](#4-native-cli-버전) - Docker 미사용 환경 (PM2)
 5. [기타 플랫폼](#5-기타-플랫폼) - Railway 등
 6. [공통 설정](#6-공통-설정) - 환경 변수, 리버스 프록시
+7. [[초안/미확정] Cloudflare Tunnel — 홈서버 외부 공개](#7-초안미확정-cloudflare-tunnel--홈서버-외부-공개) - 집 IP 노출 없이 지인 공유
 
 ---
 
@@ -253,3 +254,129 @@ server {
 ```bash
 sudo certbot --nginx -d your-domain.com
 ```
+
+---
+
+## 7. [초안/미확정] Cloudflare Tunnel — 홈서버 외부 공개
+
+> **⚠️ 초안/미확정:** 아이디어 검토 단계이며, 정식 기능으로 확정되지 않았습니다.
+
+### 개요
+
+Fieldstack은 어떤 방식(Docker, PM2, systemd)으로 실행하든 기본적으로 **로컬(집 내부 네트워크)에서만 접근 가능**합니다.
+
+지인에게 공유하거나 외부에서 접근하고 싶을 경우, 가장 단순한 방법은 집 IP를 직접 알려주는 것이지만 **보안상 바람직하지 않습니다.** Cloudflare Tunnel(`cloudflared`)을 사용하면 집 IP를 노출하지 않고도 `fieldstack.내도메인.com` 형태로 안전하게 외부 공개가 가능합니다.
+
+> **주의:** 이 섹션은 [2. Cloudflare 버전](#2-cloudflare-버전)(Cloudflare 클라우드 배포)과 **전혀 다른 개념**입니다.
+> - **2번 Cloudflare 버전**: Fieldstack 자체를 Cloudflare 클라우드(Pages + Workers + D1)에 올려서 운영하는 방식
+> - **이 섹션(7번)**: Fieldstack은 집/로컬 서버에서 그대로 실행하되, Tunnel을 통해 외부 접근 통로만 안전하게 여는 방식
+
+| 구분 | IP 직접 공유 | Cloudflare Tunnel |
+|------|------------|-------------------|
+| 공유 주소 | `집IP:3000` | `fieldstack.내도메인.com` |
+| 집 IP 노출 | ✅ 노출됨 | ❌ 완전 숨김 |
+| 포트포워딩 | 필요 | 불필요 |
+| 고정 IP | 필요 | 불필요 |
+| SSL/HTTPS | 직접 설정 | 자동 무료 |
+| 유동 IP 대응 | DDNS 필요 | 자동 처리 |
+
+---
+
+### 실행 방식별 적용 방법
+
+#### Docker로 실행 중인 경우
+
+`docker-compose.yml`에 `cloudflared` 서비스 하나만 추가하면 됩니다.
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    image: fieldstack/core:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./modules:/app/modules
+    environment:
+      - NODE_ENV=production
+      - SERVE_FRONTEND=true
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    environment:
+      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      - app
+```
+
+`.env`에 토큰 추가 후 재실행:
+
+```bash
+CLOUDFLARE_TUNNEL_TOKEN=your-tunnel-token-here
+```
+
+```bash
+docker-compose up -d
+```
+
+---
+
+#### PM2로 실행 중인 경우
+
+`cloudflared`는 Fieldstack과 완전히 독립적으로 동작합니다. PM2로 Fieldstack을 실행 중이라면 `cloudflared`만 별도로 설치해서 실행하면 됩니다.
+
+```bash
+# cloudflared 설치 (Linux)
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+chmod +x cloudflared
+sudo mv cloudflared /usr/local/bin/
+
+# 터널 실행
+cloudflared tunnel run --token your-tunnel-token-here
+
+# PM2로 상시 실행 등록
+pm2 start "cloudflared tunnel run --token your-tunnel-token-here" --name "cloudflared"
+pm2 save
+```
+
+---
+
+#### systemd로 실행 중인 경우
+
+`cloudflared`를 별도 systemd 서비스로 등록합니다.
+
+`/etc/systemd/system/cloudflared.service` 파일 생성:
+
+```ini
+[Unit]
+Description=Cloudflare Tunnel
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cloudflared tunnel run --token your-tunnel-token-here
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable cloudflared
+sudo systemctl start cloudflared
+```
+
+---
+
+### 터널 토큰 발급 방법
+
+1. [Cloudflare Zero Trust 대시보드](https://one.dash.cloudflare.com/) 접속
+2. `Networks → Tunnels → Create a tunnel`
+3. `Cloudflared` 선택 후 터널 이름 입력
+4. 토큰 복사
+5. `Public Hostname` 설정: `fieldstack.내도메인.com` → `http://localhost:3000`
