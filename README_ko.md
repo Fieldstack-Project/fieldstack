@@ -2,6 +2,7 @@
 
 > 개인용 모듈형 생산성 프레임워크
 
+[![English](https://img.shields.io/badge/README-English-blue)](README.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Org](https://img.shields.io/badge/GitHub-fieldstack--project-181717?logo=github)](https://github.com/fieldstack-project)
 

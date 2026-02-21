@@ -2,6 +2,7 @@
 
 > Personal modular productivity framework
 
+[![한국어](https://img.shields.io/badge/README-한국어-red)](README_ko.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Org](https://img.shields.io/badge/GitHub-fieldstack--project-181717?logo=github)](https://github.com/fieldstack-project)
 
