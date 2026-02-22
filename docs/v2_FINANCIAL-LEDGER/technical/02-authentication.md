@@ -26,10 +26,10 @@
 > Synology Account와 같은 외부 계정 복구는 Fieldstack 기본 범위에서 제외합니다.
 > Fieldstack는 로컬 인스턴스 기준 복구(웹/관리자/CLI)만 제공합니다.
 
-### 1) 이메일 + 비밀번호 (기본)
+### 1) ID/이메일 + 비밀번호 (기본)
 
 **일반 로그인 기본값:**
-- 사용자 식별자는 이메일 사용
+- 사용자 식별자는 ID/이메일 사용
 - 비밀번호는 Argon2id 해시로 저장
 - Whitelist 기반 접근 제어
 
@@ -40,11 +40,18 @@
 - 2FA 등록은 계정 설정에서 ON/OFF
 - 관리자 계정은 2FA 필수 권장
 
+**MFA(Multi-Factor Authentication):**
+- TOTP 2차 인증
+- Passkey (Passwordless)
+
 ### 3) Passkey (Passwordless)
 
 **지원 목표:**
 - WebAuthn 기반 로그인 지원
 - 비밀번호 없이 기기 인증(지문/Face ID/보안키) 가능
+    - macOS TouchID, Windows Hello
+    - 사용자 장치의 생체 인증 옵션(지문, Face ID 등)
+    - FIDO2/U2F 하드웨어 보안 키
 - 필요 시 2차 인증 정책과 병행 가능
 
 ### 4) Google OAuth 2.0 (선택)
