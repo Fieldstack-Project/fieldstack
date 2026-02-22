@@ -38,10 +38,15 @@ Fieldstack/
 **예상 기간: 6주**
 
 **Auth (인증):**
-- [ ] Google OAuth 2.0 통합
+- [ ] 이메일 + 비밀번호 로그인 (기본)
+- [ ] TOTP 2FA (Google Authenticator 등)
+- [ ] Passkey(WebAuthn) 로그인 (선택)
+- [ ] Google OAuth 2.0 통합 (선택)
 - [ ] Whitelist 시스템
 - [ ] JWT 세션 관리
-- [ ] 관리자 비밀번호 시스템
+- [ ] 관리자 PIN 시스템
+- [ ] 비밀번호 분실 복구 (SMTP self-service + Admin-assisted)
+- [ ] Mode 1 Local CLI reset 명령
 
 **Database (DB 추상화):**
 - [ ] Provider 인터페이스 정의

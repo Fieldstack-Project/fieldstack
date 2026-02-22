@@ -1,20 +1,57 @@
 # 인증 및 접근 제어
 
 > 📌 **핵심 결정:**  
-> → `architecture/decisions.md § 결정 #2: 관리자 인증 (OAuth + PIN)`
+> → `architecture/01-decisions.md § 결정 #2: 로컬 로그인 우선 + 선택 OAuth + 관리자 PIN`
 
-**최종 업데이트:** 2025-01-29
+**최종 업데이트:** 2026-02-22
 
 ---
 
 ## 인증 방식
 
-### Google OAuth 2.0
+### 인증 우선순위
 
-**일반 로그인:**
-- Google 계정으로 로그인
-- 일상적인 사용
+1. **이메일 + 비밀번호 로그인 (기본/필수)**
+2. **TOTP 2차 인증 (권장, 관리자 필수 권장)**
+3. **Passkey (선택, Passwordless 지원)**
+4. **Google OAuth (선택, 편의 로그인)**
+
+### 계정 복구 우선순위
+
+1. **Self-service 복구 (SMTP 활성화 시)**
+2. **Admin-assisted 복구 (1회용 토큰 발급)**
+3. **Mode 1 복구 (Local CLI reset, 최후 수단)**
+
+> ⚠️ **범위 명시:**
+> Synology Account와 같은 외부 계정 복구는 Fieldstack 기본 범위에서 제외합니다.
+> Fieldstack는 로컬 인스턴스 기준 복구(웹/관리자/CLI)만 제공합니다.
+
+### 1) 이메일 + 비밀번호 (기본)
+
+**일반 로그인 기본값:**
+- 사용자 식별자는 이메일 사용
+- 비밀번호는 Argon2id 해시로 저장
 - Whitelist 기반 접근 제어
+
+### 2) TOTP 2차 인증 (Google Authenticator 등)
+
+**적용 방식:**
+- 로그인 1차 성공 후 OTP 6자리 입력 (Step-up)
+- 2FA 등록은 계정 설정에서 ON/OFF
+- 관리자 계정은 2FA 필수 권장
+
+### 3) Passkey (Passwordless)
+
+**지원 목표:**
+- WebAuthn 기반 로그인 지원
+- 비밀번호 없이 기기 인증(지문/Face ID/보안키) 가능
+- 필요 시 2차 인증 정책과 병행 가능
+
+### 4) Google OAuth 2.0 (선택)
+
+**역할:**
+- 기본 로그인 수단이 아닌 추가 편의 로그인
+- 로컬 계정과 연결(Link)하여 사용
 
 **설정 방법:**
 1. Google Cloud Console 접속
@@ -27,17 +64,17 @@
 ## 관리자 인증 (PIN)
 
 > 💡 **왜 PIN을 선택했나요?**  
-> → `architecture/decisions.md § 결정 #2` - 설계 근거 참고
+> → `architecture/01-decisions.md § 결정 #2` - 설계 근거 참고
 
 ### 개념
 
 **이중 인증 구조:**
 ```
 일반 사용:
-  Google OAuth → 앱 접근
+  1차 로그인(이메일+비밀번호 또는 Passkey/OAuth) → 앱 접근
 
 관리자 설정 접근:
-  Google OAuth → 앱 접근
+  1차 로그인(이메일+비밀번호 또는 Passkey/OAuth) → 앱 접근
        +
   4~6자리 PIN → 관리자 설정 접근
 ```
@@ -60,7 +97,8 @@
 ### 사용 시나리오
 
 ```
-1. Google로 이미 로그인된 상태
+1. 1차 로그인 완료 상태
+   (이메일+비밀번호 또는 Passkey/OAuth)
    ↓
 2. 관리자 설정 페이지 접근 시도
    (예: 사용자 관리, DB 설정, 시스템 설정)
@@ -103,7 +141,8 @@
 
 **작동 방식:**
 ```
-1. 사용자가 Google로 로그인
+1. 사용자가 1차 로그인
+   (이메일+비밀번호 또는 Passkey/OAuth)
    ↓
 2. 이메일 주소 확인
    ↓
@@ -127,28 +166,38 @@ admin_sessions 테이블은 관리자 PIN 인증 후 생성되는 임시 세션�
 
 ## 인증 플로우
 
-### 1. 로그인 프로세스
+### 1. 로그인 프로세스 (기본: 이메일 + 비밀번호 + 선택 2FA)
+
+```
+사용자 → 이메일/비밀번호 입력
+         ↓
+  Backend에서 비밀번호 검증 (Argon2id)
+         ↓
+  계정의 2FA 활성 여부 확인
+         ↓
+  [2FA OFF] JWT 발급 → 메인 화면 이동
+         ↓
+  [2FA ON] OTP 6자리 입력 화면 표시
+         ↓
+  TOTP 검증 성공
+         ↓
+  JWT 발급 → 메인 화면 이동
+```
+
+### 1-1. Google OAuth 로그인 (선택)
 
 ```
 사용자 → "Google로 로그인" 버튼 클릭
          ↓
-  Google OAuth 페이지로 리다이렉트
+  Google OAuth 페이지 리다이렉트
          ↓
-  사용자가 Google 계정으로 로그인
+  Callback 처리 후 이메일 확인
          ↓
-  권한 승인 (프로필, 이메일)
+  로컬 계정과 연결된 사용자 매핑
          ↓
-  Callback URL로 리다이렉트 (Authorization Code)
+  (2FA 활성 계정이면 OTP 추가 검증)
          ↓
-  Backend에서 Code → Access Token 교환
-         ↓
-  Google API로 사용자 정보 조회
-         ↓
-  이메일 주소 Whitelist 확인
-         ↓
-  JWT 토큰 발급 → 클라이언트에 전달
-         ↓
-  메인 화면으로 이동
+  JWT 발급 → 메인 화면 이동
 ```
 
 ### 2. 세션 관리
@@ -165,6 +214,45 @@ JWT 토큰의 내부 구조(Payload)는 다음과 같습니다. 사용자의 고
 - Access Token: 7일
 - Refresh Token: 30일 (선택)
 
+### 3. 비밀번호 분실 복구 프로세스
+
+```
+[경로 A] SMTP 활성화
+사용자 → "비밀번호를 잊으셨나요" 요청
+         ↓
+서버 → 계정 존재 여부와 무관하게 동일 응답
+         ↓
+단일 사용 토큰(만료 15분) 발급 및 이메일 전송
+         ↓
+사용자 → 새 비밀번호 설정
+         ↓
+모든 기존 세션/리프레시 토큰 무효화
+
+[경로 B] SMTP 비활성화
+사용자 → 관리자에게 복구 요청
+         ↓
+관리자 → 1회용 복구 토큰 발급 (짧은 만료)
+         ↓
+사용자 → 토큰으로 비밀번호 재설정
+         ↓
+모든 기존 세션/리프레시 토큰 무효화
+
+[경로 C] Mode 1 (최후 수단)
+관리자(서버 로컬 접근 가능) → Local CLI reset 실행
+         ↓
+대상 계정 비밀번호 재설정/강제 변경
+         ↓
+모든 기존 세션/리프레시 토큰 무효화
+```
+
+### 4. Mode 1 (Local CLI reset) 정의
+
+- Synology Mode 1 개념을 Fieldstack 운영에 맞게 적용한 비상 복구 절차
+- 서버 로컬 접근 권한이 있는 운영자만 실행 가능
+- 데이터는 유지하고 인증 정보만 복구
+- 실행 후 대상 계정은 다음 로그인에서 비밀번호 변경을 강제할 수 있음
+- 감사 로그에 실행자, 대상 계정, 실행 시간, 실행 IP를 기록
+
 ---
 
 ## Backend 구현
@@ -176,7 +264,7 @@ authMiddleware는 모든 보호된 API 요청에 적용되는 인증 미들웨�
 ### 관리자 PIN 인증
 
 > 💡 **구현 상세:**  
-> → `architecture/decisions.md § 결정 #2: 기술 구현`
+> → `architecture/01-decisions.md § 결정 #2: 기술 구현`
 
 AdminAuthService 클래스가 관리자 PIN 인증의 전체 흐름을 담당합니다.
 
@@ -203,7 +291,7 @@ verifySession 메서드는 세션 ID로 세션을 조회한 후, 존재하지 �
 ### PIN 입력 컴포넌트
 
 > 💡 **UI 구현 예시:**  
-> → `architecture/decisions.md § 결정 #2: UI 구현`
+> → `architecture/01-decisions.md § 결정 #2: UI 구현`
 
 PinInput 컴포넌트는 사용자가 PIN을 입력하는 화면을 제공합니다. length 속성으로 PIN 자릿수(4 또는 6)를 설정할 수 있습니다.
 
@@ -226,7 +314,7 @@ ProtectedAdminRoute 컴포넌트는 관리자 전용 페이지를 보호하는 �
 ## 보안 고려사항
 
 > 📖 **전체 보안 정책:**  
-> → `architecture/decisions.md § 결정 #2: 보안`
+> → `architecture/01-decisions.md § 결정 #2: 보안`
 
 ### Rate Limiting
 
@@ -246,7 +334,7 @@ logFailedAttempt 함수는 PIN 인증 실패 시 사용자 ID, 실패 액션, IP
 
 ---
 
-## Google OAuth 콜백 처리
+## Google OAuth 콜백 처리 (선택 기능)
 
 GET /auth/google 엔드포인트는 사용자를 Google의 OAuth 인증 페이지로 리다이렉트합니다. 프로필과 이메일 정보에 대한 권한을 요청합니다.
 
@@ -264,27 +352,30 @@ GET /auth/callback 엔드포인트는 Google에서 돌아온 콜백을 처리합
 
 ## 📚 관련 문서
 
-- 📌 `architecture/decisions.md § 결정 #2` - PIN 방식 선택 근거
-- 📖 `deployment/setup-wizard.md` - 초기 관리자 설정
+- 📌 `architecture/01-decisions.md § 결정 #2` - PIN 방식 선택 근거
+- 📖 `deployment/02-setup-wizard.md` - 초기 관리자 설정
 - 📖 `community/02-github-policy.md` - 보안 정책
 
 ---
 
 ## FAQ
 
-### Q1. 왜 비밀번호가 아니라 PIN인가요?
-**A:** 홈서버 환경에서는 스마트폰 잠금처럼 간단한 PIN이 더 적합합니다. 복잡한 비밀번호는 자주 입력해야 하는 관리자 설정에 부담이 됩니다.
+### Q1. 왜 관리자 비밀번호가 아니라 PIN인가요?
+**A:** 일반 로그인은 이메일+비밀번호(또는 Passkey)를 사용하고, 관리자 설정 접근만 추가 단계로 PIN을 요구합니다. 홈서버 환경에서 관리자 설정 진입 시 빠른 입력 UX를 유지하기 위한 선택입니다.
 
-> 📖 상세 이유: `architecture/decisions.md § 결정 #2`
+> 📖 상세 이유: `architecture/01-decisions.md § 결정 #2`
 
 ### Q2. PIN이 안전한가요?
 **A:** PBKDF2 + Rate Limiting으로 충분히 안전합니다. 5회 실패 시 5분 잠금되므로 브루트포스 공격이 어렵습니다.
 
 ### Q3. PIN을 잊어버렸어요!
-**A:** 데이터베이스에서 직접 초기화해야 합니다. 백업 관리자 계정을 미리 만들어두는 것을 권장합니다.
+**A:** Mode 1(Local CLI reset)으로 복구합니다. 서버 로컬 접근 권한이 있는 운영자가 CLI로 PIN 또는 비밀번호를 재설정하고, 이후 세션을 무효화합니다.
 
 ### Q4. 세션이 자주 만료돼요
 **A:** 30분 타임아웃은 보안을 위한 것입니다. 설정에서 조정 가능합니다 (권장하지 않음).
 
 ### Q5. 일반 사용자도 PIN이 필요한가요?
-**A:** 아니요. PIN은 관리자 설정에만 필요합니다. 일반 사용자는 Google OAuth만으로 충분합니다.
+**A:** 아니요. PIN은 관리자 설정 접근에만 필요합니다. 일반 사용자는 이메일+비밀번호(기본) 또는 선택 로그인(OAuth/Passkey)으로 사용합니다.
+
+### Q6. 비밀번호를 잊어버렸어요!
+**A:** SMTP가 활성화된 경우 self-service 재설정 링크를 사용합니다. SMTP가 없으면 관리자 발급 1회용 토큰으로 복구하고, 마지막 수단은 Mode 1(Local CLI reset)입니다.
