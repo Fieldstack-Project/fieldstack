@@ -267,6 +267,11 @@ Fieldstack은 어떤 방식(Docker, PM2, systemd)으로 실행하든 기본적�
 
 지인에게 공유하거나 외부에서 접근하고 싶을 경우, 가장 단순한 방법은 집 IP를 직접 알려주는 것이지만 **보안상 바람직하지 않습니다.** Cloudflare Tunnel(`cloudflared`)을 사용하면 집 IP를 노출하지 않고도 `fieldstack.내도메인.com` 형태로 안전하게 외부 공개가 가능합니다.
 
+다만 이 기능을 사용하려면 자신이 소유한 도메인이 있어야 합니다.<br>
+또한 해당 도메인이 **Cloudflare에서 관리**되고 있어야 합니다. 
+- Cloudflare에서 직접 구매한 도메인, 또는
+- 타사에서 구매 후 네임서버를 Cloudflare로 변경한 도메인
+
 > **주의:** 이 섹션은 [2. Cloudflare 버전](#2-cloudflare-버전)(Cloudflare 클라우드 배포)과 **전혀 다른 개념**입니다.
 > - **2번 Cloudflare 버전**: Fieldstack 자체를 Cloudflare 클라우드(Pages + Workers + D1)에 올려서 운영하는 방식
 > - **이 섹션(7번)**: Fieldstack은 집/로컬 서버에서 그대로 실행하되, Tunnel을 통해 외부 접근 통로만 안전하게 여는 방식
