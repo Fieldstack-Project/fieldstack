@@ -29,12 +29,10 @@ packages/core/integrations/
 │   ├── sheets.ts
 │   ├── gmail.ts
 │   └── tasks.ts
-├── notion/
-│   └── index.ts
-├── slack/
-│   └── index.ts
-├── github/
-│   └── index.ts
+├── microsoft/
+│   ├── calendar.ts
+│   ├── onedrive.ts
+│   └── todo.ts
 └── webhook.ts           # 커스텀 Webhook
 ```
 
@@ -108,49 +106,16 @@ listEmails 메서드는 선택사항인 검색 키워드와 최대 조회 건수
 
 ---
 
-## Notion 통합
+## Microsoft 서비스 통합 (예정)
 
-Notion 클래스는 Notion API와의 통합을 담당합니다.
+### Outlook Calendar
+MicrosoftCalendar 클래스와 연동하여 `GoogleCalendar`와 완벽히 1:1로 대응되는 API 구조를 제공합니다. 모듈 개발자는 구글이든 마소든 동일한 `createEvent` 인터페이스를 사용할 수 있도록 추상화될 예정입니다.
 
-authenticate 메서드는 API 키를 받아 Notion 클라이언트를 초기화합니다.
+### OneDrive
+MicrosoftDrive 클래스와 연동하여 가계부 백업 파일 등을 업로드하거나 다운로드하는 기능을 제공합니다.
 
-createPage 메서드는 데이터베이스 ID와 속성 정보를 받아 해당 데이터베이스 안에 새 페이지를 생성합니다.
-
-updatePage 메서드는 페이지 ID와 속성 정보로 기존 페이지를 수정합니다.
-
-queryDatabase 메서드는 데이터베이스 ID와 선택사항인 필터 조건으로 데이터베이스를 조회합니다.
-
-appendBlock 메서드는 페이지 ID와 블록 배열을 받아 해당 페이지에 콘텐츠 블록을 추가합니다.
-
----
-
-## Slack 통합
-
-Slack 클래스는 Slack API와의 통합을 담당합니다.
-
-authenticate 메서드는 토큰을 받아 Slack WebClient를 초기화합니다.
-
-sendMessage 메서드는 채널, 텍스트, 선택사항인 블록 배열을 받아 해당 채널에 메시지를 전송합니다. blocks를 사용하면 리치 메시지(예: 섹션, 버튼 등)를 구성할 수 있습니다.
-
-uploadFile 메서드는 채널, 파일 버퍼, 파일명을 받아 해당 채널에 파일을 업로드합니다.
-
-listChannels 메서드는 워크스페이스의 채널 목록을 조회합니다.
-
----
-
-## GitHub 통합
-
-GitHub 클래스는 GitHub API와의 통합을 담당합니다.
-
-authenticate 메서드는 토큰을 받아 Octokit 클라이언트를 초기화합니다.
-
-createIssue 메서드는 저장소 소유자, 저장소명, 제목, 본문을 받아 해당 저장소에 이슈를 생성합니다.
-
-listIssues 메서드는 저장소 소유자, 저장소명, 상태 필터(open·closed·all, 기본값 open)를 받아 이슈 목록을 조회합니다.
-
-createGist 메서드는 설명과 파일 정보를 받아 비공개 Gist를 생성합니다.
-
----
+### Microsoft To Do
+일정 예약이나 가계부 리마인더 등을 Microsoft To Do의 태스크로 생성합니다.
 
 ## 커스텀 Webhook
 
@@ -175,7 +140,7 @@ get 메서드는 서비스 이름으로 해당 Integration 객체를 조회합�
 
 authenticate 메서드는 서비스 이름과 자격증명을 받아, 해당 서비스를 먼저 조회한 후 인증을 실행합니다. 해당 서비스가 없으면 에러를 발생시킵니다.
 
-마지막에서 전역 인스턴스를 생성하고, GoogleCalendar, GoogleDrive, GoogleSheets, Gmail, Notion, Slack, GitHub의 7개 통합 서비스를 기본으로 등록합니다.
+마지막에서 전역 인스턴스를 생성하고, `GoogleCalendar`, `GoogleDrive`, `GoogleSheets`, `Gmail`, `MicrosoftCalendar` 등의 통합 서비스를 기본으로 등록합니다.
 
 ---
 
@@ -279,14 +244,6 @@ syncSubscriptionToCalendar 함수는 구독 정보를 Google Calendar에 동기�
 > → `deployment/01-installation.md § 백업 전략`
 
 Scheduler에 'backup-to-drive' 작업을 등록합니다. 매일 새벽 3시에 실행되며, 총 4단계로 진행됩니다. 첫째로 데이터베이스 백업 파일을 생성합니다. 둘째로 Google Drive 통합이 인증되었는지 확인하고, 안 된 경우 로컬 백업만 유지하고 종료합니다. 셋째로 백업 파일을 읽어 Google Drive에 업로드합니다. 파일명에는 현재 타임스탬프를 포함시킵니다. 넷째로 업로드 완료 후 로컬 백업 파일을 선택적으로 삭제합니다.
-
-### 3. 리포트 → Slack 알림
-
-sendMonthlyReport 함수는 월간 리포트를 Slack으로 전송합니다. 먼저 월간 리포트를 생성합니다. 그 다음 Slack 통합이 인증되었는지 확인하고, 안 된 경우 경고를 로깅하고 종료합니다. 인증된 경우 #finance-reports 채널에 메시지를 전송합니다. 메시지의 제목은 '월간 가계부 리포트'이며, blocks를 사용하여 해당 월의 총 수입과 총 지출을 리치 형식으로 표시합니다.
-
-### 4. 이슈 → GitHub 자동 생성
-
-reportCriticalError 함수는 심각한 에러가 발생하면 GitHub에 이슈를 자동으로 생성합니다. 먼저 GitHub 통합이 인증되었는지 확인하고, 안 된 경우 에러를 로깅하고 종료합니다. 인증된 경우 finance-system 저장소에 이슈를 생성합니다. 이슈의 제목에는 [AUTO] 접두사와 에러 메시지를 붙이고, 본문에는 에러의 스택 트레이스와 관련 컨텍스트 정보를 JSON 형식으로 포함시킵니다.
 
 ---
 
