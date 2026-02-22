@@ -150,7 +150,7 @@ reloadModule 메서드는 개발 모드에서 사용되는 Hot Reload 기능입�
 
 ### ✅ 결정 사항
 
-**Google OAuth + 4~6자리 PIN** 방식을 채택합니다.
+**이메일/비밀번호 로그인 우선 + 선택적 OAuth + 4~6자리 관리자 PIN** 방식을 채택합니다.
 
 ### 📖 배경
 
@@ -160,7 +160,7 @@ reloadModule 메서드는 개발 모드에서 사용되는 Hot Reload 기능입�
 
 ### 🔍 고려했던 옵션
 
-#### Option A: OAuth + 복잡한 비밀번호
+#### Option A: OAuth 중심 로그인 + 복잡한 비밀번호
 ```
 장점:
 - 높은 보안
@@ -181,7 +181,7 @@ reloadModule 메서드는 개발 모드에서 사용되는 Hot Reload 기능입�
 - 관리자 설정 보호 안 됨
 ```
 
-#### Option C: OAuth + PIN ⭐ (선택)
+#### Option C: 로컬 로그인 + 관리자 PIN ⭐ (선택)
 ```
 장점:
 - 간단하면서 적절한 보안
@@ -207,7 +207,7 @@ reloadModule 메서드는 개발 모드에서 사용되는 Hot Reload 기능입�
 **Option C**를 선택한 이유:
 
 1. **적절한 보안 수준**
-   - 홈서버 환경: 물리적 보안 + OAuth + PIN으로 충분
+   - 홈서버 환경: 물리적 보안 + 로컬 로그인 + PIN으로 충분
    - 4~6자리로도 충분한 보호
    - 30분 세션으로 재입력 최소화
 
@@ -227,10 +227,11 @@ reloadModule 메서드는 개발 모드에서 사용되는 Hot Reload 기능입�
 
 ```
 일반 사용:
-  Google 로그인 → 앱 사용 (가계부 입력 등)
+  이메일/비밀번호 로그인 (기본) → 앱 사용 (가계부 입력 등)
+  또는 선택 로그인(OAuth/Passkey)
 
 관리자 설정 접근:
-  Google 로그인 (이미 됨)
+  1차 로그인 완료 (이메일/비밀번호 또는 선택 로그인)
     ↓
   관리자 설정 메뉴 클릭
     ↓
@@ -413,7 +414,7 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 | 결정 | 선택 | 핵심 이유 | 상태 |
 |------|------|----------|------|
 | #1 Module Loader | 런타임 동적 Import | VSCode 방식 UX | ✅ 확정 |
-| #2 관리자 인증 | OAuth + PIN | 간단하면서 안전 | ✅ 확정 |
+| #2 관리자 인증 | 로컬 로그인 우선 + PIN | 간단하면서 안전 | ✅ 확정 |
 | #3 DB 추상화 | Query Builder | 적절한 레벨 | ✅ 확정 |
 
 ---
@@ -434,7 +435,7 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 
 ### 문서 정리 (Step 3)
 1. `architecture/00-overview.md` - Frontend 서빙 로직 명확화
-2. `technical/02-authentication.md` - OAuth + PIN으로 수정
+2. `technical/02-authentication.md` - 로컬 로그인 우선 + 선택 OAuth + PIN으로 수정
 3. `modules/01-development-guide.md` - 교차 참조 추가
 
 ### 구현 시작 (Step 2)

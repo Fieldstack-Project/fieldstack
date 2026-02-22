@@ -13,7 +13,7 @@
 Client (Web / App)
    ↓
 Core Layer
- ├ Auth (Google OAuth + Whitelist)
+ ├ Auth (Email/Password + TOTP + Passkey + Optional OAuth)
  ├ DB Connector (Multi-provider)
  ├ Module Loader (런타임 동적 로드) ← 📖 decisions.md #1
  ├ Event Bus
@@ -294,7 +294,10 @@ cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 
 #### Auth
 > 📖 → `technical/02-authentication.md`
 
-- **Google OAuth 인증** - 일반 로그인
+- **이메일/비밀번호 로그인** - 기본 로그인
+- **TOTP 2FA** - 추가 보안(관리자 필수 권장)
+- **Passkey/WebAuthn** - Passwordless 옵션
+- **Google OAuth** - 선택 로그인
 - **Whitelist 기반 접근 제어** - 허용된 사용자만
 - **관리자 PIN** - 중요 설정 보호
 
@@ -487,7 +490,7 @@ Module → Core Integration → External API
 ### 계층별 보안
 
 **Core Layer**
-- 인증/인가 처리 (OAuth + PIN)
+- 인증/인가 처리 (로컬 로그인 + 선택 OAuth + 관리자 PIN)
 - API Key 암호화
 - 세션 관리
 
