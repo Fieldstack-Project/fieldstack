@@ -248,7 +248,7 @@ reloadModule 메서드는 개발 모드에서 사용되는 Hot Reload 기능입�
 
 AdminAuthService 클래스는 관리자 PIN 인증을 담당합니다.
 
-setupAdminPin 메서드는 초기 설치 시 관리자 PIN을 생성합니다. 먼저 PIN이 4~6자리 숫자인지 정규식으로 검증합니다. 통과하면 무작위 16바이트의 salt를 생성하고, PIN과 salt를 합쳐 pbkdf2로 10000회 반복 해싱합니다. 그 결과를 사용자 테이블에 role, salt, hash와 함께 저장합니다.
+setupAdminPin 메서드는 초기 설치 시 관리자 PIN을 생성합니다. 먼저 PIN이 4~6자리 숫자인지 정규식으로 검증합니다. 통과하면 무작위 16바이트의 salt를 생성하고, PIN과 salt를 합쳐 pbkdf2로 100,000회 반복 해싱합니다. 그 결과를 사용자 테이블에 role, salt, hash와 함께 저장합니다.
 
 verifyAndCreateSession 메서드는 PIN 검증과 세션 생성을 처리합니다. verifyPin을 호출하여 PIN이 올바른지 확인합니다. 검증 실패 시 감사 로그를 남기고 에러를 발생시킵니다. 검증 성공 시 무작위 UUID를 세션 ID로 생성하고, 현재 시간에서 30분을 더한 만료 시간과 함께 세션을 저장합니다.
 
