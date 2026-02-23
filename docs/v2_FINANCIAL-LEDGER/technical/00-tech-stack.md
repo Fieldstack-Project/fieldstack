@@ -7,11 +7,16 @@
 - **TypeScript** 5.0+
 
 ### 프레임워크
-- **Express** 또는 **Fastify**
+- **Express** (기본)
   - REST API
   - Middleware 시스템
   - 라우팅
   - **정적 파일 서빙** (프로덕션)
+- **Fastify** (대안)
+  - REST API
+  - Middleware 시스템
+  - 라우팅
+  - 고성능 서버 옵션
 
 ### 데이터베이스
 **다중 Provider 지원:**
@@ -27,15 +32,19 @@
   - Multi-provider 지원
 
 ### 인증
-- **Passport.js**
-  - Google OAuth 2.0
-  - 전략 패턴
+- **로컬 인증 (기본)**
+  - 이메일 + 비밀번호
+  - Argon2id 해시 저장
+- **선택 인증 확장**
+  - Google OAuth 2.0 (선택)
+  - Passkey/WebAuthn (선택)
 - **JWT** - 세션 관리
 
 ### 검증
-- **Zod** 또는 **Yup**
+- **Zod** (기본)
   - 스키마 검증
   - TypeScript 통합
+- **Yup** (대안)
 
 ### 스케줄링
 - **node-cron**
@@ -374,7 +383,8 @@ pnpm-workspace.yaml 파일에서 워크스페이스 범위를 정의합니다. p
 ## 보안
 
 ### 암호화
-- **bcrypt** - 비밀번호 해싱
+- **Argon2id** - 비밀번호 해싱
+- **PBKDF2** - 관리자 PIN 해싱
 - **crypto** (Node.js 내장) - 토큰 암호화
 
 ### 환경 변수

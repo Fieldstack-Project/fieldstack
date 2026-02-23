@@ -100,7 +100,7 @@
 3. Backend 백그라운드 작업:
    - Git clone
    - 보안 검사
-   - npm install
+   - pnpm install
    - DB 마이그레이션
    - 런타임 로드
    ↓
@@ -217,7 +217,7 @@ reloadModule 메서드는 개발 모드에서 사용되는 Hot Reload 기능입�
    - 숫자 패드로 빠른 입력
 
 3. **구현 단순성**
-   - bcrypt/pbkdf2로 안전하게 저장
+   - Argon2id(비밀번호) / PBKDF2(PIN)로 목적별 저장
    - 세션 관리 간단
    - 2FA보다 복잡도 낮음
 

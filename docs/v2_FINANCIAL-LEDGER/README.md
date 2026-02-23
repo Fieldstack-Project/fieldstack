@@ -71,8 +71,9 @@ docker-compose up -d
 ```bash
 git clone https://github.com/Fieldstack-Project/fieldstack.git
 cd fieldstack
-npm install
-npm run start
+pnpm install
+pnpm build
+pnpm start
 
 # 브라우저 자동 열림
 → http://localhost:3000/install
@@ -169,7 +170,7 @@ npm run start
 
 - **Backend**: TypeScript + Node.js
 - **Frontend**: React + TypeScript + Vite
-- **Database**: PostgreSQL / SQLite / Supabase / MongoDB 외 모든 DB 종류 및 서비스
+- **Database**: PostgreSQL / SQLite / Supabase / MongoDB (우선 지원)
 - **Monorepo**: pnpm workspace
 - **AI**: Gemini / OpenAI / Claude / Ollama 등 API를 등록할 수 있는 모든 AI 서비스
 - **Deployment**: Docker / Railway / Cloudflare
