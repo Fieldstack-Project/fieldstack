@@ -1,5 +1,10 @@
 # 단계별 개발 계획
 
+> 📌 **프로젝트 상태:** 2025-02-23 기준 **설계 및 기획 단계 완료**.
+> - 아키텍처, 기술 스택, 모듈 시스템, UI/UX 등 모든 핵심 설계가 문서화되었습니다.
+> - Monorepo 구조 및 초기 설정(Phase 1.1)이 완료되었습니다.
+> - 실제 구현은 2026-2027년 목표로 진행될 예정입니다.
+
 ## 개요
 
 Fieldstack은 점진적으로 개발되며, 각 단계는 독립적으로 완성도가 높아야 합니다.
@@ -38,60 +43,60 @@ Fieldstack/
 **예상 기간: 6주**
 
 **Auth (인증):**
-- [ ] 이메일 + 비밀번호 로그인 (기본)
-- [ ] TOTP 2FA (Google Authenticator 등)
-- [ ] Passkey(WebAuthn) 로그인 (선택)
-- [ ] Google OAuth 2.0 통합 (선택)
-- [ ] Whitelist 시스템
-- [ ] JWT 세션 관리
-- [ ] 관리자 PIN 시스템
-- [ ] 비밀번호 분실 복구 (SMTP self-service + Admin-assisted)
-- [ ] Mode 1 Local CLI reset 명령
+- [ ] 이메일 + 비밀번호 로그인 (기본) (설계 완료)
+- [ ] TOTP 2FA (Google Authenticator 등) (설계 완료)
+- [ ] Passkey(WebAuthn) 로그인 (선택) (설계 완료)
+- [ ] Google OAuth 2.0 통합 (선택) (설계 완료)
+- [ ] Whitelist 시스템 (설계 완료)
+- [ ] JWT 세션 관리 (설계 완료)
+- [ ] 관리자 PIN 시스템 (설계 완료)
+- [ ] 비밀번호 분실 복구 (SMTP self-service + Admin-assisted) (설계 완료)
+- [ ] Mode 1 Local CLI reset 명령 (설계 완료)
 
 **Database (DB 추상화):**
-- [ ] Provider 인터페이스 정의
-- [ ] PostgreSQL Provider
-- [ ] SQLite Provider
-- [ ] Supabase Provider
-- [ ] MongoDB Provider (선택)
-- [ ] 마이그레이션 시스템
+- [ ] Provider 인터페이스 정의 (설계 완료)
+- [ ] PostgreSQL Provider (설계 완료)
+- [ ] SQLite Provider (설계 완료)
+- [ ] Supabase Provider (설계 완료)
+- [ ] MongoDB Provider (선택) (설계 완료)
+- [ ] 마이그레이션 시스템 (설계 완료)
 
 **Types (공통 타입):**
-- [ ] API 타입 정의
-- [ ] User 타입
-- [ ] Module 타입
-- [ ] Integration 타입
+- [ ] API 타입 정의 (설계 완료)
+- [ ] User 타입 (설계 완료)
+- [ ] Module 타입 (설계 완료)
+- [ ] Integration 타입 (설계 완료)
 
 **Utils (유틸리티):**
-- [ ] 날짜 처리 함수
-- [ ] 포맷팅 함수
-- [ ] 검증 함수
-- [ ] 암호화 함수
+- [ ] 날짜 처리 함수 (설계 완료)
+- [ ] 포맷팅 함수 (설계 완료)
+- [ ] 검증 함수 (설계 완료)
+- [ ] 암호화 함수 (설계 완료)
 
 **UI Components (Core UI):**
-- [ ] Button, Input, Select
-- [ ] Modal, Card, Table
-- [ ] Form, DatePicker
-- [ ] Layout 컴포넌트
-- [ ] Hooks (useForm, useModal, useTable)
+- [ ] Button, Input, Select (설계 완료)
+- [ ] Modal, Card, Table (설계 완료)
+- [ ] Form, DatePicker (설계 완료)
+- [ ] Layout 컴포넌트 (설계 완료)
+- [ ] Hooks (useForm, useModal, useTable) (설계 완료)
 
 #### 1.3 Module Loader
 **예상 기간: 2주**
 
-- [ ] Backend 모듈 자동 스캔
-- [ ] Frontend 모듈 자동 로드
-- [ ] module.json 파싱
-- [ ] 라우트 자동 등록
-- [ ] 의존성 체크
+- [ ] Backend 모듈 자동 스캔 (설계 완료)
+- [ ] Frontend 모듈 자동 로드 (설계 완료)
+- [ ] module.json 파싱 (설계 완료)
+- [ ] 라우트 자동 등록 (설계 완료)
+- [ ] 의존성 체크 (설계 완료)
 
 #### 1.4 테스트 & 문서
 **예상 기간: 2주**
 
 - [ ] 단위 테스트 (Vitest)
 - [ ] 통합 테스트
-- [ ] API 문서 (OpenAPI)
-- [ ] 개발자 가이드
-- [ ] README 작성
+- [ ] API 문서 (OpenAPI) (설계 완료)
+- [x] 개발자 가이드
+- [x] README 작성
 
 ### 마일스톤 1 완료 기준
 - ✅ Core 레이어 완성
@@ -112,8 +117,8 @@ Fieldstack/
 **예상 기간: 4주**
 
 **Backend:**
-- [ ] DB 스키마 설계
-- [ ] API 엔드포인트
+- [ ] DB 스키마 설계 (설계 완료)
+- [ ] API 엔드포인트 (설계 완료)
   - [ ] CRUD (생성, 조회, 수정, 삭제)
   - [ ] 통계 API
   - [ ] 검색/필터
@@ -141,10 +146,10 @@ Fieldstack/
 **예상 기간: 4주**
 
 **Backend:**
-- [ ] DB 스키마 설계
-- [ ] API 엔드포인트
-- [ ] Google Calendar 연동
-- [ ] 알림 시스템 (Scheduler)
+- [ ] DB 스키마 설계 (설계 완료)
+- [ ] API 엔드포인트 (설계 완료)
+- [ ] Google Calendar 연동 (설계 완료)
+- [ ] 알림 시스템 (Scheduler) (설계 완료)
 - [ ] 테스트
 
 **Frontend:**

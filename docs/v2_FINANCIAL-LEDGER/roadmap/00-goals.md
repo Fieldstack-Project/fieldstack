@@ -277,10 +277,10 @@
 ## 단기 목표 (6개월)
 
 ### 기술
-- [x] Core 레이어 완성
-- [ ] 2개 기본 모듈 (Ledger, Subscription)
-- [ ] Module Loader 완성
-- [ ] 공식 웹사이트 오픈
+- [x] Core 레이어 설계 완료
+- [ ] 2개 기본 모듈 (Ledger, Subscription) (설계 완료)
+- [ ] Module Loader 완성 (설계 완료)
+- [ ] 공식 웹사이트 오픈 (설계 완료)
 
 ### 커뮤니티
 - [ ] GitHub Stars > 100
