@@ -80,3 +80,10 @@ export function validateModuleDependencies(manifests: ModuleManifest[]): Depende
     })
     .filter((issue) => issue.missingDependencies.length > 0);
 }
+
+export default {
+  parseModuleJson,
+  scanBackendModules,
+  buildBackendRouteRegistrations,
+  validateModuleDependencies,
+};
