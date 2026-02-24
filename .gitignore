@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables
+
+# Build outputs
+dist/
+**/dist/
+
+apps/api/public/
+
+# Logs
+.DS_Store
+*.log
+
+# IDE
+
+# OS
+
+# TypeScript
+
+# Testing
+
+# Misc
+
+# ETC
