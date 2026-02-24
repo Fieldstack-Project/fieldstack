@@ -4,6 +4,7 @@ export interface UiComponentContract {
 }
 
 export * from "./components";
+export * from "./layouts";
 export * from "./hooks/useForm";
 export * from "./hooks/useModal";
 export * from "./hooks/useTable";
