@@ -5,10 +5,10 @@ Source: `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md`
 ## 1.2 Core Layer
 
 - [x] Auth: email/password login contract
-- [ ] Auth: JWT session manager contract
-- [ ] Auth: whitelist flow
-- [ ] Auth: admin PIN flow
-- [ ] Auth: password recovery flow (self-service + admin-assisted)
+- [x] Auth: JWT session manager contract
+- [x] Auth: whitelist flow
+- [x] Auth: admin PIN flow
+- [x] Auth: password recovery flow (self-service + admin-assisted)
 - [x] DB: provider interface
 - [ ] DB: postgres provider scaffold
 - [ ] DB: sqlite provider scaffold
