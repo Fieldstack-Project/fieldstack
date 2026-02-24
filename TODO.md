@@ -16,7 +16,7 @@ Source: `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md`
 - [x] DB: mongodb provider scaffold (optional)
 - [x] DB: migration scaffold
 - [x] Types: api/user/module/integration definitions
-- [ ] Utils: date/format/validation/encryption utilities
+- [x] Utils: date/format/validation/encryption utilities
 - [ ] UI: primitives (button/input/select/modal/card/table/form/datepicker)
 - [ ] UI: hooks (useForm/useModal/useTable)
 
