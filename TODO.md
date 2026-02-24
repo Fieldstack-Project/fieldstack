@@ -10,11 +10,11 @@ Source: `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md`
 - [x] Auth: admin PIN flow
 - [x] Auth: password recovery flow (self-service + admin-assisted)
 - [x] DB: provider interface
-- [ ] DB: postgres provider scaffold
-- [ ] DB: sqlite provider scaffold
-- [ ] DB: supabase provider scaffold
-- [ ] DB: mongodb provider scaffold (optional)
-- [ ] DB: migration scaffold
+- [x] DB: postgres provider scaffold
+- [x] DB: sqlite provider scaffold
+- [x] DB: supabase provider scaffold
+- [x] DB: mongodb provider scaffold (optional)
+- [x] DB: migration scaffold
 - [x] Types: api/user/module/integration definitions
 - [ ] Utils: date/format/validation/encryption utilities
 - [ ] UI: primitives (button/input/select/modal/card/table/form/datepicker)
