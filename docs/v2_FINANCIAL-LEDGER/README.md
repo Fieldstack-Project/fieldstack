@@ -136,6 +136,7 @@ pnpm start
 
 ### 로드맵
 - [🗓️ 개발 계획](roadmap/01-development-plan.md)
+- [🚀 Phase 1 Kickoff](roadmap/02-phase1-kickoff.md)
 - [🎯 프로젝트 목표](roadmap/00-goals.md)
 
 ---

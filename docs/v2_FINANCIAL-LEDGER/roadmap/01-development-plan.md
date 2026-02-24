@@ -54,7 +54,7 @@ Fieldstack/
 - [ ] Mode 1 Local CLI reset 명령 (설계 완료)
 
 **Database (DB 추상화):**
-- [ ] Provider 인터페이스 정의 (설계 완료)
+- [x] Provider 인터페이스 정의 (설계 완료)
 - [ ] PostgreSQL Provider (설계 완료)
 - [ ] SQLite Provider (설계 완료)
 - [ ] Supabase Provider (설계 완료)
@@ -62,10 +62,10 @@ Fieldstack/
 - [ ] 마이그레이션 시스템 (설계 완료)
 
 **Types (공통 타입):**
-- [ ] API 타입 정의 (설계 완료)
-- [ ] User 타입 (설계 완료)
-- [ ] Module 타입 (설계 완료)
-- [ ] Integration 타입 (설계 완료)
+- [x] API 타입 정의 (설계 완료)
+- [x] User 타입 (설계 완료)
+- [x] Module 타입 (설계 완료)
+- [x] Integration 타입 (설계 완료)
 
 **Utils (유틸리티):**
 - [ ] 날짜 처리 함수 (설계 완료)
