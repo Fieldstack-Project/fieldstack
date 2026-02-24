@@ -15,6 +15,19 @@ export interface ModuleMetadata {
   enabled: boolean;
 }
 
+export interface ModuleRoutes {
+  frontend: string;
+  api: string;
+}
+
+export interface ModuleManifest {
+  name: string;
+  version: string;
+  enabled: boolean;
+  dependencies: string[];
+  routes: ModuleRoutes;
+}
+
 export interface IntegrationConfig {
   provider: string;
   enabled: boolean;
