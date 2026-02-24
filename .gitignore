@@ -21,6 +21,8 @@ apps/api/public/
 # TypeScript
 
 # Testing
+coverage/
+**/coverage/
 
 # Misc
 

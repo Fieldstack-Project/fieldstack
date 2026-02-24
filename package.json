@@ -2,6 +2,12 @@
   "name": "fieldstack",
   "private": true,
   "version": "0.0.0",
+  "devDependencies": {
+    "@types/node": "^22.18.2",
+    "@vitest/coverage-v8": "^2.1.9",
+    "typescript": "^5.9.2",
+    "vitest": "^2.1.9"
+  },
   "scripts": {
     "dev": "pnpm --parallel dev",
     "dev:api": "pnpm --filter api dev",
