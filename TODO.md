@@ -22,11 +22,11 @@ Source: `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md`
 
 ## 1.3 Module Loader
 
-- [ ] Backend: module auto-scan
-- [ ] Frontend: module auto-load
-- [ ] Parse `module.json`
-- [ ] Auto-register routes
-- [ ] Dependency validation
+- [x] Backend: module auto-scan
+- [x] Frontend: module auto-load
+- [x] Parse `module.json`
+- [x] Auto-register routes
+- [x] Dependency validation
 
 ## 1.4 Test & Docs
 
