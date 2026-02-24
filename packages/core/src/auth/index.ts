@@ -61,6 +61,26 @@ export interface PasswordRecoveryService {
   adminAssistedReset(payload: AdminAssistedResetRequest): Promise<void>;
 }
 
+export interface TotpEnrollmentSession {
+  userId: string;
+  secret: string;
+  qrCodeUri: string;
+}
+
+export interface TotpLoginChallenge {
+  userId: string;
+  challengeId: string;
+}
+
+export interface TotpService {
+  startEnrollment(userId: string): Promise<TotpEnrollmentSession>;
+  confirmEnrollment(userId: string, code: string): Promise<boolean>;
+  createLoginChallenge(userId: string): Promise<TotpLoginChallenge>;
+  verifyLoginChallenge(challengeId: string, code: string): Promise<boolean>;
+}
+
+export * from "./totp";
+
 export interface AuthService {
   login(payload: LoginRequest): Promise<SessionToken>;
 }
