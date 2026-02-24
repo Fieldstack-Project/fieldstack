@@ -52,5 +52,17 @@ describe("api module loader", () => {
     const issues = validateModuleDependencies([ledger]);
     expect(issues).toHaveLength(1);
     expect(issues[0]?.missingDependencies).toContain("subscription");
+
+    const noIssues = validateModuleDependencies([
+      ledger,
+      {
+        name: "subscription",
+        version: "1.0.0",
+        enabled: true,
+        dependencies: [],
+        routes: { frontend: "/subscription", api: "/api/subscription" },
+      },
+    ]);
+    expect(noIssues).toHaveLength(0);
   });
 });

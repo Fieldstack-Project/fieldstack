@@ -20,4 +20,9 @@ describe("api integration smoke", () => {
     const routes = buildBackendRouteRegistrations(manifests);
     expect(routes).toEqual([{ moduleName: "ledger", apiBasePath: "/api/ledger" }]);
   });
+
+  it("returns empty routes when no manifest exists", () => {
+    const routes = buildBackendRouteRegistrations([]);
+    expect(routes).toEqual([]);
+  });
 });
