@@ -17,8 +17,8 @@ Source: `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md`
 - [x] DB: migration scaffold
 - [x] Types: api/user/module/integration definitions
 - [x] Utils: date/format/validation/encryption utilities
-- [ ] UI: primitives (button/input/select/modal/card/table/form/datepicker)
-- [ ] UI: hooks (useForm/useModal/useTable)
+- [x] UI: primitives (button/input/select/modal/card/table/form/datepicker)
+- [x] UI: hooks (useForm/useModal/useTable)
 
 ## 1.3 Module Loader
 
