@@ -40,7 +40,7 @@ Source: `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md`
 
 - [x] Core layer completed
 - [x] Module loader working
-- [ ] Coverage > 70%
+- [x] Coverage > 70%
 - [x] Documentation complete
 
-Coverage note: current baseline coverage is below 70% and requires additional test expansion.
+Coverage note: core/api coverage baseline is now above 70% (line coverage 기준).

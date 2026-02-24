@@ -44,14 +44,14 @@ Fieldstack/
 
 **Auth (인증):**
 - [x] 이메일 + 비밀번호 로그인 (기본) (설계 완료)
-- [ ] TOTP 2FA (Google Authenticator 등) (설계 완료)
+- [x] TOTP 2FA (Google Authenticator 등) (설계 완료)
 - [ ] Passkey(WebAuthn) 로그인 (선택) (설계 완료)
 - [ ] Google OAuth 2.0 통합 (선택) (설계 완료)
 - [x] Whitelist 시스템 (설계 완료)
 - [x] JWT 세션 관리 (설계 완료)
 - [x] 관리자 PIN 시스템 (설계 완료)
 - [x] 비밀번호 분실 복구 (SMTP self-service + Admin-assisted) (설계 완료)
-- [ ] Mode 1 Local CLI reset 명령 (설계 완료)
+- [x] Mode 1 Local CLI reset 명령 (설계 완료)
 
 **Database (DB 추상화):**
 - [x] Provider 인터페이스 정의 (설계 완료)
@@ -77,7 +77,7 @@ Fieldstack/
 - [x] Button, Input, Select (설계 완료)
 - [x] Modal, Card, Table (설계 완료)
 - [x] Form, DatePicker (설계 완료)
-- [ ] Layout 컴포넌트 (설계 완료)
+- [x] Layout 컴포넌트 (설계 완료)
 - [x] Hooks (useForm, useModal, useTable) (설계 완료)
 
 #### 1.3 Module Loader
