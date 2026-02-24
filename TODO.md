@@ -30,15 +30,17 @@ Source: `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md`
 
 ## 1.4 Test & Docs
 
-- [ ] Unit tests (Vitest)
-- [ ] Integration tests
-- [ ] OpenAPI docs baseline
-- [ ] Developer guide updates
-- [ ] README sync with implementation
+- [x] Unit tests (Vitest)
+- [x] Integration tests
+- [x] OpenAPI docs baseline
+- [x] Developer guide updates
+- [x] README sync with implementation
 
 ## Phase 1 Milestone Checks
 
-- [ ] Core layer completed
-- [ ] Module loader working
+- [x] Core layer completed
+- [x] Module loader working
 - [ ] Coverage > 70%
-- [ ] Documentation complete
+- [x] Documentation complete
+
+Coverage note: current baseline coverage is below 70% and requires additional test expansion.

@@ -92,9 +92,9 @@ Fieldstack/
 #### 1.4 테스트 & 문서
 **예상 기간: 2주**
 
-- [ ] 단위 테스트 (Vitest)
-- [ ] 통합 테스트
-- [ ] API 문서 (OpenAPI) (설계 완료)
+- [x] 단위 테스트 (Vitest)
+- [x] 통합 테스트
+- [x] API 문서 (OpenAPI) (설계 완료)
 - [x] 개발자 가이드
 - [x] README 작성
 

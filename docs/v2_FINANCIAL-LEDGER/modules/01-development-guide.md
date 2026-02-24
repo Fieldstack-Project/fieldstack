@@ -246,7 +246,13 @@ module-registry 저장소에 PR 제출
 ### 기술
 - 📖 `technical/01-database.md` - DB 추상화 레이어
 - 📖 `technical/04-scheduler.md` - Scheduler 사용법
+- 📖 `technical/05-openapi-baseline.yaml` - OpenAPI baseline
 - 📖 `modules/02-integrations.md` - 외부 서비스 통합
+
+### 테스트 베이스라인 (Phase 1.4)
+- Vitest 기반 단위 테스트는 `packages/core/src/**/*.test.ts`에 추가합니다.
+- API 통합 스모크 테스트는 `apps/api/src/integration/*.test.ts`에 추가합니다.
+- 모듈 로더 계약 검증은 `apps/api/src/loader/index.test.ts`를 기준으로 확장합니다.
 
 ### UI
 - 📖 `ui/01-core-components.md` - Core UI 컴포넌트

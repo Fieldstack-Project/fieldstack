@@ -104,6 +104,7 @@ pnpm start
 - [🤖 AI 통합](technical/03-ai-integration.md)
 - [🔐 인증](technical/02-authentication.md)
 - [⏰ Scheduler](technical/04-scheduler.md)
+- [📘 OpenAPI Baseline](technical/05-openapi-baseline.yaml)
 
 ### 모듈 개발
 - [📦 모듈 시스템](modules/03-system-design.md)
