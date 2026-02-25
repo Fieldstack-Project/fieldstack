@@ -12,6 +12,14 @@
 - ✅ 다크모드 자동 지원
 - ✅ 접근성 자동 처리
 
+## 구현 방향 (Phase 1.5 기준)
+
+- Control 구현은 `Radix UI Primitives` 기반으로 진행
+- 스타일/조합 패턴은 `shadcn/ui` 방식을 참고
+- 실제 앱/모듈에서는 외부 라이브러리를 직접 사용하지 않고 `@fieldstack/ui`를 통해서만 사용
+- 우선순위는 `P0 -> P0.5 -> P1 -> P2` 순서로 적용
+- 상세 목록/상태는 `ui/03-control-backlog.md`에서 관리
+
 ## Core UI 구성
 
 ```

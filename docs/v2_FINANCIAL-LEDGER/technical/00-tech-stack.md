@@ -88,11 +88,18 @@
   - 작은 번들 크기
 
 ### UI 컴포넌트
-**자체 개발 (packages/core/ui):**
-- Button, Input, Select
-- Modal, Table, Card
-- Form, DatePicker
-- JsonViewer, RawDataViewer
+**채택 방향 (2026-02): Radix + shadcn 패턴 + 내부 래퍼**
+- **Radix UI Primitives** - 접근성/키보드 동작/상태 머신 기반 Primitive
+- **shadcn/ui 패턴** - Tailwind 기반 스타일/조합 패턴 참고
+- **@fieldstack/ui (내부 패키지)** - 앱/모듈에서 사용하는 단일 진입점
+
+**적용 원칙:**
+- 외부 라이브러리를 앱/모듈에서 직접 import하지 않고 `@fieldstack/ui`를 통해 사용
+- Phase 1.5에서는 P0/P0.5 중심으로 Control MVP를 우선 구현
+- P1/P2는 모듈 요구사항/커뮤니티 요청 기반으로 점진 확장
+
+**참고 문서:**
+- `docs/v2_FINANCIAL-LEDGER/ui/03-control-backlog.md`
 
 ### 폼 관리
 - **React Hook Form**
