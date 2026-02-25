@@ -23,6 +23,32 @@ Fieldstack is an open-source, self-hosted modular framework for personal product
 
 ---
 
+## Development Status
+
+Current phase: **Development in progress (Roadmap Phase 1.5)**
+
+- ✅ Planning and documentation are complete
+- ✅ Roadmap Phase 1 (Core foundation) is complete
+- 🚧 Development is active, and missing details are being filled during implementation
+- 🚧 Roadmap Phase 1.5 (Core Control Plane UI/UX) is in progress
+- 🎯 Target timeline remains **2026-2027**
+
+### Phase Progress
+
+| Phase | Scope (Roadmap) | Status | Progress |
+| ------- | ----------- | ------- | ------- |
+| Phase 1 | Core foundation setup | Completed | 100% |
+| Phase 1.5 | Core Control Plane UI/UX | In progress | 20% |
+| Phase 2 | Core module development (Ledger, Subscription) | Not started | 0% |
+| Phase 3 | Marketplace and website | Not started | 0% |
+| Phase 4 | Deployment optimization | Not started | 0% |
+| Phase 5 | Expansion and ecosystem | Not started | 0% |
+| Phase 6 | Community growth (continuous) | Not started | 0% |
+
+> Note: This phase table follows `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md` and is updated as implementation progresses.
+
+---
+
 ## Quick Start
 
 ### Docker Compose (Recommended)
