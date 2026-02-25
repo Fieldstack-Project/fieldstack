@@ -116,6 +116,7 @@ pnpm start
 - [🎨 Core Components](ui/01-core-components.md)
 - [🖼️ 디자인 시스템](ui/00-design-system.md)
 - [💅 테마 정책](ui/02-theme-policy.md)
+- [🧩 Control Backlog](ui/03-control-backlog.md)
 
 ### 마켓플레이스
 - [🏪 마켓플레이스 개요](marketplace/00-overview.md)

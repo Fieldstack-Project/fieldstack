@@ -121,22 +121,36 @@ Fieldstack/
 
 ### 주요 작업
 
-#### 1.5.1 Control UI Components (공통 컴포넌트/레이아웃)
+#### 1.5.1 Control UI Components (버튼/선택/토글 등 기본 Control)
 **예상 기간: 1주**
 
-- [ ] Shell Layout 계약 정의 (Header, Sidebar, Workspace)
-- [ ] Navigation Item 계약 정의 (id, label, path, icon, visibility)
-- [ ] 공통 상태 컴포넌트 정의 (Loading, Empty, Error, Unauthorized)
-- [ ] 공통 액션 패턴 정의 (Primary/Secondary/Danger 버튼 규칙)
-- [ ] 접근성 기준 체크 (키보드 포커스, 명도 대비, aria 기본 규칙)
+> 원칙: "모든 Control 선제 구현"이 아니라, Core 흐름에 필요한 Control MVP를 먼저 고정하고,
+> 추가 Control은 Phase 2 모듈 개발/커뮤니티 요청 기반으로 점진 확장한다.
 
-#### 1.5.2 Main Home
-**예상 기간: 3일**
+Control 전체 목록과 상태 관리는 별도 문서에서 관리:
+- `docs/v2_FINANCIAL-LEDGER/ui/03-control-backlog.md` (P0 -> P0.5 -> P1)
 
-- [ ] Home 화면 정보 구조 확정 (요약 영역, 빠른 액션, 최근 활동)
-- [ ] 모듈 0개 상태 Empty UX 구현 (안내 + 다음 행동 CTA)
-- [ ] 관리자/일반 사용자 홈 표시 정책 분리
-- [ ] 글로벌 네비게이션 진입점 확정 (설정, 모듈 관리, 로그아웃)
+- [ ] Button 규격 확정 (Primary/Secondary/Danger/Ghost, size, loading, disabled)
+- [ ] Toggle/Switch 규격 확정 (on/off 상태, 라벨 결합, 키보드 조작)
+- [ ] ComboBox/Select 규격 확정 (단일/다중 선택, 검색, 빈 상태)
+- [ ] Checkbox/Radio 규격 확정 (단일/그룹 선택, indeterminate 포함)
+- [ ] Input 계열 공통 규칙 확정 (text/number/email/password, validation/error/help text)
+- [ ] Control 접근성 기준 체크 (focus ring, 명도 대비, aria role/label, tab 순서)
+- [ ] Control 우선순위 분류 (P0: Core 필수 / P1: 자주 사용 / P2: 요청 기반)
+- [ ] 신규 Control 추가 정책 확정 (요청 -> RFC/이슈 -> 디자인/접근성 검토 -> 릴리스)
+
+#### 1.5.2 설치 마법사 (초기 설정)
+**예상 기간: 4일**
+
+- [ ] Welcome 화면
+- [ ] Configuration 화면 (관리자 계정, DB, 선택 옵션)
+- [ ] Progress 화면 (단계/로그/오류 상태)
+- [ ] Complete 화면 (로그인 진입)
+- [ ] 첫 실행 감지 시 /install 강제 라우팅 정책 반영
+- [ ] Configuration 단계 유효성 검증 UX 정의 (필수값, 형식 오류, 연결 테스트 결과)
+- [ ] Progress 단계 실패 처리 UX 정의 (재시도/이전 단계 복귀/에러 요약)
+- [ ] 설치 중 브라우저 새로고침/재접속 복구 정책 정의 (진행 상태 재동기화)
+- [ ] Complete 이후 첫 진입 안내 UX 정의 (로그인 후 바로 할 일, 설정 이동)
 
 #### 1.5.3 로그인 (Auth & Access)
 **예상 기간: 3일**
@@ -145,23 +159,32 @@ Fieldstack/
 - [ ] 2FA OTP 입력 화면 구현 (활성 계정 대상)
 - [ ] 로그인 실패/잠금/세션 만료 UX 정의
 - [ ] 로그인 성공 후 Home 리다이렉트 규칙 확정
+- [ ] 비밀번호 복구 UI 구현 (SMTP self-service / 관리자 토큰 복구 안내)
+- [ ] OAuth/Passkey 로그인 진입 UI 정책 정의 (활성화된 경우에만 노출)
+- [ ] 인증 실패 메시지 규칙 통일 (계정 존재 여부 비노출, 재시도 안내)
 
-#### 1.5.4 관리자 대시보드 / 일반 설정
+#### 1.5.4 Main Home
+**예상 기간: 3일**
+
+- [ ] Home 화면 정보 구조 확정 (요약 영역, 빠른 액션, 최근 활동)
+- [ ] 모듈 0개 상태 Empty UX 구현 (안내 + 다음 행동 CTA)
+- [ ] 관리자/일반 사용자 홈 표시 정책 분리
+- [ ] 글로벌 네비게이션 진입점 확정 (설정, 모듈 관리, 로그아웃)
+- [ ] 글로벌 네비게이션 상세 규격 확정 (메뉴 순서, 아이콘, 모바일 Drawer, 키보드 탐색)
+- [ ] Home 공통 상태 정의 (Loading, Empty, Error, Unauthorized)
+- [ ] 첫 로그인 사용자용 온보딩 진입 UX 정의 (튜토리얼/다음 행동 안내)
+
+#### 1.5.5 관리자 대시보드 / 일반 설정
 **예상 기간: 4일**
 
 - [ ] 일반 설정 화면 뼈대 구현 (프로필/언어/테마)
 - [ ] 관리자 전용 영역 라우트 분리
 - [ ] 관리자 PIN Step-up 모달 흐름 구현
 - [ ] Protected Route 정책 구현 (권한 부족 시 리다이렉트)
-
-#### 1.5.5 설치 마법사 (초기 설정)
-**예상 기간: 4일**
-
-- [ ] Welcome 화면
-- [ ] Configuration 화면 (관리자 계정, DB, 선택 옵션)
-- [ ] Progress 화면 (단계/로그/오류 상태)
-- [ ] Complete 화면 (로그인 진입)
-- [ ] 첫 실행 감지 시 /install 강제 라우팅 정책 반영
+- [ ] 관리자 PIN 관리 UI 구현 (최초 설정/변경/오류 처리)
+- [ ] 관리자 세션 만료 UX 구현 (30분 만료 시 재인증 모달)
+- [ ] 일반 설정 저장 UX 보강 (저장 성공/실패, 미저장 변경 경고)
+- [ ] 관리자 활동/감사 로그 화면 진입점 정의 (PIN 실패/주요 설정 변경 확인)
 
 #### 1.5.6 UX 품질 기준
 **예상 기간: 2일**
@@ -170,6 +193,9 @@ Fieldstack/
 - [ ] 에러/빈 상태/권한 거부 상태 일관성 점검
 - [ ] 핵심 플로우 QA 체크리스트 작성
 - [ ] "설치 -> 로그인 -> 홈 -> 설정" E2E 시나리오 정의
+- [ ] 접근성 QA 체크리스트 작성 (focus order, aria label/role, 대비, 키보드 전용 조작)
+- [ ] 텍스트/피드백 톤 가이드 통일 (성공/실패/경고 문구 일관성)
+- [ ] E2E 확장 시나리오 정의 (설치 실패 복구, 비밀번호 복구, 관리자 PIN 만료 재인증)
 
 ### 마일스톤 1.5 완료 기준
 - ✅ 모듈 없이도 Core UI Shell이 정상 동작
@@ -178,12 +204,22 @@ Fieldstack/
 - ✅ 일반 설정 진입 및 저장 플로우 검증 완료
 - ✅ Phase 2 모듈 UI를 붙일 수 있는 라우팅/레이아웃 기반 확보
 
+### Phase 2 진입 게이트 (권장)
+- [ ] Control 패키지 MVP 완료 (Button/Input/Select/Toggle/Checkbox/Radio/Modal/Form)
+- [ ] Auth/Install/Home/Settings/Admin 흐름에서 공통 Control 재사용 검증
+- [ ] 접근성/반응형/상태 처리(Loading/Empty/Error/Unauthorized) 기준 통과
+- [ ] 핵심 E2E 통과 (설치 -> 로그인 -> 홈 -> 설정/관리자)
+- [ ] UI 계약 동결 (Phase 2에서는 신규 Control 추가보다 모듈 기능 구현 우선)
+- [ ] 신규 Control은 예외적으로 수요 기반 추가 (모듈 요구사항/커뮤니티 제안 시 배치 처리)
+
 ---
 
 ## Phase 2: 기본 모듈 개발 (2개월)
 
 ### 목표
 핵심 기능 모듈 2개 완성 (가계부, 구독 관리)
+
+> 선행 조건(권장): Phase 1.5의 Control/UI/UX 진입 게이트를 통과한 뒤 착수
 
 ### 주요 작업
 
