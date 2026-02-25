@@ -37,13 +37,13 @@ Current phase: **Development in progress (Roadmap Phase 1.5)**
 
 | Phase | Scope (Roadmap) | Status | Progress |
 | ------- | ----------- | ------- | ------- |
-| Phase 1 | Core foundation setup | Completed | 100% |
-| Phase 1.5 | Core Control Plane UI/UX | In progress | 20% |
-| Phase 2 | Core module development (Ledger, Subscription) | Not started | 0% |
-| Phase 3 | Marketplace and website | Not started | 0% |
-| Phase 4 | Deployment optimization | Not started | 0% |
-| Phase 5 | Expansion and ecosystem | Not started | 0% |
-| Phase 6 | Community growth (continuous) | Not started | 0% |
+| Phase 1 | Core foundation setup | Completed ✅ | 100% |
+| Phase 1.5 | Core Control Plane UI/UX | In progress ⏳ | 20% |
+| Phase 2 | Core module development (Ledger, Subscription) | Not started 🚧 | 0% |
+| Phase 3 | Marketplace and website | Not started 🚧 | 0% |
+| Phase 4 | Deployment optimization | Not started 🚧 | 0% |
+| Phase 5 | Expansion and ecosystem | Not started 🚧 | 0% |
+| Phase 6 | Community growth (continuous) | Not started 🚧 | 0% |
 
 > Note: This phase table follows `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md` and is updated as implementation progresses.
 
