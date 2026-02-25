@@ -1,18 +1,9 @@
-export type InputType =
-  | "text"
-  | "email"
-  | "password"
-  | "number"
-  | "search"
-  | "tel"
-  | "url";
-
-export interface InputProps {
+export interface TextareaProps {
   name: string;
-  label?: string;
   value: string;
-  type?: InputType;
+  label?: string;
   placeholder?: string;
+  rows?: number;
   disabled?: boolean;
   readOnly?: boolean;
   required?: boolean;

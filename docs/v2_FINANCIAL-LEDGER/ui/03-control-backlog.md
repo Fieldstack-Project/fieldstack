@@ -22,29 +22,29 @@ Phase 2 이후 모듈/커뮤니티 요청에 따라 점진 확장하기 위한 �
 
 | Control | 우선순위 | 1.5 구현상태 | 비고 |
 | --- | --- | --- | --- |
-| Button | P0 | 미착수 | Primary/Secondary/Danger/Ghost |
-| Input | P0 | 미착수 | text/email/number/password |
-| Select / ComboBox | P0 | 미착수 | single/multi + search |
-| Checkbox | P0 | 미착수 | 단일/그룹 + indeterminate |
-| Radio | P0 | 미착수 | 단일 선택 그룹 |
-| Switch / Toggle | P0 | 미착수 | on/off + keyboard |
-| Modal / Dialog | P0 | 미착수 | confirm/alert/prompt 패턴 |
-| Form Field Wrapper | P0 | 미착수 | label/help/error/required |
-| Alert / Inline Message | P0 | 미착수 | success/warning/error/info |
-| Progress | P0 | 미착수 | linear + step progress |
+| Button | P0 | 완료 | Primary/Secondary/Danger/Ghost |
+| Input | P0 | 완료 | text/email/number/password |
+| Select / ComboBox | P0 | 완료 | single/multi + search |
+| Checkbox | P0 | 완료 | 단일/그룹 + indeterminate |
+| Radio | P0 | 완료 | 단일 선택 그룹 |
+| Switch / Toggle | P0 | 완료 | on/off + keyboard |
+| Modal / Dialog | P0 | 완료 | confirm/alert/prompt 패턴 |
+| Form Field Wrapper | P0 | 완료 | label/help/error/required |
+| Alert / Inline Message | P0 | 완료 | success/warning/error/info |
+| Progress | P0 | 완료 | linear + step progress |
 
 ## P0.5 (핵심 흐름 반복 사용)
 
 | Control | 우선순위 | 1.5 구현상태 | 비고 |
 | --- | --- | --- | --- |
-| Textarea | P0.5 | 미착수 | multi-line input |
-| Password Input | P0.5 | 미착수 | show/hide + strength hint |
-| OTP / PIN Input | P0.5 | 미착수 | 4~6자리 step-up 인증 |
-| Search Input | P0.5 | 미착수 | debounce/clear |
-| Spinner / Loader | P0.5 | 미착수 | blocking/non-blocking 로딩 |
-| Toast / Notification | P0.5 | 미착수 | 전역 피드백 메시지 |
-| Empty State Block | P0.5 | 미착수 | CTA 포함 빈 상태 |
-| Skeleton Loader | P0.5 | 미착수 | list/card/form skeleton |
+| Textarea | P0.5 | 완료 | multi-line input |
+| Password Input | P0.5 | 완료 | show/hide + strength hint |
+| OTP / PIN Input | P0.5 | 완료 | 4~6자리 step-up 인증 |
+| Search Input | P0.5 | 완료 | debounce/clear |
+| Spinner / Loader | P0.5 | 완료 | blocking/non-blocking 로딩 |
+| Toast / Notification | P0.5 | 완료 | 전역 피드백 메시지 |
+| Empty State Block | P0.5 | 완료 | CTA 포함 빈 상태 |
+| Skeleton Loader | P0.5 | 완료 | list/card/form skeleton |
 
 ## P1 (자주 쓰이지만 일부 우선 구현)
 

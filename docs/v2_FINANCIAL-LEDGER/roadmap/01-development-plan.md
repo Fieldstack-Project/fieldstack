@@ -130,14 +130,18 @@ Fieldstack/
 Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - `docs/v2_FINANCIAL-LEDGER/ui/03-control-backlog.md` (P0 -> P0.5 -> P1)
 
-- [ ] Button 규격 확정 (Primary/Secondary/Danger/Ghost, size, loading, disabled)
-- [ ] Toggle/Switch 규격 확정 (on/off 상태, 라벨 결합, 키보드 조작)
-- [ ] ComboBox/Select 규격 확정 (단일/다중 선택, 검색, 빈 상태)
-- [ ] Checkbox/Radio 규격 확정 (단일/그룹 선택, indeterminate 포함)
-- [ ] Input 계열 공통 규칙 확정 (text/number/email/password, validation/error/help text)
+진행 업데이트 (2026-02-26):
+- P0, P0.5 Control 타입 계약 정의 및 export 반영 완료
+- 상세 구현 상태는 `ui/03-control-backlog.md`를 기준으로 추적
+
+- [x] Button 규격 확정 (Primary/Secondary/Danger/Ghost, size, loading, disabled)
+- [x] Toggle/Switch 규격 확정 (on/off 상태, 라벨 결합, 키보드 조작)
+- [x] ComboBox/Select 규격 확정 (단일/다중 선택, 검색, 빈 상태)
+- [x] Checkbox/Radio 규격 확정 (단일/그룹 선택, indeterminate 포함)
+- [x] Input 계열 공통 규칙 확정 (text/email/password/number/search/tel/url, validation/error/help text)
 - [ ] Control 접근성 기준 체크 (focus ring, 명도 대비, aria role/label, tab 순서)
-- [ ] Control 우선순위 분류 (P0: Core 필수 / P1: 자주 사용 / P2: 요청 기반)
-- [ ] 신규 Control 추가 정책 확정 (요청 -> RFC/이슈 -> 디자인/접근성 검토 -> 릴리스)
+- [x] Control 우선순위 분류 (P0: Core 필수 / P0.5: 반복 사용 / P1/P2: 요청 기반)
+- [x] 신규 Control 추가 정책 확정 (요청 -> RFC/이슈 -> 디자인/접근성 검토 -> 릴리스)
 
 #### 1.5.2 설치 마법사 (초기 설정)
 **예상 기간: 4일**
@@ -205,7 +209,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - ✅ Phase 2 모듈 UI를 붙일 수 있는 라우팅/레이아웃 기반 확보
 
 ### Phase 2 진입 게이트 (권장)
-- [ ] Control 패키지 MVP 완료 (Button/Input/Select/Toggle/Checkbox/Radio/Modal/Form)
+- [x] Control 패키지 MVP 완료 (Button/Input/Select/Toggle/Checkbox/Radio/Modal/Form + P0.5 계약)
 - [ ] Auth/Install/Home/Settings/Admin 흐름에서 공통 Control 재사용 검증
 - [ ] 접근성/반응형/상태 처리(Loading/Empty/Error/Unauthorized) 기준 통과
 - [ ] 핵심 E2E 통과 (설치 -> 로그인 -> 홈 -> 설정/관리자)
