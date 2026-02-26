@@ -3,6 +3,9 @@ node_modules/
 **/node_modules/
 
 # Environment variables
+**/.env
+**/.env.*
+!**/.env*.example
 
 # Build outputs
 dist/
@@ -27,3 +30,4 @@ coverage/
 # Misc
 
 # ETC
+local
