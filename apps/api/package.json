@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "NODE_ENV=development pnpm exec tsx watch src/index.ts",
-    "dev:bypass": "NODE_ENV=development INSTALL_MODE=bypass pnpm exec tsx watch src/index.ts",
+    "dev": "pnpm exec tsx watch src/index.ts",
+    "dev:bypass": "pnpm exec tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",
