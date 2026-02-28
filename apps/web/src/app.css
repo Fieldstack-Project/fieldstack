@@ -23,12 +23,16 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Inter", "Pretendard", "Noto Sans KR", "Segoe UI", sans-serif;
+  font-family: "Pretendard", "Pretendard JP", "Noto Sans KR", sans-serif;
   color: var(--text);
   background:
     radial-gradient(circle at 8% 12%, rgba(59, 130, 246, 0.21), transparent 40%),
     radial-gradient(circle at 88% 10%, rgba(56, 189, 248, 0.2), transparent 34%),
     linear-gradient(155deg, var(--bg), var(--bg-accent) 55%, var(--bg-deep));
+}
+
+:lang(ja) {
+  font-family: "Pretendard JP", "Pretendard", "Noto Sans KR", sans-serif;
 }
 
 .frame {
