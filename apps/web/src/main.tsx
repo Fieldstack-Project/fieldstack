@@ -2,10 +2,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import "./app.css";
+import { HomeView, type HomeViewState } from "./views/HomeView";
+import { LoginView } from "./views/LoginView";
 
 type InstallMode = "normal" | "bypass";
 type RouteKey = "login" | "home" | "settings" | "admin";
-type ViewState = "ready" | "loading" | "empty" | "error";
 
 interface WebRuntimeEnv {
   MODE?: string;
@@ -57,7 +58,7 @@ function canAccessRoute(route: RouteKey, isAuthenticated: boolean, isAdmin: bool
 function App({ installMode }: { installMode: InstallMode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [homeState, setHomeState] = useState<ViewState>("ready");
+  const [homeState, setHomeState] = useState<HomeViewState>("ready");
   const [notice, setNotice] = useState(
     installMode === "bypass"
       ? "DEV bypass is active. Install is skipped, but auth flow starts from login."
@@ -121,16 +122,19 @@ function App({ installMode }: { installMode: InstallMode }) {
     });
   };
 
-  const statusMeta = {
-    ready: { chip: "chip-ready", label: "Ready", desc: "Core dashboard is available and interactive." },
-    loading: {
-      chip: "chip-loading",
-      label: "Loading",
-      desc: "Data is being prepared. Use this state while waiting for API responses.",
-    },
-    empty: { chip: "chip-empty", label: "Empty", desc: "No module data yet. Show CTA links for first actions." },
-    error: { chip: "chip-error", label: "Error", desc: "Request failed. Keep retry and summary guidance visible." },
-  }[homeState];
+  if (effectiveRoute === "login") {
+    return (
+      <main className="auth-shell">
+        <section className="auth-layout">
+          <LoginView
+            onLogin={onLogin}
+            onQuickLogin={onQuickLogin}
+            showDevBypass={installMode === "bypass"}
+          />
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="frame">
@@ -163,56 +167,8 @@ function App({ installMode }: { installMode: InstallMode }) {
           </aside>
         ) : null}
 
-        {effectiveRoute === "login" ? (
-          <section className="panel" aria-labelledby="login-title">
-            <h1 className="title" id="login-title">로그인</h1>
-            <p className="subtitle">설치 이후 진입 흐름을 기준으로 인증 UX를 테스트할 수 있습니다.</p>
-            <form className="stack" onSubmit={onLogin}>
-              <label className="field">
-                <span>이메일</span>
-                <input className="input" type="email" name="email" placeholder="owner@fieldstack.dev" required />
-              </label>
-              <label className="field">
-                <span>비밀번호</span>
-                <input className="input" type="password" name="password" placeholder="••••••••" required />
-              </label>
-              <div className="actions">
-                <button className="button button-primary" type="submit">로그인</button>
-                <button className="button" type="button" onClick={onQuickLogin}>Bypass 로그인</button>
-              </div>
-            </form>
-          </section>
-        ) : null}
-
         {effectiveRoute === "home" ? (
-          <section className="panel" aria-labelledby="home-title">
-            <h1 className="title" id="home-title">Home</h1>
-            <p className="subtitle">설치 이후 기본 허브 화면 구조(요약/액션/상태)를 검증합니다.</p>
-            <div className="stack">
-              <div className="grid">
-                <article className="status status-ready">
-                  <h3>Quick Action</h3>
-                  <p>새 모듈 탐색, 설정 이동, 로그아웃 같은 핵심 행동 진입점.</p>
-                </article>
-                <article className="status status-loading">
-                  <h3>Recent Activity</h3>
-                  <p>설치/인증/설정 변경 이벤트 피드 위치.</p>
-                </article>
-              </div>
-              <div className={`status status-${homeState}`} aria-live="polite">
-                <h3>
-                  View State <span className={`chip ${statusMeta.chip}`}>{statusMeta.label}</span>
-                </h3>
-                <p>{statusMeta.desc}</p>
-              </div>
-              <div className="actions">
-                <button className="button" type="button" onClick={() => setHomeState("ready")}>Ready</button>
-                <button className="button" type="button" onClick={() => setHomeState("loading")}>Loading</button>
-                <button className="button" type="button" onClick={() => setHomeState("empty")}>Empty</button>
-                <button className="button button-danger" type="button" onClick={() => setHomeState("error")}>Error</button>
-              </div>
-            </div>
-          </section>
+          <HomeView homeState={homeState} onChangeHomeState={setHomeState} />
         ) : null}
 
         {effectiveRoute === "settings" ? (
