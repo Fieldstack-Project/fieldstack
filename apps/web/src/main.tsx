@@ -1,12 +1,17 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import "./app.css";
-import { HomeView, type HomeViewState } from "./views/HomeView";
-import { LoginView } from "./views/LoginView";
+import "./styles/global.css";
+import "./styles/login.css";
 
+import { AppShell, type RouteKey } from "./components/AppShell";
+import { HomeView } from "./views/HomeView";
+import { LoginView } from "./views/LoginView";
+import { SettingsView } from "./views/SettingsView";
+import { AdminView } from "./views/AdminView";
+
+// ─── Types ────────────────────────────────────────────────────
 type InstallMode = "normal" | "bypass";
-type RouteKey = "login" | "home" | "settings" | "admin";
 
 interface WebRuntimeEnv {
   MODE?: string;
@@ -14,6 +19,7 @@ interface WebRuntimeEnv {
   VITE_INSTALL_MODE?: string;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────
 const WEB_BOOTSTRAP_MESSAGE = "Fieldstack Web bootstrap initialized";
 
 function resolveInstallMode(runtimeEnv: WebRuntimeEnv): InstallMode {
@@ -21,10 +27,7 @@ function resolveInstallMode(runtimeEnv: WebRuntimeEnv): InstallMode {
   const isDevelopment = runtimeEnv.DEV === true || runtimeEnv.MODE === "development";
 
   if (requestedMode === "bypass") {
-    if (isDevelopment) {
-      return "bypass";
-    }
-
+    if (isDevelopment) return "bypass";
     console.warn("[fieldstack][web] VITE_INSTALL_MODE=bypass ignored outside development");
   }
 
@@ -33,54 +36,42 @@ function resolveInstallMode(runtimeEnv: WebRuntimeEnv): InstallMode {
 
 function getRouteFromHash(rawHash: string): RouteKey {
   const hash = rawHash.replace("#", "");
-  if (hash === "home" || hash === "settings" || hash === "admin" || hash === "login") {
+  if (hash === "settings") {
+    return "home";
+  }
+  if (hash === "home" || hash === "admin" || hash === "login") {
     return hash;
   }
   return "login";
 }
 
 function canAccessRoute(route: RouteKey, isAuthenticated: boolean, isAdmin: boolean): boolean {
-  if (route === "login") {
-    return true;
-  }
-
-  if (!isAuthenticated) {
-    return false;
-  }
-
-  if (route === "admin") {
-    return isAdmin;
-  }
-
+  if (route === "login") return true;
+  if (!isAuthenticated) return false;
+  if (route === "admin") return isAdmin;
   return true;
 }
 
+// ─── App Root ─────────────────────────────────────────────────
 function App({ installMode }: { installMode: InstallMode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [homeState, setHomeState] = useState<HomeViewState>("ready");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [notice, setNotice] = useState(
     installMode === "bypass"
-      ? "DEV bypass is active. Install is skipped, but auth flow starts from login."
-      : "Normal mode is active. Install flow and auth integrations are expected.",
+      ? "DEV bypass active — install skipped, auth starts from login."
+      : "",
   );
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
 
   useEffect(() => {
-    const handleHashChange = () => {
-      setRoute(getRouteFromHash(window.location.hash));
-    };
-
+    const handleHashChange = () => setRoute(getRouteFromHash(window.location.hash));
     window.addEventListener("hashchange", handleHashChange);
-    return () => {
-      window.removeEventListener("hashchange", handleHashChange);
-    };
+    return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
   const effectiveRoute = useMemo<RouteKey>(() => {
-    if (canAccessRoute(route, isAuthenticated, isAdmin)) {
-      return route;
-    }
+    if (canAccessRoute(route, isAuthenticated, isAdmin)) return route;
     return "login";
   }, [isAdmin, isAuthenticated, route]);
 
@@ -95,6 +86,7 @@ function App({ installMode }: { installMode: InstallMode }) {
     window.location.hash = nextRoute;
   };
 
+  // Auth handlers
   const onLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsAuthenticated(true);
@@ -104,24 +96,17 @@ function App({ installMode }: { installMode: InstallMode }) {
 
   const onQuickLogin = () => {
     setIsAuthenticated(true);
-    setNotice("Quick login enabled for UI iteration.");
+    setNotice("");
     navigate("home");
   };
 
   const onLogout = () => {
     setIsAuthenticated(false);
-    setNotice("Logged out. Re-authenticate to continue.");
+    setNotice("Logged out.");
     navigate("login");
   };
 
-  const onToggleAdmin = () => {
-    setIsAdmin((previous) => {
-      const next = !previous;
-      setNotice(next ? "Admin authority enabled for testing." : "Admin authority disabled.");
-      return next;
-    });
-  };
-
+  // Login page (no shell)
   if (effectiveRoute === "login") {
     return (
       <main className="auth-shell">
@@ -136,109 +121,48 @@ function App({ installMode }: { installMode: InstallMode }) {
     );
   }
 
+  // Authenticated shell
   return (
-    <main className="frame">
-      <header className="topbar">
-        <div className="brand">Fieldstack Core Control Plane</div>
-        <span className={`badge ${installMode === "bypass" ? "badge-danger" : "badge-soft"}`}>
-          {installMode === "bypass" ? "DEV BYPASS" : "NORMAL MODE"}
-        </span>
-      </header>
-
-      <p className="notice">{notice}</p>
-
-      <section className="layout">
-        {isAuthenticated ? (
-          <aside className="nav" aria-label="Core navigation">
-            <ul className="nav-list">
-              <li>
-                <button className="nav-button" type="button" aria-current={effectiveRoute === "home" ? "page" : undefined} onClick={() => navigate("home")}>Home</button>
-              </li>
-              <li>
-                <button className="nav-button" type="button" aria-current={effectiveRoute === "settings" ? "page" : undefined} onClick={() => navigate("settings")}>Settings</button>
-              </li>
-              <li>
-                <button className="nav-button" type="button" aria-current={effectiveRoute === "admin" ? "page" : undefined} onClick={() => navigate("admin")}>Admin</button>
-              </li>
-              <li>
-                <button className="nav-button" type="button" onClick={onLogout}>Logout</button>
-              </li>
-            </ul>
-          </aside>
-        ) : null}
-
-        {effectiveRoute === "home" ? (
-          <HomeView homeState={homeState} onChangeHomeState={setHomeState} />
-        ) : null}
-
-        {effectiveRoute === "settings" ? (
-          <section className="panel" aria-labelledby="settings-title">
-            <h1 className="title" id="settings-title">Settings</h1>
-            <p className="subtitle">일반 설정 저장 UX와 관리자 권한 토글을 함께 점검합니다.</p>
-            <div className="stack">
-              <div className="grid">
-                <label className="field">
-                  <span>표시 이름</span>
-                  <input className="input" type="text" placeholder="Fieldstack Owner" />
-                </label>
-                <label className="field">
-                  <span>언어</span>
-                  <select className="select">
-                    <option>한국어</option>
-                    <option>English</option>
-                  </select>
-                </label>
-              </div>
-              <div className="actions">
-                <button className="button button-primary" type="button" onClick={() => setNotice("Settings saved (mock).")}>저장</button>
-                <button className="button" type="button" onClick={onToggleAdmin}>{isAdmin ? "관리자 권한 해제" : "관리자 권한 부여"}</button>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        {effectiveRoute === "admin" ? (
-          <section className="panel" aria-labelledby="admin-title">
-            <h1 className="title" id="admin-title">Admin</h1>
-            {isAdmin ? (
-              <>
-                <p className="subtitle">관리자 전용 설정 및 감사 로그 진입점을 검증합니다.</p>
-                <div className="stack">
-                  <article className="status status-ready">
-                    <h3>PIN Session</h3>
-                    <p>30분 만료 시 재인증 모달을 띄우는 자리입니다.</p>
-                  </article>
-                  <article className="status status-loading">
-                    <h3>Audit Logs</h3>
-                    <p>PIN 실패, 권한 변경, 주요 설정 저장 이력을 보여줄 카드 영역입니다.</p>
-                  </article>
-                </div>
-              </>
-            ) : (
-              <article className="status status-error" role="alert">
-                <h3>Unauthorized</h3>
-                <p>관리자 권한이 없어서 접근할 수 없습니다. Settings에서 관리자 권한을 활성화하세요.</p>
-              </article>
-            )}
-          </section>
-        ) : null}
-      </section>
-    </main>
+    <AppShell
+      installMode={installMode}
+      route={effectiveRoute}
+      isAdmin={isAdmin}
+      notice={notice}
+      onNavigate={navigate}
+      onLogout={onLogout}
+      onOpenSettings={() => setIsSettingsOpen(true)}
+    >
+      {effectiveRoute === "home" && <HomeView onOpenSettings={() => setIsSettingsOpen(true)} />}
+      {effectiveRoute === "admin" && <AdminView isAdmin={isAdmin} />}
+      {isSettingsOpen && (
+        <SettingsView
+          isAdmin={isAdmin}
+          onClose={() => setIsSettingsOpen(false)}
+          onToggleAdmin={() => {
+            setIsAdmin((prev) => {
+              const next = !prev;
+              setNotice(next ? "Admin authority enabled (mock)." : "Admin authority disabled.");
+              return next;
+            });
+          }}
+          onSaved={() => setNotice("Settings saved (mock).")}
+        />
+      )}
+    </AppShell>
   );
 }
 
+// ─── Bootstrap ────────────────────────────────────────────────
 const runtimeEnv = (import.meta as ImportMeta & { env?: WebRuntimeEnv }).env ?? {};
 const installMode = resolveInstallMode(runtimeEnv);
 
 console.log(WEB_BOOTSTRAP_MESSAGE);
 console.log(`[fieldstack][web] install mode: ${installMode}`);
-
 if (installMode === "bypass") {
   console.warn("[fieldstack][web] DEV INSTALL BYPASS ACTIVE");
 }
 
 const appRootElement = document.querySelector<HTMLDivElement>("#app");
-
 if (appRootElement === null) {
   throw new Error("App root element '#app' was not found.");
 }

@@ -1,0 +1,193 @@
+/* ─── Design Tokens ──────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --bg: #eff3fb;
+  --bg-accent: #dce9fb;
+  --bg-deep: #c9daf6;
+  --surface: #ffffff;
+  --text: #101a2b;
+  --muted: #5b6780;
+  --primary: #2f5ac7;
+  --primary-strong: #2248ae;
+  --border: #d6e0f2;
+  --focus-ring: rgba(47, 90, 199, 0.26);
+}
+
+/* ─── Reset ──────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Pretendard", "Pretendard JP", "Noto Sans KR", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 8% 12%, rgba(59, 130, 246, 0.21), transparent 40%),
+    radial-gradient(circle at 88% 10%, rgba(56, 189, 248, 0.2), transparent 34%),
+    linear-gradient(155deg, var(--bg), var(--bg-accent) 55%, var(--bg-deep));
+}
+
+:lang(ja) {
+  font-family: "Pretendard JP", "Pretendard", "Noto Sans KR", sans-serif;
+}
+
+/* ─── Typography ─────────────────────────────────────────────── */
+.title {
+  margin: 0;
+  font-size: 24px;
+}
+
+.subtitle {
+  margin-top: 8px;
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ─── Primitives ─────────────────────────────────────────────── */
+.badge {
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge-danger {
+  background: #ffe4e6;
+  color: #9f1239;
+}
+
+.badge-soft {
+  background: #e8efff;
+  color: #1e3a8a;
+}
+
+.chip {
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chip-ready  { background: #d1fae5; color: #065f46; }
+.chip-loading { background: #dbeafe; color: #1e3a8a; }
+.chip-empty  { background: #fff7ed; color: #9a3412; }
+.chip-error  { background: #fee2e2; color: #991b1b; }
+
+/* ─── Form Controls ──────────────────────────────────────────── */
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.input,
+.select {
+  width: 100%;
+  border: 1px solid #c7d4ef;
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 14px;
+  background: #ffffff;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: #6f8fdb;
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+/* ─── Button ─────────────────────────────────────────────────── */
+.button {
+  border: none;
+  border-radius: 12px;
+  padding: 9px 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #e5ebfb;
+  color: #122042;
+}
+
+.button-primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.button-primary:hover {
+  background: var(--primary-strong);
+}
+
+.button-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.button-block {
+  width: 100%;
+}
+
+/* ─── Layout Primitives ──────────────────────────────────────── */
+.stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ─── Status Cards ───────────────────────────────────────────── */
+.status {
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+}
+
+.status h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.status p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #334155;
+}
+
+.status-ready   { border-color: #86efac; background: #f0fdf4; }
+.status-loading { border-color: #93c5fd; background: #eff6ff; }
+.status-empty   { border-color: #fdba74; background: #fff7ed; }
+.status-error   { border-color: #fda4af; background: #fff1f2; }
+
+/* ─── Panel ──────────────────────────────────────────────────── */
+.panel {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 36px rgba(19, 36, 75, 0.13);
+  padding: 20px;
+}

@@ -1,59 +1,140 @@
-export type HomeViewState = "ready" | "loading" | "empty" | "error";
+import "../styles/home.css";
+
+import type { NavigationItem } from "../loader";
+
+const MOCK_INSTALLED_MODULES: NavigationItem[] = [];
+
+const MODULE_ICONS: Record<string, string> = {
+  ledger: "💰",
+  subscription: "📅",
+  todo: "✅",
+  project: "📊",
+};
+
+const MOCK_RECENT_ACTIVITY = [
+  { id: 1, text: "로그인 세션이 갱신됨", time: "방금 전", dot: "info" as const },
+  { id: 2, text: "모듈 로더 스캔 완료", time: "2분 전", dot: "ok" as const },
+  { id: 3, text: "관리자 권한 상태 확인", time: "7분 전", dot: "warn" as const },
+];
 
 interface HomeViewProps {
-  homeState: HomeViewState;
-  onChangeHomeState: (state: HomeViewState) => void;
+  onOpenSettings: () => void;
 }
 
-export function HomeView({ homeState, onChangeHomeState }: HomeViewProps) {
-  const statusMeta = {
-    ready: { chip: "chip-ready", label: "Ready", desc: "Core dashboard is available and interactive." },
-    loading: {
-      chip: "chip-loading",
-      label: "Loading",
-      desc: "Data is being prepared. Use this state while waiting for API responses.",
-    },
-    empty: { chip: "chip-empty", label: "Empty", desc: "No module data yet. Show CTA links for first actions." },
-    error: { chip: "chip-error", label: "Error", desc: "Request failed. Keep retry and summary guidance visible." },
-  }[homeState];
+export function HomeView({ onOpenSettings }: HomeViewProps) {
+  const hasModules = MOCK_INSTALLED_MODULES.length > 0;
 
   return (
-    <section className="panel" aria-labelledby="home-title">
-      <h1 className="title" id="home-title">
-        Home
-      </h1>
-      <p className="subtitle">설치 이후 기본 허브 화면 구조(요약/액션/상태)를 검증합니다.</p>
+    <section className="panel home-root" aria-labelledby="home-title">
+      <div className="home-hero">
+        <div>
+          <p className="home-kicker">Workspace Overview</p>
+          <h1 className="home-title" id="home-title">
+            Main Hub
+          </h1>
+          <p className="home-subtitle">모듈 실행, 설정 변경, 관리 진입을 한 화면에서 제어</p>
+        </div>
+
+        <div className="home-hero-actions">
+          <button className="button home-button-secondary" type="button" onClick={onOpenSettings}>
+            General Settings
+          </button>
+          <button className="button button-primary" type="button">
+            Open Marketplace
+          </button>
+        </div>
+      </div>
+
+      <div className="home-stat-grid">
+        <article className="home-stat-card">
+          <p className="home-stat-label">Installed Modules</p>
+          <p className="home-stat-value">{MOCK_INSTALLED_MODULES.length}</p>
+        </article>
+        <article className="home-stat-card">
+          <p className="home-stat-label">Pending Alerts</p>
+          <p className="home-stat-value">3</p>
+        </article>
+        <article className="home-stat-card">
+          <p className="home-stat-label">System Health</p>
+          <p className="home-stat-value">Good</p>
+        </article>
+      </div>
+
       <div className="stack">
-        <div className="grid">
-          <article className="status status-ready">
-            <h3>Quick Action</h3>
-            <p>새 모듈 탐색, 설정 이동, 로그아웃 같은 핵심 행동 진입점.</p>
-          </article>
-          <article className="status status-loading">
-            <h3>Recent Activity</h3>
-            <p>설치/인증/설정 변경 이벤트 피드 위치.</p>
-          </article>
-        </div>
-        <div className={`status status-${homeState}`} aria-live="polite">
-          <h3>
-            View State <span className={`chip ${statusMeta.chip}`}>{statusMeta.label}</span>
-          </h3>
-          <p>{statusMeta.desc}</p>
-        </div>
-        <div className="actions">
-          <button className="button" type="button" onClick={() => onChangeHomeState("ready")}>
-            Ready
-          </button>
-          <button className="button" type="button" onClick={() => onChangeHomeState("loading")}>
-            Loading
-          </button>
-          <button className="button" type="button" onClick={() => onChangeHomeState("empty")}>
-            Empty
-          </button>
-          <button className="button button-danger" type="button" onClick={() => onChangeHomeState("error")}>
-            Error
-          </button>
-        </div>
+        <section className="home-section">
+          <div className="home-section-head">
+            <h2 className="home-section-title">Installed Modules</h2>
+            <span className="home-section-meta">Ready to launch</span>
+          </div>
+
+        {hasModules ? (
+          <div className="home-modules-grid">
+            {MOCK_INSTALLED_MODULES.map((mod) => (
+              <button
+                key={mod.id}
+                className="module-card"
+                type="button"
+                onClick={() => {
+                  window.location.hash = mod.path;
+                }}
+              >
+                <p className="module-card-icon">{MODULE_ICONS[mod.id] ?? "🧩"}</p>
+                <p className="module-card-name">{mod.label}</p>
+                <p className="module-card-desc">Open module workspace</p>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="home-empty">
+            <div className="home-empty-icon">⬡</div>
+            <h2 className="home-empty-title">No modules installed yet</h2>
+            <p className="home-empty-desc">
+              첫 모듈을 설치하면 메인 허브에 즉시 표시됩니다.
+            </p>
+            <button className="button button-primary" type="button">
+              Browse Marketplace
+            </button>
+          </div>
+        )}
+        </section>
+
+        <section className="home-section">
+          <div className="home-section-head">
+            <h2 className="home-section-title">Quick Actions</h2>
+          </div>
+          <div className="home-quick-actions">
+            <button className="button home-pill" type="button">
+              Add module
+            </button>
+            <button className="button home-pill" type="button" onClick={onOpenSettings}>
+              Open settings
+            </button>
+            <button className="button home-pill" type="button">
+              View logs
+            </button>
+          </div>
+        </section>
+
+        <section className="home-section">
+          <div className="home-section-head">
+            <h2 className="home-section-title">Recent Activity</h2>
+          </div>
+          <ul className="home-activity-list" aria-label="최근 활동 목록">
+            {MOCK_RECENT_ACTIVITY.map((item) => (
+              <li key={item.id} className="home-activity-item">
+                <span
+                  className={`home-activity-dot home-activity-dot-${item.dot}`}
+                  aria-hidden="true"
+                />
+                <span>
+                  {item.text}
+                  <br />
+                  <span className="home-activity-time">{item.time}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </section>
   );
