@@ -416,6 +416,12 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 | #1 Module Loader | 런타임 동적 Import | VSCode 방식 UX | ✅ 확정 |
 | #2 관리자 인증 | 로컬 로그인 우선 + PIN | 간단하면서 안전 | ✅ 확정 |
 | #3 DB 추상화 | Query Builder | 적절한 레벨 | ✅ 확정 |
+| #5 API 네임스페이스 | Internal/External 분리 | 보안 및 AI 연동 최적화 | ✅ 확정 |
+
+|------|------|----------|------|
+| #1 Module Loader | 런타임 동적 Import | VSCode 방식 UX | ✅ 확정 |
+| #2 관리자 인증 | 로컬 로그인 우선 + PIN | 간단하면서 안전 | ✅ 확정 |
+| #3 DB 추상화 | Query Builder | 적절한 레벨 | ✅ 확정 |
 
 ---
 
@@ -424,6 +430,7 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 | 날짜 | 버전 | 변경 내용 |
 |------|------|----------|
 | 2025-01-29 | 1.0.0 | 최초 작성 (#1, #2, #3) |
+| 2026-03-05 | 1.1.0 | API 네임스페이스 분리 결정 추가 (#5) |
 
 ---
 
@@ -446,3 +453,57 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 > 💡 **중요:**  
 > 이 문서의 결정사항은 프로젝트 전반에 영향을 미칩니다.  
 > 변경이 필요한 경우 반드시 문서를 업데이트하고 버전을 올립니다.
+
+
+## 결정 #5: API 네임스페이스 분리 (Internal vs. External)
+
+### ✅ 결정 사항
+
+**내부 UI용 API(`/local-api/`)와 외부 AI/에이전트 연동용 API(`/api/`)를 완전히 분리**하여 운영합니다.
+
+### 📖 배경
+
+Fieldstack은 프라이버시 중심의 개인 시스템이지만, OpenClaw와 같은 외부 AI 에이전트와의 연동 필요성이 제기되었습니다. 내부 전용 API를 그대로 노출할 경우 보안 위험이 크고, AI가 이해하기 어려운 복잡한 구조를 가질 수 있습니다.
+
+### 🔍 네임스페이스 구분
+
+#### 1. Internal API (`/local-api/*`)
+- **대상**: Fieldstack 자체 프론트엔드 (React SPA)
+- **인증**: HttpOnly 쿠키 기반 세션 (보안 최우선)
+- **특징**: 고성능 통신, 모든 기능(CRUD) 노출, UI 최적화 데이터 구조
+
+#### 2. External API (`/api/*`)
+- **대상**: OpenClaw, ChatGPT, 전용 모바일 앱 등 외부 서비스
+- **인증**: Scoped API Key 또는 OAuth2 (제한된 권한)
+- **특징**: AI 친화적 단순 데이터 구조, OpenAPI 명세 필수, 속도 제한(Rate Limit) 적용
+
+### 💡 기대 효과
+
+1. **보안 강화**: 실수로 중요 관리 기능을 외부에 노출할 위험을 원천 차단합니다.
+2. **AI 에이전트 연동 용이**: AI가 이해하기 쉬운 `manifest.json`과 단순화된 스키마를 제공할 수 있습니다.
+3. **독립적 버전 관리**: UI 변경에 따른 내부 API 수정이 외부 연동 서비스(스킬)를 깨뜨리지 않도록 보호합니다.
+
+### 🎯 구현 방향
+
+모듈 개발자는 `module.json`을 통해 외부 노출 여부를 결정합니다.
+```json
+{
+  "name": "ledger",
+  "exposedSkills": [
+    {
+      "id": "get-monthly-stats",
+      "path": "/stats",
+      "description": "월간 가계부 지출 통계를 조회합니다."
+    }
+  ]
+}
+```
+외부 에이전트는 `/api/manifest.json`을 통해 사용 가능한 스킬 목록을 한눈에 파악할 수 있습니다.
+
+### 📚 관련 문서
+
+> 📖 **AI 통합 정책:**  
+> → `technical/03-ai-integration.md § 외부 AI Agent 연동`
+
+> 📖 **OpenAPI Baseline:**  
+> → `technical/05-openapi-baseline.yaml`

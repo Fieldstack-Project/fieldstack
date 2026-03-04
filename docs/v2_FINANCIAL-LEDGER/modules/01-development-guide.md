@@ -18,7 +18,23 @@ example 폴더를 복사하여 my-module이라는 새 폴더로 만들고, 해�
 
 ### 2. module.json 수정
 
-모듈의 메타데이터를 정의하는 파일입니다. name은 내부 식별명, version은 버전, displayName은 표시 이름, description은 설명, icon은 아이콘 이모지입니다. routes에는 프론트엔드 경로와 API 경로를 정의하고, permissions에는 필요한 권한(예: db:read, db:write)을 목록으로 넣습니다. dependencies는 의존하는 다른 모듈 목록이고, enabled는 활성화 여부입니다.
+모듈의 메타데이터를 정의하는 파일입니다.
+
+```json
+{
+  "name": "my-module",
+  "version": "1.0.0",
+  "displayName": "내 모듈",
+  "exposedSkills": [
+    {
+      "id": "get-summary",
+      "path": "/summary",
+      "description": "모듈 데이터 요약을 외부 AI에 제공합니다."
+    }
+  ]
+}
+```
+`exposedSkills`는 OpenClaw 같은 외부 AI 에이전트에게 노출할 기능을 정의합니다.
 
 ---
 
@@ -76,6 +92,23 @@ DELETE /:id 엔드포인트는 삭제입니다. service.remove를 호출하여 �
 > 📖 **DB 추상화 레이어:**  
 > → `technical/01-database.md`  
 > → `architecture/01-decisions.md § 결정 #3: DB 추상화`
+
+Core의 `db`, `eventBus`, `core` 컨텍스트를 주입받아 사용합니다.
+
+### 서비스 호출 (Service-to-Service)
+다른 모듈의 기능이 필요한 경우 Core의 Registry를 통해 서비스를 요청합니다.
+```typescript
+const ledgerService = this.core.getService('ledger');
+if (ledgerService) {
+  await ledgerService.createEntry({...});
+}
+```
+
+### DB 및 이벤트
+
+create 함수는 새 항목을 생성합니다. 완료 후 'my-module:created' 이벤트를 Event Bus에 발행합니다.
+
+---
 
 Core의 db와 eventBus를 가져와 사용합니다.
 

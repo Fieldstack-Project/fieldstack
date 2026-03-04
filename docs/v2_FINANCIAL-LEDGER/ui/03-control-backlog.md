@@ -88,3 +88,12 @@ Phase 2 이후 모듈/커뮤니티 요청에 따라 점진 확장하기 위한 �
 | Activity Feed | P2 | 미착수 | 이벤트 스트림 컴포넌트 |
 | Permission Matrix | P2 | 미착수 | 역할/권한 테이블 편집 |
 | Bulk Action Bar | P2 | 미착수 | 다중 선택 일괄 처리 |
+
+## P2+ (AI & External Integration 전용)
+
+| Control | 우선순위 | 1.5 구현상태 | 비고 |
+| --- | --- | --- | --- |
+| API Key Generator | P2 | 미착수 | 외부 에이전트 연동용 키 발급 UI |
+| Scope Selector Table | P2 | 미착수 | 모듈별 권한(Read/Write) 제어 매트릭스 |
+| Audit Log Timeline | P2 | 미착수 | 외부 접속 및 API 실행 이력 시각화 |
+| Skill Manifest Editor | P3 | 미착수 | 모듈별 노출 스킬 수동 조정 UI |

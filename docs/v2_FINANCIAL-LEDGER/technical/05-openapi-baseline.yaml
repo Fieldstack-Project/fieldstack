@@ -7,6 +7,91 @@ info:
     This file defines minimal health/module endpoints to bootstrap API documentation workflow.
 servers:
   - url: http://localhost:3000
+  - url: https://your-fieldstack-domain.com
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: 외부 AI 에이전트 전용 API Key (External API 용)
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: AI가 이해하기 쉬운 에러 코드
+          example: AUTH_REQUIRED
+        message:
+          type: string
+          description: 에러에 대한 상세 설명
+          example: API Key가 유효하지 않거나 만료되었습니다.
+
+    SkillManifest:
+      type: object
+      properties:
+        version:
+          type: string
+          example: "1.0"
+        modules:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModuleSkill'
+
+    ModuleSkill:
+      type: object
+      properties:
+        name:
+          type: string
+          example: ledger
+        displayName:
+          type: string
+          example: 가계부
+        skills:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: get-stats
+              description:
+                type: string
+                example: 월간 지출 통계를 조회합니다.
+              path:
+                type: string
+                example: /api/v1/ledger/stats
+              method:
+                type: string
+                example: GET
+
+paths:
+  /api/manifest.json:
+    get:
+      summary: AI 에이전트용 스킬 목록 (Skill Manifest)
+      description: 현재 설치된 모듈 중 외부 노출이 허용된 모든 스킬을 반환합니다.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: 스킬 목록 반환
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillManifest'
+        "401":
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/health:
+
+  - url: http://localhost:3000
 paths:
   /api/health:
     get:

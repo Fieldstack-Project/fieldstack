@@ -306,6 +306,24 @@ verifySession 메서드는 세션 ID로 세션을 조회한 후, 존재하지 �
 
 ---
 
+### 4. 외부 API 인증 (Scoped API Key)
+
+OpenClaw 등 외부 에이전트 연동을 위해 세션과 분리된 API Key 인증을 제공합니다.
+
+**인증 방식:**
+- HTTP 헤더: `X-API-Key: {YOUR_API_KEY}`
+- 대상 경로: `/api/*` (External API 전용)
+
+**보안 및 제어:**
+- **Scoped Permission**: 특정 모듈의 특정 작업(예: `ledger:read`)에 대해서만 권한 부여 가능
+- **Audit Logging**: 외부 키를 통한 모든 요청은 타임스탬프, IP, 실행된 액션을 별도 기록
+- **Rotation**: 사용자가 언제든지 키를 무효화하거나 재발급 가능
+
+> 📖 **상세 설계:**  
+> → `architecture/01-decisions.md § 결정 #5: API 네임스페이스 분리`
+
+---
+
 ## Frontend 구현
 
 ### PIN 입력 컴포넌트
@@ -375,6 +393,7 @@ GET /auth/callback 엔드포인트는 Google에서 돌아온 콜백을 처리합
 - 📌 `architecture/01-decisions.md § 결정 #2` - PIN 방식 선택 근거
 - 📖 `deployment/02-setup-wizard.md` - 초기 관리자 설정
 - 📖 `community/02-github-policy.md` - 보안 정책
+- 📖 `architecture/01-decisions.md § 결정 #5` - API 네임스페이스 분리
 
 ---
 

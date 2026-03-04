@@ -198,7 +198,30 @@ AI가 비활성화되면 모든 AI 기능은 기본 통계로 대체됩니다.
 
 ---
 
-## [초안/미확정] 외부 AI Agent 연동 (Custom GPTs, Gemini Extensions 등)
+## [확정] 외부 AI Agent 연동 (OpenClaw, Custom GPTs 등)
+
+> **📌 핵심 원칙:** Fieldstack의 기능을 외부 AI가 "스킬(Skill)"로 사용할 수 있도록 표준화된 인터페이스를 제공합니다.
+
+### 연동 아키텍처 (API Namespace 분리)
+
+내부 UI용 API와 분리된 별도의 **External API (`/api/*`)** 경로를 사용합니다.
+
+1. **보안 분리**: `/local-api/`는 쿠키 인증, `/api/`는 전용 API Key 인증을 사용합니다.
+2. **Skill Manifest**: AI가 읽을 수 있는 `openapi.json` 명세를 자동으로 생성하여 제공합니다.
+3. **Scoped Permission**: 특정 에이전트(예: OpenClaw)에게는 '가계부 조회' 권한만 주고 '삭제' 권한은 주지 않는 세밀한 제어가 가능합니다.
+
+### 기술적 구현 (OpenClaw 연동 예시)
+
+1. **Skill 등록**: 사용자가 모듈 설정에서 "OpenClaw 연동 활성화"를 체크합니다.
+2. **Key 발급**: 해당 에이전트 전용 API Key를 생성합니다.
+3. **연결**: OpenClaw 설정 창에 Fieldstack의 외부 API URL(`https://myapp.com/api/v1/`)과 발급된 키를 입력합니다.
+4. **사용**: OpenClaw에서 "내 가계부 분석해줘"라고 하면, AI가 스킬 목록을 확인하고 `/api/v1/ledger/stats`를 호출합니다.
+
+### 보안 가이드라인
+
+- **터널링 지원**: 폐쇄망 사용자를 위해 Cloudflare Tunnel 등 외부망 노출을 안전하게 처리하는 가이드를 내장합니다.
+- **Rate Limiting**: 외부 API 호출 횟수를 엄격히 제한하여 비정상적인 호출을 차단합니다.
+- **Audit Log**: 외부 에이전트가 어떤 데이터를 언제 읽어갔는지 관리자 화면에서 확인할 수 있도록 기록합니다.
 
 > **⚠️ 주의:** 이 섹션은 아이디어 단계의 초안(Draft)이며, 기술적 제약(외부망 노출, 보안 등)으로 인해 정식 기능으로 확정되지 않았습니다.
 
