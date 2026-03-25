@@ -96,6 +96,7 @@ pnpm start
 - [🛡️ 탄력성 운영](architecture/03-resilience-operations.md)
 - [📁 디렉터리 구조](architecture/04-directory-structure.md)
 - [💡 핵심 원칙](architecture/02-core-principles.md)
+- [🔌 플러그인 시스템](architecture/05-plugin-system.md)
 - [📋 설계 결정](architecture/01-decisions.md)
 
 ### 기술 문서
