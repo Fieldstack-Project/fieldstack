@@ -180,14 +180,7 @@ Google의 Calendar API를 사용하여 구독 결제일을 캘린더 이벤트�
 ---
 
 ## 차후 개발 및 제공 가능 리스트
-- TODO / Scheduler
-  - 참고: [TickTick](https://ticktick.com/)
-  - 포모도로는 추가되지 않음
-- 프로젝트·외주 관리
-  - 정산 시스템 포함
-  - 이메일, Form(API, Webhook / Tally, Google Form, Typeform, Notion(API를 사용하여 DB를 글거오는 방식)), 커스텀 API
-- 플레너
-  - 여행 계획(국내, 해외 등)
+> [_modules_for-future](docs\v2_FINANCIAL-LEDGER\_modules_for-future) 으로 이전 되었습니다.
 
 ---
 
