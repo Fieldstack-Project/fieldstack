@@ -1,7 +1,7 @@
 # 데이터베이스 정책
 
 > 📌 **핵심 아키텍처 결정:**  
-> → `architecture/decisions.md § 결정 #3: DB 추상화` - Multi-provider 지원 + 통일된 인터페이스
+> → `architecture/01-decisions.md § 결정 #3: DB 추상화` - Multi-provider 지원 + 통일된 인터페이스
 
 **최종 업데이트:** 2025-01-29
 
@@ -36,7 +36,7 @@ DB_PROVIDER를 'mongodb'로 설정하고, MONGODB_URI에 MongoDB의 연결 주�
 ## DB 추상화
 
 > 📌 **설계 결정:**  
-> → `architecture/decisions.md § 결정 #3: DB 추상화`  
+> → `architecture/01-decisions.md § 결정 #3: DB 추상화`  
 > - 단일 인터페이스로 모든 DB 지원  
 > - 모듈은 DB 종류를 신경쓰지 않음  
 > - Provider 패턴으로 확장 가능
@@ -50,7 +50,7 @@ DBProvider 인터페이스를 정의합니다. 모든 DB Provider는 동일하�
 ### 모듈에서의 사용
 
 > 📖 **모듈 개발 가이드:**  
-> → `modules/development-guide.md § Backend 개발 § service.ts`
+> → `modules/01-development-guide.md § Backend 개발 § service.ts`
 
 모듈에서는 Core의 db 객체를 가져와 사용합니다. 실제로 뒤에서 어떤 DB가 돌고 있는지와 관계없이 동일한 인터페이스로 쿼리를 실행할 수 있습니다. 예시로는 ledger_entries 테이블에 새 항목을 삽입하는 것을 보여줍니다.
 
@@ -59,7 +59,7 @@ DBProvider 인터페이스를 정의합니다. 모든 DB Provider는 동일하�
 ## 모듈별 DB 테이블 격리
 
 > 📖 **모듈 시스템:**  
-> → `modules/system-design.md § 데이터베이스 격리`
+> → `modules/03-system-design.md § 데이터베이스 격리`
 
 ### 원칙
 
@@ -76,7 +76,7 @@ DBProvider 인터페이스를 정의합니다. 모든 DB Provider는 동일하�
 ## 마이그레이션 전략 (자동화)
 
 > 📖 **상세 설계:**  
-> → `technical/migrations.md` - 버전 관리 및 전처리기 상세
+> → `technical/06-migrations.md` - 버전 관리 및 전처리기 상세
 
 각 모듈은 `backend/migrations/` 폴더 내에 SQL 파일을 배치하여 자신의 스키마를 독립적으로 관리합니다.
 
@@ -85,7 +85,7 @@ Core는 모든 모듈의 마이그레이션을 자동으로 감지하고 실행�
 ---
 
 > 📖 **모듈 구조:**  
-> → `modules/development-guide.md § 프로젝트 구조`
+> → `modules/01-development-guide.md § 프로젝트 구조`
 
 각 모듈은 자체 마이그레이션 파일 관리:
 
@@ -134,7 +134,7 @@ MongoDBProvider는 mongodb 라이브러리의 MongoClient를 사용합니다. co
 ## Provider 팩토리
 
 > 📌 **Provider 선택 로직:**  
-> → `architecture/decisions.md § 결정 #3`
+> → `architecture/01-decisions.md § 결정 #3`
 
 createDBProvider 함수는 환경 변수의 DB_PROVIDER 값에 따라 적절한 Provider 객체를 생성합니다. 기본값은 'sqlite'이며, 'postgres', 'sqlite', 'supabase', 'mongodb' 중 하나를 지정할 수 있습니다. 알 수 없는 Provider 이름이면 에러를 발생시킵니다.
 
@@ -145,7 +145,7 @@ getDB 함수는 전역 DB 인스턴스를 관리합니다. 처음 호출되면 c
 ## 모듈에서의 DB 사용
 
 > 📖 **모듈 개발:**  
-> → `modules/development-guide.md § Backend 개발`
+> → `modules/01-development-guide.md § Backend 개발`
 
 ### 기본 쿼리
 
@@ -160,7 +160,7 @@ transferFunds 함수는 한 계좌에서 다른 계좌로 금액을 이체하는
 ## 스키마 정의
 
 > 📖 **모듈 구조:**  
-> → `modules/development-guide.md § schema.ts`
+> → `modules/01-development-guide.md § schema.ts`
 
 ledger_entries 테이블의 스키마를 정의합니다. 열 구성은 다음과 같습니다: id는 기본키인 UUID, user_id는 필수의 UUID, amount는 소수점 2자리까지 가능한 숫자, category는 최대 100자의 문자열, date는 필수의 날짜, created_at과 updated_at은 자동으로 현재 시간으로 설정됩니다.
 
@@ -229,17 +229,17 @@ checkDatabaseHealth 함수는 간단한 SELECT 1 쿼리를 실행하여 DB 연�
 ## 📚 관련 문서
 
 ### 핵심 아키텍처
-- 📌 `architecture/decisions.md § 결정 #3` - DB 추상화 설계 결정
+- 📌 `architecture/01-decisions.md § 결정 #3` - DB 추상화 설계 결정
 - 📖 `architecture/00-overview.md` - 전체 아키텍처
 - 📖 `architecture/04-directory-structure.md` - 디렉터리 구조
 
 ### 모듈 개발
-- 📖 `modules/development-guide.md § Backend 개발` - DB 사용 예시
-- 📖 `modules/system-design.md § 데이터베이스 격리` - 격리 원칙
+- 📖 `modules/01-development-guide.md § Backend 개발` - DB 사용 예시
+- 📖 `modules/03-system-design.md § 데이터베이스 격리` - 격리 원칙
 
 ### 배포
 - 📖 `deployment/01-installation.md` - DB 설정
-- 📖 `deployment/configuration.md § 데이터베이스` - 설정 관리
+- 📖 `deployment/03-configuration.md § 데이터베이스` - 설정 관리
 
 ---
 
@@ -247,6 +247,6 @@ checkDatabaseHealth 함수는 간단한 SELECT 1 쿼리를 실행하여 DB 연�
 
 DB 추상화를 이해했다면:
 
-1. **모듈 개발** → `modules/development-guide.md`
+1. **모듈 개발** → `modules/01-development-guide.md`
 2. **스키마 설계** → 테이블 구조 계획
 3. **마이그레이션** → 버전 관리

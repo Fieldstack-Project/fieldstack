@@ -299,7 +299,7 @@
 
 **5단계 — 모듈 설치 (70%):** 설정에서 선택된 모듈 목록이 있으면 각 모듈을 순회하며 `installModule`을 호출합니다.
 
-**6단계 — 관리자 계정 생성 (85%):** `createAdminAccount`를 호출합니다. 비밀번호를 bcrypt으로 해싱하여 `allowedUsers` 테이블에 admin 역할로 저장합니다.
+**6단계 — 관리자 계정 생성 (85%):** `createAdminAccount`를 호출합니다. 비밀번호를 Argon2id로 해싱하여 `allowedUsers` 테이블에 admin 역할로 저장합니다.
 
 **7단계 — 최종 설정 (95%):** `finalizeInstallation`으로 마지막 설정을 적용합니다.
 

@@ -1,4 +1,6 @@
-## 📄 시스템 탄력성 운영 아키텍처 (System Resilience Operations)
+# 시스템 탄력성 운영 아키텍처 (System Resilience Operations)
+
+## 📄 개요
 
 이 문서는 Fieldstack의 장애 대응 전략을 커널 계층이 아닌 사용자 공간(Ring 3) 기준으로 정의합니다.
 본 설계의 목적은 특권 제어가 아니라 서비스 가용성 유지입니다.

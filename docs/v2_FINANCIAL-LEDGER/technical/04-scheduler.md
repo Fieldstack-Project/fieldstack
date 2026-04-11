@@ -2,7 +2,7 @@
 
 > 📖 **관련 아키텍처:**  
 > → `architecture/00-overview.md § Plugin Layer` - Scheduler는 Backend Plugin으로 구현  
-> → `modules/system-design.md § 모듈 생명주기` - initialize() Hook에서 작업 등록
+> → `modules/03-system-design.md § 모듈 생명주기` - initialize() Hook에서 작업 등록
 
 **최종 업데이트:** 2025-01-29
 
@@ -29,8 +29,8 @@ apps/api/src/plugins/scheduler/
 ## 작업 등록 방식
 
 > 📖 **모듈 초기화:**  
-> → `modules/development-guide.md § Backend 개발 § index.ts`  
-> → `modules/system-design.md § 모듈 생명주기`
+> → `modules/01-development-guide.md § Backend 개발 § index.ts`  
+> → `modules/03-system-design.md § 모듈 생명주기`
 
 모듈은 **초기화 시 작업을 등록**:
 
@@ -74,7 +74,7 @@ Core의 scheduler를 가져와 초기화 함수 내에서 작업을 등록합니
 ### 2. 구독 결제일 체크
 
 > 📖 **기본 모듈:**  
-> → `modules/default-modules.md § Subscription`
+> → `modules/00-default-modules.md § Subscription`
 
 작업명은 'subscription-payment-check'이며, 매일 오전 9시에 실행됩니다. 실행되면 오늘 날짜와 결제일이 일치하는 구독 목록을 조회하고, 각각에 대해 결제일 안내 알림을 보냅니다.
 
@@ -85,14 +85,14 @@ Core의 scheduler를 가져와 초기화 함수 내에서 작업을 등록합니
 ### 4. Google Drive 자동 백업
 
 > 📖 **통합 서비스:**  
-> → `modules/integrations.md § Google Drive`
+> → `modules/02-integrations.md § Google Drive`
 
 작업명은 'backup-to-drive'이며, 매일 새벽 2시에 실행됩니다. 실행되면 데이터베이스 백업 파일을 생성한 후 Google Drive에 업로드합니다.
 
 ### 5. Slack 리포트 전송
 
 > 📖 **통합 서비스:**  
-> → `modules/integrations.md § Slack`
+> → `modules/02-integrations.md § Slack`
 
 작업명은 'weekly-slack-report'이며, 매주 월요일 오전 9시에 실행됩니다. 실행되면 주간 통계를 생성한 후 Slack으로 전송합니다.
 
@@ -131,7 +131,7 @@ SchedulerSettings 페이지 컴포넌트입니다. 컴포넌트가 열리면 백
 ## 통합 서비스 연계
 
 > 📖 **외부 서비스 통합:**  
-> → `modules/integrations.md`
+> → `modules/02-integrations.md`
 
 Scheduler는 통합 서비스와 함께 사용하여 강력한 자동화 구현:
 
@@ -184,7 +184,7 @@ GET /tasks/:name/history 엔드포인트는 해당 작업의 실행 로그를 �
 ## 모듈 종료 시 정리
 
 > 📖 **모듈 생명주기:**  
-> → `modules/system-design.md § 모듈 생명주기 § shutdown()`
+> → `modules/03-system-design.md § 모듈 생명주기 § shutdown()`
 
 모듈의 shutdown 함수에서 scheduler.unregister를 호출하여 해당 모듈이 등록한 작업을 제거합니다. 예시로 ledger 모듈은 종료 시 'ledger-monthly-summary' 작업을 제거합니다.
 
@@ -230,17 +230,17 @@ runningTasks라는 집합(Set)을 사용하여 현재 실행 중인 작업명을
 
 ### 아키텍처
 - 📖 `architecture/00-overview.md § Plugin Layer` - Scheduler의 위치
-- 📖 `modules/system-design.md § 모듈 생명주기` - 작업 등록 시점
+- 📖 `modules/03-system-design.md § 모듈 생명주기` - 작업 등록 시점
 
 ### 모듈 개발
-- 📖 `modules/development-guide.md § Backend § index.ts` - 초기화 Hook
-- 📖 `modules/default-modules.md § Subscription` - Scheduler 사용 예시
+- 📖 `modules/01-development-guide.md § Backend § index.ts` - 초기화 Hook
+- 📖 `modules/00-default-modules.md § Subscription` - Scheduler 사용 예시
 
 ### 통합 서비스
-- 📖 `modules/integrations.md` - 자동화 워크플로우
+- 📖 `modules/02-integrations.md` - 자동화 워크플로우
 
 ### 배포
-- 📖 `deployment/updates.md § 자동 업데이트` - Scheduler 활용
+- 📖 `deployment/04-updates.md § 자동 업데이트` - Scheduler 활용
 
 ---
 
@@ -248,6 +248,6 @@ runningTasks라는 집합(Set)을 사용하여 현재 실행 중인 작업명을
 
 Scheduler를 이해했다면:
 
-1. **모듈 개발** → `modules/development-guide.md`
-2. **통합 서비스** → `modules/integrations.md`
+1. **모듈 개발** → `modules/01-development-guide.md`
+2. **통합 서비스** → `modules/02-integrations.md`
 3. **자동화 구축** → 워크플로우 설계
