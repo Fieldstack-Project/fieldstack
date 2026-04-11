@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-
 import "../styles/shell.css";
 
 export type RouteKey = "login" | "home" | "admin";
@@ -15,6 +14,9 @@ interface AppShellProps {
   children: ReactNode;
 }
 
+// 추후 모듈 로더에서 주입될 목록 (현재는 mock)
+const INSTALLED_MODULES: { id: string; label: string; icon: string }[] = [];
+
 export function AppShell({
   installMode,
   route,
@@ -25,90 +27,99 @@ export function AppShell({
   onOpenSettings,
   children,
 }: AppShellProps) {
-  const currentTime = new Date().toLocaleTimeString("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
   return (
-    <main className="frame">
-      <header className="shell-header">
-        <div className="shell-brand-wrap">
-          <div className="shell-logo">FS</div>
-          <div>
-            <p className="shell-brand">Fieldstack Control Plane</p>
-            <p className="shell-subbrand">Personal modular workspace</p>
-          </div>
+    <div className="shell">
+      {/* ── Sidebar ─────────────────────────────────────── */}
+      <aside className="shell-sidebar" aria-label="사이드바 네비게이션">
+        <div className="shell-brand">
+          <div className="shell-brand-logo" aria-hidden="true">FS</div>
+          <span className="shell-brand-name">Fieldstack</span>
         </div>
 
-        <div className="shell-header-right">
-          <span className="shell-time">
-            {currentTime}
-          </span>
-          <span className={`badge ${installMode === "bypass" ? "badge-danger" : "badge-soft"}`}>
-            {installMode === "bypass" ? "DEV BYPASS" : "NORMAL MODE"}
-          </span>
-        </div>
-      </header>
+        <nav className="shell-nav" aria-label="주 메뉴">
+          {/* Workspace */}
+          <p className="shell-nav-label" aria-hidden="true">Workspace</p>
+          <ul className="shell-nav-list">
+            <li>
+              <button
+                type="button"
+                className="shell-nav-item"
+                aria-current={route === "home" ? "page" : undefined}
+                onClick={() => onNavigate("home")}
+              >
+                <span className="shell-nav-icon" aria-hidden="true">⊞</span>
+                Home
+              </button>
+            </li>
+          </ul>
 
-      {notice ? <p className="shell-notice">{notice}</p> : null}
-
-      <section className="shell-layout">
-        <aside className="shell-side" aria-label="Core navigation">
-          <div className="shell-side-block">
-            <p className="shell-side-title">Workspace</p>
-            <ul className="shell-nav-list">
-              <li>
-                <button
-                  className="shell-nav-button"
-                  type="button"
-                  aria-current={route === "home" ? "page" : undefined}
-                  onClick={() => onNavigate("home")}
-                >
-                  Home Hub
-                </button>
-              </li>
-              <li>
-                <button className="shell-nav-button" type="button" onClick={onOpenSettings}>
-                  General Settings
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          <div className="shell-side-block">
-            <p className="shell-side-title">Operations</p>
-            <ul className="shell-nav-list">
-              {isAdmin ? (
-                <li>
+          {/* Modules */}
+          <p className="shell-nav-label" aria-hidden="true">Modules</p>
+          <ul className="shell-nav-list" aria-label="설치된 모듈">
+            {INSTALLED_MODULES.length > 0 ? (
+              INSTALLED_MODULES.map((mod) => (
+                <li key={mod.id}>
                   <button
-                    className="shell-nav-button"
                     type="button"
-                    aria-current={route === "admin" ? "page" : undefined}
-                    onClick={() => onNavigate("admin")}
+                    className="shell-nav-item"
+                    onClick={() => { window.location.hash = mod.id; }}
                   >
-                    Admin Console
+                    <span className="shell-nav-icon" aria-hidden="true">{mod.icon}</span>
+                    {mod.label}
                   </button>
                 </li>
-              ) : null}
-              <li>
-                <button className="shell-nav-button" type="button" onClick={onLogout}>
-                  Sign Out
-                </button>
-              </li>
-            </ul>
-          </div>
+              ))
+            ) : (
+              <li className="shell-nav-empty">모듈 없음</li>
+            )}
+          </ul>
+        </nav>
 
-          <div className="shell-health">
-            <p className="shell-health-title">System Snapshot</p>
-            <p className="shell-health-line">Core: Online</p>
-            <p className="shell-health-line">Modules: 0 active</p>
-            <p className="shell-health-line">Auth: Session valid</p>
-          </div>
-        </aside>
+        {/* Footer */}
+        <div className="shell-sidebar-footer">
+          {installMode === "bypass" && (
+            <div className="shell-bypass-pill" aria-label="개발 bypass 모드 활성">
+              DEV BYPASS
+            </div>
+          )}
+          <button type="button" className="shell-nav-item" onClick={onOpenSettings}>
+            <span className="shell-nav-icon" aria-hidden="true">⚙</span>
+            Settings
+          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className="shell-nav-item"
+              aria-current={route === "admin" ? "page" : undefined}
+              onClick={() => onNavigate("admin")}
+            >
+              <span className="shell-nav-icon" aria-hidden="true">⚡</span>
+              Admin
+            </button>
+          )}
+          <button
+            type="button"
+            className="shell-nav-item shell-nav-item-danger"
+            onClick={onLogout}
+          >
+            <span className="shell-nav-icon" aria-hidden="true">↪</span>
+            Sign Out
+          </button>
+        </div>
+      </aside>
 
-        <section className="shell-content">{children}</section>
-      </section>
-    </main>
+      {/* ── Body ─────────────────────────────────────────── */}
+      <div className="shell-body">
+        {notice && (
+          <div className="shell-notice" role="status" aria-live="polite">
+            <span className="shell-notice-dot" aria-hidden="true" />
+            {notice}
+          </div>
+        )}
+        <main className="shell-content">
+          {children}
+        </main>
+      </div>
+    </div>
   );
 }

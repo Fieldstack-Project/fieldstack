@@ -121,34 +121,35 @@ function App({ installMode }: { installMode: InstallMode }) {
     );
   }
 
-  // Authenticated shell
   return (
-    <AppShell
-      installMode={installMode}
-      route={effectiveRoute}
-      isAdmin={isAdmin}
-      notice={notice}
-      onNavigate={navigate}
-      onLogout={onLogout}
-      onOpenSettings={() => setIsSettingsOpen(true)}
-    >
-      {effectiveRoute === "home" && <HomeView onOpenSettings={() => setIsSettingsOpen(true)} />}
-      {effectiveRoute === "admin" && <AdminView isAdmin={isAdmin} />}
-      {isSettingsOpen && (
-        <SettingsView
-          isAdmin={isAdmin}
-          onClose={() => setIsSettingsOpen(false)}
-          onToggleAdmin={() => {
-            setIsAdmin((prev) => {
-              const next = !prev;
-              setNotice(next ? "Admin authority enabled (mock)." : "Admin authority disabled.");
-              return next;
-            });
-          }}
-          onSaved={() => setNotice("Settings saved (mock).")}
-        />
-      )}
-    </AppShell>
+    <>
+      <AppShell
+        installMode={installMode}
+        route={effectiveRoute}
+        isAdmin={isAdmin}
+        notice={notice}
+        onNavigate={navigate}
+        onLogout={onLogout}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      >
+        {effectiveRoute === "home" && <HomeView onOpenSettings={() => setIsSettingsOpen(true)} />}
+        {effectiveRoute === "admin" && <AdminView isAdmin={isAdmin} />}
+        {isSettingsOpen && (
+          <SettingsView
+            isAdmin={isAdmin}
+            onClose={() => setIsSettingsOpen(false)}
+            onToggleAdmin={() => {
+              setIsAdmin((prev) => {
+                const next = !prev;
+                setNotice(next ? "Admin authority enabled (mock)." : "Admin authority disabled.");
+                return next;
+              });
+            }}
+            onSaved={() => setNotice("Settings saved (mock).")}
+          />
+        )}
+      </AppShell>
+    </>
   );
 }
 

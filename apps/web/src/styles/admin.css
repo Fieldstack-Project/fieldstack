@@ -10,8 +10,8 @@
   gap: 10px;
   flex-wrap: wrap;
   border-radius: 14px;
-  border: 1px solid #d4e6f5;
-  background: linear-gradient(140deg, #edf8ff, #ecf9f4 70%);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
   padding: 14px;
 }
 
@@ -21,27 +21,27 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #58779b;
+  color: var(--text-muted);
 }
 
 .admin-title {
   margin: 4px 0 0;
   font-size: 28px;
   letter-spacing: -0.02em;
-  color: #153150;
+  color: var(--text);
 }
 
 .admin-subtitle {
   margin: 6px 0 0;
   font-size: 14px;
-  color: #446587;
+  color: var(--text-muted);
 }
 
 .admin-badge {
   border-radius: 999px;
-  border: 1px solid #bcd9f2;
-  background: rgba(255, 255, 255, 0.82);
-  color: #26557f;
+  border: 1px solid var(--border);
+  background: var(--bg-hover);
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -61,9 +61,9 @@
 }
 
 .admin-stat-card {
-  border: 1px solid #d8e6f4;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--bg-elevated);
   padding: 12px;
 }
 
@@ -73,7 +73,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #5e7c9f;
+  color: var(--text-muted);
 }
 
 .admin-stat-value {
@@ -81,13 +81,13 @@
   font-size: 24px;
   line-height: 1;
   font-weight: 800;
-  color: #173558;
+  color: var(--text);
 }
 
 .admin-stat-detail {
   margin: 6px 0 0;
   font-size: 12px;
-  color: #547295;
+  color: var(--text-muted);
 }
 
 .admin-columns {
@@ -98,9 +98,9 @@
 
 .admin-sections,
 .admin-audit-panel {
-  border: 1px solid #d8e6f4;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.68);
+  background: var(--bg-elevated);
   padding: 12px;
   display: grid;
   gap: 8px;
@@ -110,15 +110,15 @@
   margin: 0 0 2px;
   font-size: 14px;
   font-weight: 800;
-  color: #223f62;
+  color: var(--text);
 }
 
 .admin-section-row {
   width: 100%;
   text-align: left;
-  border: 1px solid #d4e5f5;
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
-  background: #fbfdff;
+  background: var(--bg-surface);
   padding: 11px;
   cursor: pointer;
   display: flex;
@@ -130,8 +130,8 @@
 
 .admin-section-row:hover {
   transform: translateY(-1px);
-  border-color: #9cc4ea;
-  box-shadow: 0 8px 16px rgba(15, 40, 84, 0.08);
+  border-color: var(--accent);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
 }
 
 .admin-section-info {
@@ -142,17 +142,17 @@
 .admin-section-name {
   font-size: 14px;
   font-weight: 700;
-  color: #244869;
+  color: var(--text);
 }
 
 .admin-section-desc {
   font-size: 12px;
-  color: #58789b;
+  color: var(--text-muted);
 }
 
 .admin-section-arrow {
   font-size: 18px;
-  color: #6386ab;
+  color: var(--text-faint);
 }
 
 .admin-audit-list {
@@ -168,11 +168,11 @@
   align-items: flex-start;
   gap: 8px;
   padding: 8px;
-  border: 1px solid #dce8f5;
+  border: 1px solid var(--border-subtle);
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--bg-surface);
   font-size: 13px;
-  color: #314f71;
+  color: var(--text-muted);
 }
 
 .admin-audit-dot {
@@ -183,21 +183,21 @@
   flex-shrink: 0;
 }
 
-.admin-audit-dot-warn { background: #f59e0b; }
-.admin-audit-dot-info { background: #60a5fa; }
-.admin-audit-dot-ok { background: #34d399; }
+.admin-audit-dot-warn { background: var(--warn); }
+.admin-audit-dot-info { background: var(--info); }
+.admin-audit-dot-ok   { background: var(--ok); }
 
 .admin-audit-time {
   display: inline-block;
   margin-top: 2px;
   font-size: 11px;
-  color: #6482a5;
+  color: var(--text-faint);
 }
 
 .admin-lock-wrap {
-  border: 1px dashed #bfd7ec;
+  border: 1px dashed var(--border);
   border-radius: 13px;
-  background: rgba(250, 253, 255, 0.82);
+  background: var(--bg-surface);
   padding: 28px 16px;
   text-align: center;
   display: grid;
@@ -207,13 +207,13 @@
 
 .admin-lock-icon {
   font-size: 36px;
-  color: #6e8db0;
+  color: var(--text-faint);
 }
 
 .admin-lock-title {
   margin: 0;
   font-size: 19px;
-  color: #1f3d61;
+  color: var(--text);
 }
 
 .admin-lock-desc {
@@ -221,7 +221,7 @@
   max-width: 38ch;
   font-size: 13px;
   line-height: 1.6;
-  color: #59789b;
+  color: var(--text-muted);
 }
 
 .admin-lock-button {
