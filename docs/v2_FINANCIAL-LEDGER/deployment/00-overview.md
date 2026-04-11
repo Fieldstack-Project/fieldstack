@@ -31,7 +31,7 @@ Fieldstack는 **셀프호스트 가능한 SaaS형 플랫폼**을 목표로 한�
 
 ## 실행 / 배포 버전 구성
 
-Fieldstack는 **3가지 공식 실행 모델**을 제공합니다.
+Fieldstack는 **4가지 공식 실행 모델**을 제공합니다.
 
 ### 0. Native(CLI) 버전
 **Docker 미사용 환경 모델**

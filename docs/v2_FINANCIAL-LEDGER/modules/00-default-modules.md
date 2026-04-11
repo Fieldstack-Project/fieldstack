@@ -180,7 +180,7 @@ Google의 Calendar API를 사용하여 구독 결제일을 캘린더 이벤트�
 ---
 
 ## 차후 개발 및 제공 가능 리스트
-> [_modules_for-future](docs\v2_FINANCIAL-LEDGER\_modules_for-future) 으로 이전 되었습니다.
+> [_modules_for-future](../_modules_for-future/README.md)으로 이전되었습니다.
 
 ---
 

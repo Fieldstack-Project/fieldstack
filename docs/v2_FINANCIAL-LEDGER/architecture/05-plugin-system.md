@@ -2,7 +2,7 @@
 
 > **상태:** 초안 (Draft)  
 > **최종 업데이트:** 2026-03-25  
-> **관련 결정 사항:** `architecture/01-decisions.md` 결정 #1, #5
+> **관련 결정 사항:** `architecture/01-decisions.md` 결정 #1, #4
 
 ---
 
