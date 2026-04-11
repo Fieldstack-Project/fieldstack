@@ -418,11 +418,6 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 | #3 DB 추상화 | Query Builder | 적절한 레벨 | ✅ 확정 |
 | #5 API 네임스페이스 | Internal/External 분리 | 보안 및 AI 연동 최적화 | ✅ 확정 |
 
-|------|------|----------|------|
-| #1 Module Loader | 런타임 동적 Import | VSCode 방식 UX | ✅ 확정 |
-| #2 관리자 인증 | 로컬 로그인 우선 + PIN | 간단하면서 안전 | ✅ 확정 |
-| #3 DB 추상화 | Query Builder | 적절한 레벨 | ✅ 확정 |
-
 ---
 
 ## 🔄 변경 이력

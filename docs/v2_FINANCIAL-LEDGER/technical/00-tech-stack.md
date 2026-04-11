@@ -23,13 +23,15 @@
 - **PostgreSQL** (권장/Default) - 고성능, 안정적
 - **SQLite** - 간단한 배포, 파일 기반
 - **Supabase** - 클라우드 DB, 무료 티어
-- **MongoDB** - NoSQL 옵션
+- **MongoDB** - NoSQL 옵션, 클라우드 DB, 무료 티어
 
-**ORM/쿼리 빌더:**
-- **Prisma** 또는 **TypeORM**
-  - 타입 안전성
-  - 마이그레이션 관리
-  - Multi-provider 지원
+**쿼리 빌더 (자체 구현 — 결정 #3):**
+- **Query Builder 패턴**
+  - ORM과 Raw SQL의 중간 추상화
+  - 경량, 유연, 직관적 체이닝 API
+  - Multi-provider 지원 (PostgreSQL/SQLite/Supabase/MongoDB)
+  - 필요 시 Raw SQL 직접 사용 가능
+- **참고:** Prisma, TypeORM은 검토 후 오버헤드 문제로 미채택 → `architecture/01-decisions.md § 결정 #3`
 
 ### 인증
 - **로컬 인증 (기본)**
@@ -565,6 +567,12 @@ NODE_ENV를 'production'으로, PORT를 3000으로 설정합니다. SERVE_FRONTE
 - 빠른 개발 서버
 - 최적화된 프로덕션 빌드
 - React와 완벽한 통합
+
+### Query Builder (vs ORM)
+- ORM(Prisma, TypeORM)보다 가볍고 오버헤드 낮음
+- Raw SQL 대비 Multi-provider 전환 용이
+- 모듈 개발자가 배우기 쉬운 직관적 API
+- 자세한 결정 배경 → `architecture/01-decisions.md § 결정 #3`
 
 ### Tailwind CSS
 - Utility-first 접근
