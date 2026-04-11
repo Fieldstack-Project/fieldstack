@@ -121,11 +121,6 @@ Fieldstack/
 
 ### 주요 작업
 
-진행 업데이트 (2026-02-27):
-- Web 진입점을 React + TypeScript + Vite(`main.tsx`) 기준으로 전환 완료
-- 개발 실행 모드에 `dev:bypass`를 추가해 설치 미구현 상태에서도 Core UI/UX 병행 개발 가능
-- bypass 정책을 "설치만 스킵, 인증은 로그인부터"로 확정 (로그인 이후 화면은 mock 상태로 점진 구현)
-
 #### 1.5.1 Control UI Components (버튼/선택/토글 등 기본 Control)
 **예상 기간: 1주**
 
@@ -134,10 +129,6 @@ Fieldstack/
 
 Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - `docs/v2_FINANCIAL-LEDGER/ui/03-control-backlog.md` (P0 -> P0.5 -> P1)
-
-진행 업데이트 (2026-02-26):
-- P0, P0.5 Control 타입 계약 정의 및 export 반영 완료
-- 상세 구현 상태는 `ui/03-control-backlog.md`를 기준으로 추적
 
 - [x] Button 규격 확정 (Primary/Secondary/Danger/Ghost, size, loading, disabled)
 - [x] Toggle/Switch 규격 확정 (on/off 상태, 라벨 결합, 키보드 조작)
@@ -224,6 +215,13 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - [ ] 핵심 E2E 통과 (설치 -> 로그인 -> 홈 -> 설정/관리자)
 - [ ] UI 계약 동결 (Phase 2에서는 신규 Control 추가보다 모듈 기능 구현 우선)
 - [ ] 신규 Control은 예외적으로 수요 기반 추가 (모듈 요구사항/커뮤니티 제안 시 배치 처리)
+
+### 🔄 Phase 1.5 진행 이력
+
+| 날짜 | 내용 |
+|------|------|
+| 2026-02-26 | P0, P0.5 Control 타입 계약 정의 및 export 반영 완료. 상세 구현 상태는 `ui/03-control-backlog.md` 기준으로 추적 |
+| 2026-02-27 | Web 진입점을 React + TypeScript + Vite(`main.tsx`) 기준으로 전환 완료. 개발 실행 모드에 `dev:bypass` 추가. bypass 정책을 "설치만 스킵, 인증은 로그인부터"로 확정 |
 
 ---
 

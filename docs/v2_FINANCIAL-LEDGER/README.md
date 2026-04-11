@@ -22,7 +22,7 @@
 ### 대상 사용자
 
 - 본인 + 허용된 소수 지인
-    - 화이트리스트 기능을 제공하지만 사용자 선텍적으로 ON/OFF 가능
+    - 화이트리스트 기능을 제공하지만 사용자 선택적으로 ON/OFF 가능
 - Self-hosted 전제
 - 개인정보 보호 우선
 
@@ -142,6 +142,20 @@ pnpm start
 - [🚀 Phase 1 Kickoff](roadmap/02-phase1-kickoff.md)
 - [🎯 프로젝트 목표](roadmap/00-goals.md)
 
+### 미래 모듈 (초안)
+> V1 완성 이후 검토 예정인 모듈 아이디어 모음. 확정 스펙 아님.
+- [📁 미래 모듈 목록](_modules_for-future/README.md)
+
+### 📋 미작성 문서 (작성 예정)
+
+아래 문서는 본문에서 참조되지만 아직 작성되지 않은 항목입니다.
+
+| 문서 | 참조 위치 |
+|------|----------|
+| `technical/module-loader.md` | `architecture/01-decisions.md § 결정 #1` |
+| `security/access-control.md` | `architecture/01-decisions.md § 결정 #2` |
+| `technical/database-providers.md` | `architecture/01-decisions.md § 결정 #3` |
+
 ---
 
 ## 🎯 주요 기능
@@ -185,7 +199,7 @@ pnpm start
 
 - 💬 [Discord](https://discord.gg/5m4aHKmWgg)
 - 🐙 [GitHub Discussions](https://github.com/Fieldstack-Project/fieldstack/discussions)
-- 📺 [YouTube](https://youtube.com/@...)
+- 📺 [YouTube](https://youtube.com/@Palette-Square_Studio)
 - 🐦 [Twitter/X](https://x.com/PSquare_Studio)
 
 ---
@@ -196,7 +210,7 @@ pnpm start
 
 **후원 방법:**
 - [GitHub Sponsors](https://github.com/sponsors/Fieldstack-Project)
-- [Buy Me a Coffee](https://buymeacoffee.com/your-name)
+- [Buy Me a Coffee](https://buymeacoffee.com/soivstudio)
 
 **중요**: 후원 여부와 관계없이 모든 기능은 동일합니다.
 

@@ -3,8 +3,8 @@
 > 이 문서는 Fieldstack의 핵심 설계 결정 사항을 기록합니다.  
 > 모든 개발과 문서는 이 결정을 기반으로 진행됩니다.
 
-**최종 업데이트:** 2025-01-29  
-**문서 버전:** 1.0.0
+**최종 업데이트:** 2026-04-12  
+**문서 버전:** 1.1.0
 
 ---
 
@@ -391,7 +391,7 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 > → `technical/database-providers.md` (작성 예정)
 
 > 📖 **마이그레이션:**  
-> → `technical/migrations.md` (작성 예정)
+> → `technical/06-migrations.md` (작성 예정)
 
 ### ⚠️ 주의사항
 
@@ -409,7 +409,7 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 
 ---
 
-## 결정 #5: API 네임스페이스 분리 (Internal vs. External)
+## 결정 #4: API 네임스페이스 분리 (Internal vs. External)
 
 ### ✅ 결정 사항
 
@@ -471,7 +471,7 @@ Fieldstack은 프라이버시 중심의 개인 시스템이지만, OpenClaw와 �
 | #1 Module Loader | 런타임 동적 Import | VSCode 방식 UX | ✅ 확정 |
 | #2 관리자 인증 | 로컬 로그인 우선 + PIN | 간단하면서 안전 | ✅ 확정 |
 | #3 DB 추상화 | Query Builder | 적절한 레벨 | ✅ 확정 |
-| #5 API 네임스페이스 | Internal/External 분리 | 보안 및 AI 연동 최적화 | ✅ 확정 |
+| #4 API 네임스페이스 | Internal/External 분리 | 보안 및 AI 연동 최적화 | ✅ 확정 |
 
 ---
 
@@ -480,7 +480,8 @@ Fieldstack은 프라이버시 중심의 개인 시스템이지만, OpenClaw와 �
 | 날짜 | 버전 | 변경 내용 |
 |------|------|----------|
 | 2025-01-29 | 1.0.0 | 최초 작성 (#1, #2, #3) |
-| 2026-03-05 | 1.1.0 | API 네임스페이스 분리 결정 추가 (#5) |
+| 2026-03-05 | 1.1.0 | API 네임스페이스 분리 결정 추가 (#4) |
+| 2026-04-12 | 1.1.0 | 결정 번호 순서 정렬 (#5 → #4), 헤더 날짜/버전 동기화 |
 
 ---
 

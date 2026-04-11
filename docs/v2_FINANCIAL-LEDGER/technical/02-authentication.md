@@ -320,7 +320,7 @@ OpenClaw 등 외부 에이전트 연동을 위해 세션과 분리된 API Key �
 - **Rotation**: 사용자가 언제든지 키를 무효화하거나 재발급 가능
 
 > 📖 **상세 설계:**  
-> → `architecture/01-decisions.md § 결정 #5: API 네임스페이스 분리`
+> → `architecture/01-decisions.md § 결정 #4: API 네임스페이스 분리`
 
 ---
 
@@ -339,7 +339,7 @@ PinInput 컴포넌트는 사용자가 PIN을 입력하는 화면을 제공합니
 
 AdminPinModal 컴포넌트는 관리자 PIN 입력을 위한 팝업입니다. PinInput 컴포넌트를 내부에 포함시킵니다.
 
-PIN 입력이 완료되면 백엔드의 /api/admin/verify-pin에 요청을 보냅니다. 응답이 성공하면 서버가 `Set-Cookie`로 관리자 세션 쿠키(`admin_session`, `httpOnly`)를 설정하고, 프론트는 onSuccess 콜백을 실행합니다. 실패하면 'PIN이 올바르지 않습니다' 에러 메시지를 표시합니다. 요청 중에는 '인증 중...' 로딩 메시지가 표시됩니다. 모달 하단에는 이 인증은 30분간 유효하다는 안내가 표시됩니다.
+PIN 입력이 완료되면 백엔드의 /local-api/admin/verify-pin에 요청을 보냅니다. 응답이 성공하면 서버가 `Set-Cookie`로 관리자 세션 쿠키(`admin_session`, `httpOnly`)를 설정하고, 프론트는 onSuccess 콜백을 실행합니다. 실패하면 'PIN이 올바르지 않습니다' 에러 메시지를 표시합니다. 요청 중에는 '인증 중...' 로딩 메시지가 표시됩니다. 모달 하단에는 이 인증은 30분간 유효하다는 안내가 표시됩니다.
 
 ### Protected Admin Route
 
@@ -393,7 +393,7 @@ GET /auth/callback 엔드포인트는 Google에서 돌아온 콜백을 처리합
 - 📌 `architecture/01-decisions.md § 결정 #2` - PIN 방식 선택 근거
 - 📖 `deployment/02-setup-wizard.md` - 초기 관리자 설정
 - 📖 `community/02-github-policy.md` - 보안 정책
-- 📖 `architecture/01-decisions.md § 결정 #5` - API 네임스페이스 분리
+- 📖 `architecture/01-decisions.md § 결정 #4` - API 네임스페이스 분리
 
 ---
 

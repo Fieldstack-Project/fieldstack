@@ -77,7 +77,7 @@
   - TypeScript 지원
   - 서버 상태 관리
 
-### 라우팩
+### 라우터
 - **React Router** v6
   - 선언적 라우팅
   - Nested Routes
@@ -127,6 +127,8 @@
 ### 런타임 & 언어
 - **Node.js** 20+ [MVP/초기에만]
 - **GO** Stable(1.22+) [Release]
+
+> **전환 시점:** v1.0.0 정식 릴리즈 전후를 기준으로 Go 전환 작업을 진행할 예정.
 
 ### Hard-Core 동작 방식
 
