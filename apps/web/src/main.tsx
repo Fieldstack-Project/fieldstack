@@ -10,6 +10,8 @@ import { HomeView } from "./views/HomeView";
 import { LoginView } from "./views/LoginView";
 import { SettingsView } from "./views/SettingsView";
 import { AdminView } from "./views/AdminView";
+import { MarketplaceView } from "./views/MarketplaceView";
+import { ChangePasswordView } from "./views/ChangePasswordView";
 
 // ─── Types ────────────────────────────────────────────────────
 type InstallMode = "normal" | "bypass";
@@ -37,10 +39,8 @@ function resolveInstallMode(runtimeEnv: WebRuntimeEnv): InstallMode {
 
 function getRouteFromHash(rawHash: string): RouteKey {
   const hash = rawHash.replace("#", "");
-  if (hash === "settings") {
-    return "home";
-  }
-  if (hash === "home" || hash === "admin" || hash === "login") {
+  if (hash === "settings") return "home";
+  if (hash === "home" || hash === "marketplace" || hash === "admin" || hash === "login" || hash === "change-password") {
     return hash;
   }
   return "login";
@@ -55,9 +55,11 @@ function canAccessRoute(route: RouteKey, isAuthenticated: boolean): boolean {
 
 // ─── Session Storage Keys ─────────────────────────────────────
 const SS = {
-  auth:  "fs_auth",
-  admin: "fs_admin",
-  email: "fs_email",
+  auth:            "fs_auth",
+  admin:           "fs_admin",
+  pinVerified:     "fs_pin_verified",
+  email:           "fs_email",
+  mustChangePw:    "fs_must_change_pw",
 } as const;
 
 // ─── App Root ─────────────────────────────────────────────────
@@ -68,11 +70,17 @@ function App({ installMode }: { installMode: InstallMode }) {
   const [isAdmin, setIsAdmin] = useState(
     () => sessionStorage.getItem(SS.admin) === "true",
   );
+  const [isPinVerified, setIsPinVerified] = useState(
+    () => sessionStorage.getItem(SS.pinVerified) === "true",
+  );
   const [currentUser, setCurrentUser] = useState<{ email: string } | null>(
     () => {
       const email = sessionStorage.getItem(SS.email);
       return email ? { email } : null;
     },
+  );
+  const [mustChangePassword, setMustChangePassword] = useState(
+    () => sessionStorage.getItem(SS.mustChangePw) === "true",
   );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -90,9 +98,11 @@ function App({ installMode }: { installMode: InstallMode }) {
   }, []);
 
   const effectiveRoute = useMemo<RouteKey>(() => {
-    if (canAccessRoute(route, isAuthenticated)) return route;
-    return "login";
-  }, [isAuthenticated, route]);
+    if (!canAccessRoute(route, isAuthenticated)) return "login";
+    // 비밀번호 변경 강제: change-password 이외의 모든 경로 차단
+    if (mustChangePassword && route !== "change-password") return "change-password";
+    return route;
+  }, [isAuthenticated, mustChangePassword, route]);
 
   useEffect(() => {
     if (window.location.hash !== `#${effectiveRoute}`) {
@@ -108,14 +118,25 @@ function App({ installMode }: { installMode: InstallMode }) {
   // Auth handlers
   const onLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const email = (new FormData(event.currentTarget).get("email") as string | null)
-      ?? "user@fieldstack.dev";
+    const formData = new FormData(event.currentTarget);
+    const email = (formData.get("email") as string | null) ?? "user@fieldstack.dev";
+    // mock: 비밀번호가 "temp1234"이면 임시 비번 첫 로그인으로 처리
+    const password = formData.get("password") as string | null;
+    const isTempLogin = password === "temp1234";
+
     setIsAuthenticated(true);
     setCurrentUser({ email });
     sessionStorage.setItem(SS.auth, "true");
     sessionStorage.setItem(SS.email, email);
-    setNotice("Login successful (mock).");
-    navigate("home");
+
+    if (isTempLogin) {
+      setMustChangePassword(true);
+      sessionStorage.setItem(SS.mustChangePw, "true");
+      navigate("change-password");
+    } else {
+      setNotice("Login successful (mock).");
+      navigate("home");
+    }
   };
 
   const onQuickLogin = () => {
@@ -128,18 +149,19 @@ function App({ installMode }: { installMode: InstallMode }) {
     navigate("home");
   };
 
-  const onAdminAccess = () => {
-    if (isAdmin) {
-      navigate("admin");
-    } else {
-      setIsPinModalOpen(true);
-    }
+  const onPasswordChanged = () => {
+    setMustChangePassword(false);
+    sessionStorage.removeItem(SS.mustChangePw);
+    setNotice("비밀번호가 변경되었습니다.");
+    navigate("home");
   };
 
   const onPinVerified = () => {
     setIsAdmin(true);
+    setIsPinVerified(true);
     setIsPinModalOpen(false);
     sessionStorage.setItem(SS.admin, "true");
+    sessionStorage.setItem(SS.pinVerified, "true");
     setNotice("관리자 인증 완료 (mock). 30분간 유효합니다.");
     navigate("admin");
   };
@@ -147,9 +169,11 @@ function App({ installMode }: { installMode: InstallMode }) {
   const onLogout = () => {
     setIsAuthenticated(false);
     setIsAdmin(false);
+    setIsPinVerified(false);
     setCurrentUser(null);
     sessionStorage.removeItem(SS.auth);
     sessionStorage.removeItem(SS.admin);
+    sessionStorage.removeItem(SS.pinVerified);
     sessionStorage.removeItem(SS.email);
     setNotice("Logged out.");
     navigate("login");
@@ -170,6 +194,16 @@ function App({ installMode }: { installMode: InstallMode }) {
     );
   }
 
+  // 비밀번호 강제 변경 (shell 없이 전체 화면)
+  if (effectiveRoute === "change-password") {
+    return (
+      <ChangePasswordView
+        isFirstLogin={mustChangePassword}
+        onChanged={onPasswordChanged}
+      />
+    );
+  }
+
   return (
     <>
       {isPinModalOpen && (
@@ -185,13 +219,13 @@ function App({ installMode }: { installMode: InstallMode }) {
         currentUser={currentUser}
         notice={notice}
         onNavigate={navigate}
-        onAdminAccess={onAdminAccess}
         onLogout={onLogout}
         onOpenSettings={() => setIsSettingsOpen(true)}
       >
         {effectiveRoute === "home" && <HomeView onOpenSettings={() => setIsSettingsOpen(true)} />}
+        {effectiveRoute === "marketplace" && <MarketplaceView />}
         {effectiveRoute === "admin" && (
-          <AdminView isAdmin={isAdmin} onRequestPin={() => setIsPinModalOpen(true)} />
+          <AdminView isPinVerified={isPinVerified} onRequestPin={() => setIsPinModalOpen(true)} />
         )}
         {isSettingsOpen && (
           <SettingsView
@@ -200,6 +234,11 @@ function App({ installMode }: { installMode: InstallMode }) {
             onToggleAdmin={() => {
               setIsAdmin((prev) => {
                 const next = !prev;
+                if (!next) {
+                  // 관리자 역할 해제 시 PIN 인증도 초기화
+                  setIsPinVerified(false);
+                  sessionStorage.removeItem(SS.pinVerified);
+                }
                 setNotice(next ? "Admin authority enabled (mock)." : "Admin authority disabled.");
                 return next;
               });

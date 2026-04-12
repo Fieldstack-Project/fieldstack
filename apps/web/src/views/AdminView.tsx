@@ -1,7 +1,7 @@
 import "../styles/admin.css";
 
 interface AdminViewProps {
-  isAdmin: boolean;
+  isPinVerified: boolean;
   onRequestPin: () => void;
 }
 
@@ -25,8 +25,8 @@ const MOCK_AUDIT_LOG = [
   { id: 3, text: "설정 저장 이벤트", time: "12분 전", dot: "info" as const },
 ];
 
-export function AdminView({ isAdmin, onRequestPin }: AdminViewProps) {
-  if (!isAdmin) {
+export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
+  if (!isPinVerified) {
     return (
       <section className="panel admin-root" aria-labelledby="admin-gate-title">
         <div className="admin-lock-wrap">

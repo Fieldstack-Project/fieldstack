@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import "../styles/shell.css";
 
-export type RouteKey = "login" | "home" | "admin";
+export type RouteKey = "login" | "home" | "marketplace" | "admin" | "change-password";
 
 interface AppShellProps {
   installMode: "normal" | "bypass";
@@ -10,7 +10,6 @@ interface AppShellProps {
   currentUser: { email: string } | null;
   notice: string;
   onNavigate: (route: RouteKey) => void;
-  onAdminAccess: () => void;
   onLogout: () => void;
   onOpenSettings: () => void;
   children: ReactNode;
@@ -26,7 +25,6 @@ export function AppShell({
   currentUser,
   notice,
   onNavigate,
-  onAdminAccess,
   onLogout,
   onOpenSettings,
   children,
@@ -54,6 +52,17 @@ export function AppShell({
               >
                 <span className="shell-nav-icon" aria-hidden="true">⊞</span>
                 Home
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="shell-nav-item"
+                aria-current={route === "marketplace" ? "page" : undefined}
+                onClick={() => onNavigate("marketplace")}
+              >
+                <span className="shell-nav-icon" aria-hidden="true">⬡</span>
+                Marketplace
               </button>
             </li>
           </ul>
@@ -87,7 +96,7 @@ export function AppShell({
               <div className="shell-user-avatar" aria-hidden="true">{userInitial}</div>
               <div className="shell-user-info">
                 <p className="shell-user-email">{currentUser.email}</p>
-                <p className="shell-user-role">{isAdmin ? "Administrator" : "Member"}</p>
+                <p className="shell-user-role">{isAdmin ? "Administrator" : "User"}</p>
               </div>
             </div>
           )}
@@ -100,18 +109,17 @@ export function AppShell({
             <span className="shell-nav-icon" aria-hidden="true">⚙</span>
             Settings
           </button>
-          <button
-            type="button"
-            className="shell-nav-item"
-            aria-current={route === "admin" ? "page" : undefined}
-            onClick={onAdminAccess}
-          >
-            <span className="shell-nav-icon" aria-hidden="true">⚡</span>
-            Admin
-            {!isAdmin && (
-              <span className="shell-nav-lock" aria-label="인증 필요" aria-hidden="true">🔒</span>
-            )}
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className="shell-nav-item"
+              aria-current={route === "admin" ? "page" : undefined}
+              onClick={() => onNavigate("admin")}
+            >
+              <span className="shell-nav-icon" aria-hidden="true">⚡</span>
+              Admin
+            </button>
+          )}
           <button
             type="button"
             className="shell-nav-item shell-nav-item-danger"
