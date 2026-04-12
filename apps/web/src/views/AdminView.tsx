@@ -2,6 +2,7 @@ import "../styles/admin.css";
 
 interface AdminViewProps {
   isAdmin: boolean;
+  onRequestPin: () => void;
 }
 
 const MOCK_STATS = [
@@ -24,7 +25,7 @@ const MOCK_AUDIT_LOG = [
   { id: 3, text: "설정 저장 이벤트", time: "12분 전", dot: "info" as const },
 ];
 
-export function AdminView({ isAdmin }: AdminViewProps) {
+export function AdminView({ isAdmin, onRequestPin }: AdminViewProps) {
   if (!isAdmin) {
     return (
       <section className="panel admin-root" aria-labelledby="admin-gate-title">
@@ -34,11 +35,10 @@ export function AdminView({ isAdmin }: AdminViewProps) {
             Admin 인증이 필요합니다
           </h1>
           <p className="admin-lock-desc">
-            관리자 콘솔은 PIN Step-up 이후에만 접근 가능합니다.
-            일반 설정에서 관리자 테스트 권한을 활성화해 주세요.
+            관리자 콘솔은 PIN Step-up 인증 이후에만 접근 가능합니다.
           </p>
-          <button className="button button-primary admin-lock-button" type="button" disabled>
-            Verify PIN (Phase 2)
+          <button className="button button-primary" type="button" onClick={onRequestPin}>
+            PIN 인증하기
           </button>
         </div>
       </section>

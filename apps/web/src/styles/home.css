@@ -170,6 +170,64 @@
   max-width: 34ch;
 }
 
+/* ── Onboarding (모듈 0개 상태) ─────────────────────────────── */
+.home-onboarding {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  padding: 14px 16px;
+}
+
+.home-onboarding-label {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.home-onboarding-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.home-onboarding-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.home-onboarding-step-num {
+  flex-shrink: 0;
+  margin-top: 1px;
+  padding: 3px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  background: var(--accent-subtle);
+  border: 1px solid rgba(124, 124, 240, 0.2);
+  border-radius: 6px;
+}
+
+.home-onboarding-step-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.home-onboarding-step-desc {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .home-quick-actions {
   display: flex;
   flex-wrap: wrap;

@@ -228,6 +228,101 @@
   cursor: not-allowed;
 }
 
+/* ── Admin PIN Modal ─────────────────────────────────────────── */
+.pin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.pin-modal {
+  width: 100%;
+  max-width: 340px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 20px 18px;
+  display: grid;
+  gap: 18px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+.pin-modal-header {
+  text-align: center;
+  display: grid;
+  gap: 6px;
+}
+
+.pin-modal-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.pin-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.pin-modal-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.pin-modal-form {
+  display: grid;
+  gap: 10px;
+}
+
+.pin-input {
+  text-align: center;
+  font-size: 20px;
+  letter-spacing: 0.3em;
+  font-weight: 700;
+}
+
+.pin-input-error {
+  border-color: var(--err);
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
+}
+
+.pin-input-error:focus {
+  border-color: var(--err);
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
+}
+
+.pin-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--err);
+  text-align: center;
+}
+
+.pin-modal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pin-modal-actions .button {
+  flex: 1;
+}
+
+.pin-modal-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
 @media (max-width: 980px) {
   .admin-columns {
     grid-template-columns: 1fr;

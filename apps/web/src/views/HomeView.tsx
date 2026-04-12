@@ -45,26 +45,63 @@ export function HomeView({ onOpenSettings }: HomeViewProps) {
         </div>
       </div>
 
-      <div className="home-stat-grid">
-        <article className="home-stat-card">
-          <p className="home-stat-label">Installed Modules</p>
-          <p className="home-stat-value">{MOCK_INSTALLED_MODULES.length}</p>
-        </article>
-        <article className="home-stat-card">
-          <p className="home-stat-label">Pending Alerts</p>
-          <p className="home-stat-value">3</p>
-        </article>
-        <article className="home-stat-card">
-          <p className="home-stat-label">System Health</p>
-          <p className="home-stat-value">Good</p>
-        </article>
-      </div>
+      {hasModules ? (
+        <div className="home-stat-grid">
+          <article className="home-stat-card">
+            <p className="home-stat-label">Installed Modules</p>
+            <p className="home-stat-value">{MOCK_INSTALLED_MODULES.length}</p>
+          </article>
+          <article className="home-stat-card">
+            <p className="home-stat-label">Pending Alerts</p>
+            <p className="home-stat-value">3</p>
+          </article>
+          <article className="home-stat-card">
+            <p className="home-stat-label">System Health</p>
+            <p className="home-stat-value">Good</p>
+          </article>
+        </div>
+      ) : (
+        <div className="home-onboarding">
+          <p className="home-onboarding-label">Getting Started — 3 steps</p>
+          <ol className="home-onboarding-steps">
+            <li className="home-onboarding-step">
+              <span className="home-onboarding-step-num">01</span>
+              <div>
+                <p className="home-onboarding-step-title">마켓플레이스에서 모듈 탐색</p>
+                <p className="home-onboarding-step-desc">
+                  Ledger(가계부), Subscription(구독 관리) 등 원하는 모듈을 찾습니다.
+                </p>
+              </div>
+            </li>
+            <li className="home-onboarding-step">
+              <span className="home-onboarding-step-num">02</span>
+              <div>
+                <p className="home-onboarding-step-title">원클릭 설치 & 활성화</p>
+                <p className="home-onboarding-step-desc">
+                  설치 즉시 사이드바에 추가됩니다. 서버 재시작 불필요.
+                </p>
+              </div>
+            </li>
+            <li className="home-onboarding-step">
+              <span className="home-onboarding-step-num">03</span>
+              <div>
+                <p className="home-onboarding-step-title">바로 사용 시작</p>
+                <p className="home-onboarding-step-desc">
+                  모듈 화면으로 이동해 데이터를 입력하거나 연동을 설정합니다.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      )}
 
       <div className="stack">
         <section className="home-section">
           <div className="home-section-head">
             <h2 className="home-section-title">Installed Modules</h2>
-            <span className="home-section-meta">Ready to launch</span>
+            <span className="home-section-meta">
+              {hasModules ? "Ready to launch" : "No modules installed"}
+            </span>
           </div>
 
         {hasModules ? (

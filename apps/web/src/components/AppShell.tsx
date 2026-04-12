@@ -9,6 +9,7 @@ interface AppShellProps {
   isAdmin: boolean;
   notice: string;
   onNavigate: (route: RouteKey) => void;
+  onAdminAccess: () => void;
   onLogout: () => void;
   onOpenSettings: () => void;
   children: ReactNode;
@@ -23,6 +24,7 @@ export function AppShell({
   isAdmin,
   notice,
   onNavigate,
+  onAdminAccess,
   onLogout,
   onOpenSettings,
   children,
@@ -86,17 +88,18 @@ export function AppShell({
             <span className="shell-nav-icon" aria-hidden="true">⚙</span>
             Settings
           </button>
-          {isAdmin && (
-            <button
-              type="button"
-              className="shell-nav-item"
-              aria-current={route === "admin" ? "page" : undefined}
-              onClick={() => onNavigate("admin")}
-            >
-              <span className="shell-nav-icon" aria-hidden="true">⚡</span>
-              Admin
-            </button>
-          )}
+          <button
+            type="button"
+            className="shell-nav-item"
+            aria-current={route === "admin" ? "page" : undefined}
+            onClick={onAdminAccess}
+          >
+            <span className="shell-nav-icon" aria-hidden="true">⚡</span>
+            Admin
+            {!isAdmin && (
+              <span className="shell-nav-lock" aria-label="인증 필요" aria-hidden="true">🔒</span>
+            )}
+          </button>
           <button
             type="button"
             className="shell-nav-item shell-nav-item-danger"

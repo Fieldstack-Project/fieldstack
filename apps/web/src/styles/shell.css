@@ -129,6 +129,12 @@
   opacity: 1;
 }
 
+.shell-nav-lock {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.45;
+}
+
 /* Empty state for module list */
 .shell-nav-empty {
   padding: 5px 8px;
