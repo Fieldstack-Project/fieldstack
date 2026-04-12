@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import "../styles/shell.css";
 
-export type RouteKey = "login" | "home" | "marketplace" | "admin" | "change-password";
+export type RouteKey = "login" | "otp" | "forgot-password" | "home" | "marketplace" | "admin" | "change-password";
 
 interface AppShellProps {
   installMode: "normal" | "bypass";

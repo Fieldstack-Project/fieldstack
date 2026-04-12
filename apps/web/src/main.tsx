@@ -12,6 +12,8 @@ import { SettingsView } from "./views/SettingsView";
 import { AdminView } from "./views/AdminView";
 import { MarketplaceView } from "./views/MarketplaceView";
 import { ChangePasswordView } from "./views/ChangePasswordView";
+import { OtpView } from "./views/OtpView";
+import { ForgotPasswordView } from "./views/ForgotPasswordView";
 
 // ─── Types ────────────────────────────────────────────────────
 type InstallMode = "normal" | "bypass";
@@ -40,17 +42,8 @@ function resolveInstallMode(runtimeEnv: WebRuntimeEnv): InstallMode {
 function getRouteFromHash(rawHash: string): RouteKey {
   const hash = rawHash.replace("#", "");
   if (hash === "settings") return "home";
-  if (hash === "home" || hash === "marketplace" || hash === "admin" || hash === "login" || hash === "change-password") {
-    return hash;
-  }
-  return "login";
-}
-
-function canAccessRoute(route: RouteKey, isAuthenticated: boolean): boolean {
-  if (route === "login") return true;
-  if (!isAuthenticated) return false;
-  // admin 라우트는 인증된 유저라면 진입 허용 — AdminView 내부에서 isAdmin으로 콘텐츠 게이팅
-  return true;
+  const valid: RouteKey[] = ["login", "otp", "forgot-password", "home", "marketplace", "admin", "change-password"];
+  return (valid as string[]).includes(hash) ? (hash as RouteKey) : "login";
 }
 
 // ─── Session Storage Keys ─────────────────────────────────────
@@ -73,6 +66,8 @@ function App({ installMode }: { installMode: InstallMode }) {
   const [isPinVerified, setIsPinVerified] = useState(
     () => sessionStorage.getItem(SS.pinVerified) === "true",
   );
+  // OTP 인증 대기 중인 이메일 (로그인 완료 전 임시 상태 — sessionStorage 미저장)
+  const [pendingOtpEmail, setPendingOtpEmail] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<{ email: string } | null>(
     () => {
       const email = sessionStorage.getItem(SS.email);
@@ -98,11 +93,16 @@ function App({ installMode }: { installMode: InstallMode }) {
   }, []);
 
   const effectiveRoute = useMemo<RouteKey>(() => {
-    if (!canAccessRoute(route, isAuthenticated)) return "login";
-    // 비밀번호 변경 강제: change-password 이외의 모든 경로 차단
+    // OTP 대기 중: otp 화면만 허용
+    if (pendingOtpEmail) return "otp";
+    // 미인증: login / forgot-password만 허용
+    if (!isAuthenticated) {
+      return route === "forgot-password" ? "forgot-password" : "login";
+    }
+    // 비밀번호 변경 강제
     if (mustChangePassword && route !== "change-password") return "change-password";
     return route;
-  }, [isAuthenticated, mustChangePassword, route]);
+  }, [isAuthenticated, mustChangePassword, pendingOtpEmail, route]);
 
   useEffect(() => {
     if (window.location.hash !== `#${effectiveRoute}`) {
@@ -120,8 +120,16 @@ function App({ installMode }: { installMode: InstallMode }) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const email = (formData.get("email") as string | null) ?? "user@fieldstack.dev";
-    // mock: 비밀번호가 "temp1234"이면 임시 비번 첫 로그인으로 처리
     const password = formData.get("password") as string | null;
+
+    // mock: "otp1234" → 2FA OTP 화면으로 이동
+    if (password === "otp1234") {
+      setPendingOtpEmail(email);
+      navigate("otp");
+      return;
+    }
+
+    // mock: "temp1234" → 임시 비번 첫 로그인 강제 변경
     const isTempLogin = password === "temp1234";
 
     setIsAuthenticated(true);
@@ -156,6 +164,23 @@ function App({ installMode }: { installMode: InstallMode }) {
     navigate("home");
   };
 
+  const onOtpVerified = () => {
+    if (!pendingOtpEmail) return;
+    const email = pendingOtpEmail;
+    setPendingOtpEmail(null);
+    setIsAuthenticated(true);
+    setCurrentUser({ email });
+    sessionStorage.setItem(SS.auth, "true");
+    sessionStorage.setItem(SS.email, email);
+    setNotice("2단계 인증 완료.");
+    navigate("home");
+  };
+
+  const onOtpCancel = () => {
+    setPendingOtpEmail(null);
+    navigate("login");
+  };
+
   const onPinVerified = () => {
     setIsAdmin(true);
     setIsPinVerified(true);
@@ -187,10 +212,27 @@ function App({ installMode }: { installMode: InstallMode }) {
           <LoginView
             onLogin={onLogin}
             onQuickLogin={onQuickLogin}
+            onForgotPassword={() => navigate("forgot-password")}
             showDevBypass={installMode === "bypass"}
           />
         </section>
       </main>
+    );
+  }
+
+  // 비밀번호 찾기 (no shell)
+  if (effectiveRoute === "forgot-password") {
+    return <ForgotPasswordView onBack={() => navigate("login")} />;
+  }
+
+  // 2FA OTP 인증 (no shell)
+  if (effectiveRoute === "otp") {
+    return (
+      <OtpView
+        email={pendingOtpEmail ?? ""}
+        onVerified={onOtpVerified}
+        onCancel={onOtpCancel}
+      />
     );
   }
 

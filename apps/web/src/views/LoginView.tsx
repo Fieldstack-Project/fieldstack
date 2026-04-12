@@ -3,10 +3,11 @@ import type { FormEvent } from "react";
 interface LoginViewProps {
   onLogin: (event: FormEvent<HTMLFormElement>) => void;
   onQuickLogin: () => void;
+  onForgotPassword: () => void;
   showDevBypass: boolean;
 }
 
-export function LoginView({ onLogin, onQuickLogin, showDevBypass }: LoginViewProps) {
+export function LoginView({ onLogin, onQuickLogin, onForgotPassword, showDevBypass }: LoginViewProps) {
   return (
     <>
       <section className="login-showcase" aria-hidden="true">
@@ -63,9 +64,14 @@ export function LoginView({ onLogin, onQuickLogin, showDevBypass }: LoginViewPro
               <input type="checkbox" name="remember" />
               <span>Remember me</span>
             </label>
-            <a className="text-link" href="#login">
+            <button
+              type="button"
+              className="text-link"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
+              onClick={onForgotPassword}
+            >
               Forgot password?
-            </a>
+            </button>
           </div>
           <div className="actions login-actions">
             <button className="button button-primary button-block" type="submit">
