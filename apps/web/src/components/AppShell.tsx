@@ -7,6 +7,7 @@ interface AppShellProps {
   installMode: "normal" | "bypass";
   route: RouteKey;
   isAdmin: boolean;
+  currentUser: { email: string } | null;
   notice: string;
   onNavigate: (route: RouteKey) => void;
   onAdminAccess: () => void;
@@ -22,6 +23,7 @@ export function AppShell({
   installMode,
   route,
   isAdmin,
+  currentUser,
   notice,
   onNavigate,
   onAdminAccess,
@@ -29,6 +31,7 @@ export function AppShell({
   onOpenSettings,
   children,
 }: AppShellProps) {
+  const userInitial = currentUser?.email.charAt(0).toUpperCase() ?? "?";
   return (
     <div className="shell">
       {/* ── Sidebar ─────────────────────────────────────── */}
@@ -79,6 +82,15 @@ export function AppShell({
 
         {/* Footer */}
         <div className="shell-sidebar-footer">
+          {currentUser && (
+            <div className="shell-user">
+              <div className="shell-user-avatar" aria-hidden="true">{userInitial}</div>
+              <div className="shell-user-info">
+                <p className="shell-user-email">{currentUser.email}</p>
+                <p className="shell-user-role">{isAdmin ? "Administrator" : "Member"}</p>
+              </div>
+            </div>
+          )}
           {installMode === "bypass" && (
             <div className="shell-bypass-pill" aria-label="개발 bypass 모드 활성">
               DEV BYPASS

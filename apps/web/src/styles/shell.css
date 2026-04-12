@@ -143,6 +143,58 @@
   font-style: italic;
 }
 
+/* User info */
+.shell-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background: var(--bg-surface);
+  min-width: 0;
+}
+
+.shell-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-subtle);
+  border: 1px solid rgba(124, 124, 240, 0.25);
+  color: var(--accent-hover);
+  font-size: 12px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.shell-user-info {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.shell-user-email {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell-user-role {
+  margin: 0;
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
 /* Sidebar footer */
 .shell-sidebar-footer {
   padding: 8px 8px 12px;

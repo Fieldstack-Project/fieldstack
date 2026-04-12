@@ -53,10 +53,27 @@ function canAccessRoute(route: RouteKey, isAuthenticated: boolean): boolean {
   return true;
 }
 
+// ─── Session Storage Keys ─────────────────────────────────────
+const SS = {
+  auth:  "fs_auth",
+  admin: "fs_admin",
+  email: "fs_email",
+} as const;
+
 // ─── App Root ─────────────────────────────────────────────────
 function App({ installMode }: { installMode: InstallMode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => sessionStorage.getItem(SS.auth) === "true",
+  );
+  const [isAdmin, setIsAdmin] = useState(
+    () => sessionStorage.getItem(SS.admin) === "true",
+  );
+  const [currentUser, setCurrentUser] = useState<{ email: string } | null>(
+    () => {
+      const email = sessionStorage.getItem(SS.email);
+      return email ? { email } : null;
+    },
+  );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [notice, setNotice] = useState(
@@ -91,13 +108,22 @@ function App({ installMode }: { installMode: InstallMode }) {
   // Auth handlers
   const onLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const email = (new FormData(event.currentTarget).get("email") as string | null)
+      ?? "user@fieldstack.dev";
     setIsAuthenticated(true);
+    setCurrentUser({ email });
+    sessionStorage.setItem(SS.auth, "true");
+    sessionStorage.setItem(SS.email, email);
     setNotice("Login successful (mock).");
     navigate("home");
   };
 
   const onQuickLogin = () => {
+    const email = "dev@fieldstack.dev";
     setIsAuthenticated(true);
+    setCurrentUser({ email });
+    sessionStorage.setItem(SS.auth, "true");
+    sessionStorage.setItem(SS.email, email);
     setNotice("");
     navigate("home");
   };
@@ -113,12 +139,18 @@ function App({ installMode }: { installMode: InstallMode }) {
   const onPinVerified = () => {
     setIsAdmin(true);
     setIsPinModalOpen(false);
+    sessionStorage.setItem(SS.admin, "true");
     setNotice("관리자 인증 완료 (mock). 30분간 유효합니다.");
     navigate("admin");
   };
 
   const onLogout = () => {
     setIsAuthenticated(false);
+    setIsAdmin(false);
+    setCurrentUser(null);
+    sessionStorage.removeItem(SS.auth);
+    sessionStorage.removeItem(SS.admin);
+    sessionStorage.removeItem(SS.email);
     setNotice("Logged out.");
     navigate("login");
   };
@@ -150,6 +182,7 @@ function App({ installMode }: { installMode: InstallMode }) {
         installMode={installMode}
         route={effectiveRoute}
         isAdmin={isAdmin}
+        currentUser={currentUser}
         notice={notice}
         onNavigate={navigate}
         onAdminAccess={onAdminAccess}
