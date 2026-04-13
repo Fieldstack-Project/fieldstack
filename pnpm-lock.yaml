@@ -62,17 +62,17 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.19.17)
 
-  packages/core:
+  packages/controls:
+    dependencies:
+      '@fieldstack/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.19.17)
 
-  packages/ui:
-    dependencies:
-      '@fieldstack/core':
-        specifier: workspace:*
-        version: link:../core
+  packages/core:
     devDependencies:
       vitest:
         specifier: ^2.1.9
