@@ -2,17 +2,20 @@ import { useEffect, useRef, useState } from "react";
 
 import "../styles/settings.css";
 
+type ThemeSetting = "light" | "dark" | "system";
+
 interface SettingsViewProps {
   isAdmin: boolean;
+  theme: ThemeSetting;
+  onThemeChange: (theme: ThemeSetting) => void;
   onToggleAdmin: () => void;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function SettingsView({ isAdmin, onToggleAdmin, onClose, onSaved }: SettingsViewProps) {
+export function SettingsView({ isAdmin, theme, onThemeChange, onToggleAdmin, onClose, onSaved }: SettingsViewProps) {
   const [displayName, setDisplayName] = useState("");
   const [language, setLanguage] = useState("ko");
-  const [theme, setTheme] = useState("light");
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -114,7 +117,7 @@ export function SettingsView({ isAdmin, onToggleAdmin, onClose, onSaved }: Setti
               <select
                 className="select"
                 value={theme}
-                onChange={(e) => setTheme(e.target.value)}
+                onChange={(e) => onThemeChange(e.target.value as ThemeSetting)}
               >
                 <option value="light">라이트</option>
                 <option value="dark">다크</option>

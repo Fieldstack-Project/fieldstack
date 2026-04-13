@@ -1,3 +1,3 @@
-export * from "./components";
-export * from "./contracts";
-export * from "./foundation";
+export * from "./components/index.js";
+export * from "./contracts.js";
+export * from "./foundation.js";

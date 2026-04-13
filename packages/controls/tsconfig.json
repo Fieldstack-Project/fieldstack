@@ -5,8 +5,8 @@
     "rootDir": "src",
     "declaration": true,
     "noEmit": false,
-    "moduleResolution": "Node",
-    "module": "CommonJS",
+    "moduleResolution": "Bundler",
+    "module": "ESNext",
     "jsx": "react-jsx"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]

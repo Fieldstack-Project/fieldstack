@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import "./styles/global.css";
 import "./styles/login.css";
+import "@fieldstack/controls/styles";
 
 import { AppShell, type RouteKey } from "./components/AppShell";
 import { AdminPinModal } from "./components/AdminPinModal";
@@ -46,6 +47,30 @@ function getRouteFromHash(rawHash: string): RouteKey {
   return (valid as string[]).includes(hash) ? (hash as RouteKey) : "login";
 }
 
+// ─── Theme ────────────────────────────────────────────────────
+type ThemeSetting = "light" | "dark" | "system";
+
+function applyTheme(setting: ThemeSetting) {
+  const root = document.documentElement;
+  if (setting === "system") {
+    root.removeAttribute("data-theme");
+  } else {
+    root.setAttribute("data-theme", setting);
+  }
+  try { localStorage.setItem("fs_theme", setting); } catch { /* ignore */ }
+}
+
+function loadTheme(): ThemeSetting {
+  try {
+    const saved = localStorage.getItem("fs_theme");
+    if (saved === "light" || saved === "dark" || saved === "system") return saved;
+  } catch { /* ignore */ }
+  return "system";
+}
+
+// 초기 테마 적용 (React 렌더 전에 FOUC 방지)
+applyTheme(loadTheme());
+
 // ─── Session Storage Keys ─────────────────────────────────────
 const SS = {
   auth:            "fs_auth",
@@ -57,6 +82,13 @@ const SS = {
 
 // ─── App Root ─────────────────────────────────────────────────
 function App({ installMode }: { installMode: InstallMode }) {
+  const [theme, setTheme] = useState<ThemeSetting>(loadTheme);
+
+  const handleThemeChange = (next: ThemeSetting) => {
+    setTheme(next);
+    applyTheme(next);
+  };
+
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => sessionStorage.getItem(SS.auth) === "true",
   );
@@ -272,6 +304,8 @@ function App({ installMode }: { installMode: InstallMode }) {
         {isSettingsOpen && (
           <SettingsView
             isAdmin={isAdmin}
+            theme={theme}
+            onThemeChange={handleThemeChange}
             onClose={() => setIsSettingsOpen(false)}
             onToggleAdmin={() => {
               setIsAdmin((prev) => {

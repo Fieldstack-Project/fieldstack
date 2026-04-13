@@ -144,9 +144,11 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - [x] Control 우선순위 분류 (P0: Core 필수 / P0.5: 반복 사용 / P1/P2: 요청 기반)
 - [x] 신규 Control 추가 정책 확정 (요청 -> RFC/이슈 -> 디자인/접근성 검토 -> 릴리스)
 
-**packages/ui 실제 구현 (미착수):**
-- [ ] P0 Control 구현 — Button / Input / Select / Checkbox / Radio / Switch / Modal / Form Field / Alert / Progress
-- [ ] P0.5 Control 구현 — Textarea / Password Input / OTP Input / Search Input / Spinner / Toast / Empty State / Skeleton
+**packages/controls 실제 구현:**
+- [x] P0 Control 구현 — Button / Input / Select / Checkbox / Radio / Switch / Modal / Form Field / Alert / Progress
+- [x] P0.5 Control 구현 — Textarea / Password Input / OTP Input / Search Input / Spinner / Toast / EmptyState / Skeleton
+- [x] `global.css` 토큰 라이트/다크 분리 (`[data-theme]` + `prefers-color-scheme`)
+- [x] `controls.css` 작성 (fs- 접두사, CSS 변수 기반, 라이트/다크 공통)
 - [ ] Control 접근성 기준 체크 (focus ring, 명도 대비, aria role/label, tab 순서)
 - [ ] `apps/web` View에서 `@fieldstack/controls` Control로 교체 검증
 
@@ -225,7 +227,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - ✅ Phase 2 모듈 UI를 붙일 수 있는 라우팅/레이아웃 기반 확보
 
 ### Phase 2 진입 게이트 (권장)
-- [ ] Control 패키지 MVP 완료 (P0/P0.5 규격 확정됨 — `packages/ui` 실제 구현 및 `ready: true` 반영 필요)
+- [x] Control 패키지 MVP 완료 (P0/P0.5 구현 완료 — `packages/controls` 반영 + `ready: true`)
 - [ ] Auth/Install/Home/Settings/Admin 흐름에서 공통 Control 재사용 검증
 - [ ] 접근성/반응형/상태 처리(Loading/Empty/Error/Unauthorized) 기준 통과
 - [ ] 핵심 E2E 통과 (설치 -> 로그인 -> 홈 -> 설정/관리자)
@@ -240,6 +242,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 | 2026-02-27 | Web 진입점을 React + TypeScript + Vite(`main.tsx`) 기준으로 전환 완료. 개발 실행 모드에 `dev:bypass` 추가. bypass 정책을 "설치만 스킵, 인증은 로그인부터"로 확정 |
 | 2026-04-12 | 1차 UI/UX 전면 개편. 다크 모드 디자인 토큰 시스템 구축 및 고정 220px 좌측 사이드바 레이아웃으로 재설계. AppShell A/B/C/D 변형 폐기 후 단일 Shell로 통합. 로그인/홈/설정/관리자 CSS 전체를 다크 토큰 기반으로 전환 |
 | 2026-04-12 | 임시 비밀번호 첫 로그인 강제 변경 화면(ChangePasswordView) 구현. 관리자 역할(isAdmin)과 PIN 인증(isPinVerified) 상태 분리 — 역할 보유자도 Admin 페이지 진입 시 PIN 재인증 필요. 비관리자 Admin 진입점 사이드바에서 숨김. Marketplace 사이드바 진입점 추가(Phase 3 플레이스홀더). @fieldstack/core ESM 빌드 전환 |
+| 2026-04-13 | P0/P0.5 Control 전 항목 `packages/controls`에 React 컴포넌트 구현 완료 (`ready: true`). `controls.css` 작성(fs- 접두사). `global.css` 토큰을 라이트 기본값 + 다크 오버라이드(`[data-theme]`/`prefers-color-scheme`) 구조로 재설계. Settings 테마 셀렉터 실제 동작 연결 (localStorage + data-theme 적용). |
 
 ---
 

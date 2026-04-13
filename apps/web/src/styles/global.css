@@ -1,43 +1,122 @@
-/* ─── Design Tokens ──────────────────────────────────────────── */
+/* ─── Design Tokens: Light Mode (default) ────────────────────── */
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 
   /* Backgrounds */
+  --bg:            #f4f4f9;
+  --bg-surface:    #ffffff;
+  --bg-elevated:   #ededf6;
+  --bg-hover:      #e4e4f0;
+
+  /* Borders */
+  --border:        #d0d0e4;
+  --border-subtle: #e4e4f2;
+
+  /* Text */
+  --text:          #0e0e18;
+  --text-muted:    #525278;
+  --text-faint:    #9898b8;
+
+  /* Accent (indigo — darker for light bg) */
+  --accent:        #5252e0;
+  --accent-hover:  #3e3ece;
+  --accent-subtle: rgba(82, 82, 224, 0.08);
+  --accent-border: rgba(82, 82, 224, 0.20);
+
+  /* Status */
+  --ok:         #16a34a;
+  --warn:       #b45309;
+  --err:        #b91c1c;
+  --info:       #1d4ed8;
+  --ok-subtle:  rgba(22, 163, 74,  0.10);
+  --warn-subtle:rgba(180, 83,  9,  0.10);
+  --err-subtle: rgba(185, 28, 28,  0.10);
+  --info-subtle:rgba(29,  78, 216, 0.10);
+
+  /* Aliases */
+  --primary:        var(--accent);
+  --primary-strong: var(--accent-hover);
+  --focus-ring:     rgba(82, 82, 224, 0.20);
+  --surface:        var(--bg-elevated);
+  --muted:          var(--text-muted);
+
+  /* Layout */
+  --sidebar-width: 220px;
+  --content-max:   900px;
+}
+
+/* ─── Design Tokens: Dark Mode ───────────────────────────────── */
+/* OS preference (no explicit theme set) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg:            #0e0e14;
+    --bg-surface:    #13131b;
+    --bg-elevated:   #1a1a25;
+    --bg-hover:      #20202e;
+
+    --border:        #2a2a3c;
+    --border-subtle: #1d1d2a;
+
+    --text:          #e0e0ec;
+    --text-muted:    #7878a0;
+    --text-faint:    #44445c;
+
+    --accent:        #7c7cf0;
+    --accent-hover:  #9191f5;
+    --accent-subtle: rgba(124, 124, 240, 0.12);
+    --accent-border: rgba(124, 124, 240, 0.20);
+
+    --ok:         #4ade80;
+    --warn:       #fbbf24;
+    --err:        #f87171;
+    --info:       #60a5fa;
+    --ok-subtle:  rgba(74,  222, 128, 0.12);
+    --warn-subtle:rgba(251, 191,  36, 0.12);
+    --err-subtle: rgba(248, 113, 113, 0.12);
+    --info-subtle:rgba(96,  165, 250, 0.12);
+
+    --focus-ring: rgba(124, 124, 240, 0.28);
+  }
+}
+
+/* Explicit dark theme */
+[data-theme="dark"] {
+  color-scheme: dark;
+
   --bg:            #0e0e14;
   --bg-surface:    #13131b;
   --bg-elevated:   #1a1a25;
   --bg-hover:      #20202e;
 
-  /* Borders */
   --border:        #2a2a3c;
   --border-subtle: #1d1d2a;
 
-  /* Text */
   --text:          #e0e0ec;
   --text-muted:    #7878a0;
   --text-faint:    #44445c;
 
-  /* Accent (indigo) */
   --accent:        #7c7cf0;
   --accent-hover:  #9191f5;
   --accent-subtle: rgba(124, 124, 240, 0.12);
+  --accent-border: rgba(124, 124, 240, 0.20);
 
-  /* Status */
-  --ok:   #4ade80;
-  --warn: #fbbf24;
-  --err:  #f87171;
-  --info: #60a5fa;
+  --ok:         #4ade80;
+  --warn:       #fbbf24;
+  --err:        #f87171;
+  --info:       #60a5fa;
+  --ok-subtle:  rgba(74,  222, 128, 0.12);
+  --warn-subtle:rgba(251, 191,  36, 0.12);
+  --err-subtle: rgba(248, 113, 113, 0.12);
+  --info-subtle:rgba(96,  165, 250, 0.12);
 
-  /* Aliases for backwards compat */
-  --primary:      var(--accent);
-  --primary-strong: var(--accent-hover);
-  --focus-ring:   rgba(124, 124, 240, 0.28);
-  --surface:      var(--bg-elevated);
-  --muted:        var(--text-muted);
+  --focus-ring: rgba(124, 124, 240, 0.28);
+}
 
-  /* Layout */
-  --sidebar-width: 220px;
-  --content-max:   900px;
+/* Explicit light theme */
+[data-theme="light"] {
+  color-scheme: light;
 }
 
 /* ─── Reset ──────────────────────────────────────────────────── */
@@ -94,15 +173,15 @@ body {
 }
 
 .badge-danger {
-  background: rgba(248, 113, 113, 0.14);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.2);
+  background: var(--err-subtle);
+  color: var(--err);
+  border: 1px solid color-mix(in srgb, var(--err) 20%, transparent);
 }
 
 .badge-soft {
   background: var(--accent-subtle);
   color: var(--accent-hover);
-  border: 1px solid rgba(124, 124, 240, 0.2);
+  border: 1px solid var(--accent-border);
 }
 
 .chip {
@@ -114,10 +193,10 @@ body {
   font-weight: 700;
 }
 
-.chip-ready   { background: rgba(74, 222, 128, 0.12); color: #4ade80; }
-.chip-loading { background: rgba(96, 165, 250, 0.12); color: #60a5fa; }
-.chip-empty   { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
-.chip-error   { background: rgba(248, 113, 113, 0.12); color: #f87171; }
+.chip-ready   { background: var(--ok-subtle);   color: var(--ok);   }
+.chip-loading { background: var(--info-subtle);  color: var(--info); }
+.chip-empty   { background: var(--warn-subtle);  color: var(--warn); }
+.chip-error   { background: var(--err-subtle);   color: var(--err);  }
 
 /* ─── Form Controls ──────────────────────────────────────────── */
 .field {
@@ -157,6 +236,7 @@ body {
 
 .select option {
   background: var(--bg-elevated);
+  color: var(--text);
 }
 
 /* ─── Buttons ────────────────────────────────────────────────── */
@@ -176,7 +256,6 @@ body {
 .button:hover {
   background: var(--bg-hover);
   color: var(--text);
-  border-color: var(--border);
 }
 
 .button-primary {
@@ -191,13 +270,13 @@ body {
 }
 
 .button-danger {
-  background: rgba(248, 113, 113, 0.1);
+  background: var(--err-subtle);
   color: var(--err);
-  border-color: rgba(248, 113, 113, 0.2);
+  border-color: color-mix(in srgb, var(--err) 20%, transparent);
 }
 
 .button-danger:hover {
-  background: rgba(248, 113, 113, 0.18);
+  background: color-mix(in srgb, var(--err) 18%, transparent);
 }
 
 .button-block {
@@ -242,10 +321,10 @@ body {
   color: var(--text-muted);
 }
 
-.status-ready   { border-color: rgba(74, 222, 128, 0.25); }
-.status-loading { border-color: rgba(96, 165, 250, 0.25); }
-.status-empty   { border-color: rgba(251, 191, 36, 0.25); }
-.status-error   { border-color: rgba(248, 113, 113, 0.25); }
+.status-ready   { border-color: color-mix(in srgb, var(--ok)   25%, transparent); }
+.status-loading { border-color: color-mix(in srgb, var(--info)  25%, transparent); }
+.status-empty   { border-color: color-mix(in srgb, var(--warn)  25%, transparent); }
+.status-error   { border-color: color-mix(in srgb, var(--err)   25%, transparent); }
 
 /* ─── Panel ──────────────────────────────────────────────────── */
 .panel {
