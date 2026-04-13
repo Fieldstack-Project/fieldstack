@@ -1,0 +1,32 @@
+.fs-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.fs-search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-faint);
+  font-size: 14px;
+  pointer-events: none;
+  line-height: 1;
+}
+.fs-search-wrap .fs-input {
+  padding-left: 32px;
+  padding-right: 30px;
+}
+.fs-search-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-faint);
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color 120ms ease;
+}
+.fs-search-clear:hover { color: var(--text-muted); }

@@ -1,0 +1,54 @@
+.fs-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.fs-alert-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.fs-alert-body { flex: 1; }
+.fs-alert-title {
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+.fs-alert-msg { margin: 0; }
+.fs-alert-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.fs-alert-close:hover { opacity: 1; }
+
+.fs-alert-success {
+  background: var(--ok-subtle);
+  border-color: color-mix(in srgb, var(--ok) 25%, transparent);
+  color: var(--ok);
+}
+.fs-alert-warning {
+  background: var(--warn-subtle);
+  border-color: color-mix(in srgb, var(--warn) 25%, transparent);
+  color: var(--warn);
+}
+.fs-alert-error {
+  background: var(--err-subtle);
+  border-color: color-mix(in srgb, var(--err) 25%, transparent);
+  color: var(--err);
+}
+.fs-alert-info {
+  background: var(--info-subtle);
+  border-color: color-mix(in srgb, var(--info) 25%, transparent);
+  color: var(--info);
+}

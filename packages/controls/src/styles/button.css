@@ -1,0 +1,81 @@
+.fs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+  white-space: nowrap;
+  user-select: none;
+  text-decoration: none;
+}
+.fs-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.fs-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.fs-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Variants */
+.fs-btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+.fs-btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: transparent;
+  color: #fff;
+}
+.fs-btn-danger {
+  background: var(--err-subtle);
+  color: var(--err);
+  border-color: color-mix(in srgb, var(--err) 20%, transparent);
+}
+.fs-btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--err) 18%, transparent);
+}
+.fs-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+.fs-btn-ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: transparent;
+}
+
+/* Sizes */
+.fs-btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+.fs-btn-lg { padding: 11px 20px; font-size: 15px; border-radius: 10px; }
+
+/* Modifiers */
+.fs-btn-block { width: 100%; }
+.fs-btn-loading { pointer-events: none; opacity: 0.75; }
+
+/* Loading spinner inside button */
+.fs-btn-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: fs-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}

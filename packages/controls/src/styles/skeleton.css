@@ -1,0 +1,29 @@
+@keyframes fs-shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+.fs-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-hover) 25%,
+    var(--bg-elevated) 50%,
+    var(--bg-hover) 75%
+  );
+  background-size: 200% 100%;
+  animation: fs-shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+.fs-skeleton-text {
+  height: 14px;
+  border-radius: 4px;
+  width: 100%;
+}
+.fs-skeleton-text + .fs-skeleton-text {
+  margin-top: 8px;
+}
+.fs-skeleton-circle {
+  border-radius: 50%;
+}
+.fs-skeleton-rect {
+  border-radius: 8px;
+}

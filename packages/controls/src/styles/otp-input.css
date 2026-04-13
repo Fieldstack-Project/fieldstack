@@ -1,0 +1,32 @@
+.fs-otp-wrap {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.fs-otp-digit {
+  width: 44px;
+  height: 52px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  font-family: inherit;
+  transition: border-color 110ms ease, box-shadow 110ms ease;
+  caret-color: var(--accent);
+}
+.fs-otp-digit:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.fs-otp-digit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.fs-otp-digit-error {
+  border-color: var(--err);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--err) 20%, transparent);
+}

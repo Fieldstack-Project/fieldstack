@@ -1,0 +1,48 @@
+.fs-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.fs-switch-wrap:has(input:disabled) { cursor: not-allowed; opacity: 0.45; }
+.fs-switch-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 160ms ease;
+  flex-shrink: 0;
+}
+.fs-switch-wrap input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.fs-switch-wrap input:focus-visible ~ .fs-switch-track {
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.fs-switch-wrap input:checked ~ .fs-switch-track {
+  background: var(--accent);
+}
+.fs-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: left 160ms ease;
+  pointer-events: none;
+}
+.fs-switch-wrap input:checked ~ .fs-switch-track .fs-switch-thumb {
+  left: 18px;
+}
+.fs-switch-label {
+  font-size: 14px;
+  color: var(--text);
+}

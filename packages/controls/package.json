@@ -10,7 +10,7 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./styles": "./src/styles/controls.css"
+    "./styles": "./src/styles/index.css"
   },
   "scripts": {
     "build": "tsc",

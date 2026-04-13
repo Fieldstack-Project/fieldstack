@@ -1,0 +1,40 @@
+@keyframes fs-spin {
+  to { transform: rotate(360deg); }
+}
+.fs-spinner {
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: fs-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+.fs-spinner-sm { width: 16px; height: 16px; }
+.fs-spinner-md { width: 24px; height: 24px; border-width: 3px; }
+.fs-spinner-lg { width: 36px; height: 36px; border-width: 3px; }
+
+/* Blocking overlay */
+.fs-spinner-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(2px);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Inline non-blocking */
+.fs-spinner-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}

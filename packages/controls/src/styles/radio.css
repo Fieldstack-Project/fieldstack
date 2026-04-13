@@ -1,0 +1,45 @@
+.fs-radio-group {
+  display: grid;
+  gap: 8px;
+}
+.fs-radio-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.fs-radio-wrap input {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  transition: border-color 120ms ease, background 120ms ease;
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+}
+.fs-radio-wrap input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.fs-radio-wrap input:checked {
+  border-color: var(--accent);
+}
+.fs-radio-wrap input:checked::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.fs-radio-wrap input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.fs-radio-label {
+  font-size: 14px;
+  color: var(--text);
+}

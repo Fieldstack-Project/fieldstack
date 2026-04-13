@@ -1,0 +1,65 @@
+.fs-input,
+.fs-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg-elevated);
+  transition: border-color 130ms ease, box-shadow 130ms ease;
+  line-height: 1.5;
+}
+.fs-input::placeholder,
+.fs-textarea::placeholder {
+  color: var(--text-faint);
+}
+.fs-input:focus,
+.fs-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.fs-input:disabled,
+.fs-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fs-input-error,
+.fs-textarea-error {
+  border-color: var(--err);
+}
+.fs-input-error:focus,
+.fs-textarea-error:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--err) 22%, transparent);
+}
+.fs-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Input wrapper (for prefix/suffix icons) */
+.fs-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.fs-input-wrap .fs-input {
+  padding-right: 36px;
+}
+.fs-input-wrap-icon {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  color: var(--text-faint);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  transition: color 120ms ease;
+}
+.fs-input-wrap-icon:hover { color: var(--text-muted); }
