@@ -23,6 +23,7 @@
     "test": "pnpm --recursive test",
     "lint": "pnpm --recursive lint",
     "typecheck": "pnpm --recursive typecheck",
-    "format": "pnpm --recursive format"
+    "format": "pnpm --recursive format",
+    "storybook": "pnpm --filter @fieldstack/controls storybook"
   }
 }

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-Phase 1.5 진행 중 (2026-04-13 기준). Core UI Shell은 mock으로 동작하며 실제 백엔드 API 엔드포인트는 미구현. `packages/controls`에 React 컴포넌트 미구현 (`ready: false` 상태).
+Phase 1.5 진행 중 (2026-04-13 기준). Core UI Shell은 mock으로 동작하며 실제 백엔드 API 엔드포인트는 미구현. `packages/controls` P0/P0.5 컴포넌트 구현 완료 (`ready: true`). Storybook 세팅 완료 (port 6007).
 
 ---
 
@@ -28,6 +28,9 @@ pnpm test                                   # 전체
 pnpm --filter api test                      # api만
 pnpm --filter core test                     # core만
 pnpm exec vitest run apps/api/src/loader/index.test.ts  # 단일 파일
+
+# Storybook (controls 컴포넌트 확인)
+pnpm storybook         # http://localhost:6007 (port 6006 충돌 시 6007 사용)
 
 # 타입 체크
 pnpm typecheck
