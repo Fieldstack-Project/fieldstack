@@ -15,45 +15,43 @@ Phase 2 이후 모듈/커뮤니티 요청에 따라 점진 확장하기 위한 �
 ## 상태 기준
 
 - `미착수` - 구현 시작 전
-- `규격 확정` - 인터페이스/계약 정의 완료, `packages/ui` 실제 구현 미착수
+- `규격 확정` - 인터페이스/계약 정의 완료, `packages/controls` 실제 구현 미착수
 - `진행중` - 작업 중
-- `완료` - `packages/ui`에 실제 컴포넌트 반영 + `ready: true` 확인 완료
+- `완료` - `packages/controls`에 실제 컴포넌트 반영 + `ready: true` 확인 완료
 
-> **현재 상태 (2026-04-12 기준):**
-> P0/P0.5 전 항목은 `규격 확정` 상태입니다. `packages/controls/src/components/index.ts`에 계약 타입만 선언되어 있으며
-> 실제 React 컴포넌트는 미구현입니다 (`ready: false`).
->
-> `apps/web` 각 View에서 인라인으로 사용 중인 스타일/구조가 사실상의 레퍼런스이며,
-> 2026-04-12 UI/UX 전면 개편으로 확정된 **다크 모드 디자인 토큰 시스템**을 기반으로
-> `packages/controls` 구현을 진행하면 됩니다.
+> **현재 상태 (2026-04-13 기준):**
+> P0/P0.5 전 항목 구현 완료 (`ready: true`). `packages/controls/src/components/`에 React 컴포넌트 반영.
+> `packages/controls/src/styles/controls.css`에 라이트/다크 모드 공통 스타일 정의.
+> `global.css` 토큰도 라이트 모드 기본값 + 다크 모드 오버라이드(`[data-theme="dark"]` / `prefers-color-scheme`) 구조로 재설계 완료.
+> `apps/web` Settings에서 테마 선택 시 `document.documentElement`에 `data-theme` 적용 및 localStorage 저장 동작.
 
 ## P0 (Core 필수)
 
 | Control | 우선순위 | 1.5 구현상태 | 비고 |
 | --- | --- | --- | --- |
-| Button | P0 | 규격 확정 | Primary/Secondary/Danger/Ghost |
-| Input | P0 | 규격 확정 | text/email/number/password |
-| Select / ComboBox | P0 | 규격 확정 | single/multi + search |
-| Checkbox | P0 | 규격 확정 | 단일/그룹 + indeterminate |
-| Radio | P0 | 규격 확정 | 단일 선택 그룹 |
-| Switch / Toggle | P0 | 규격 확정 | on/off + keyboard |
-| Modal / Dialog | P0 | 규격 확정 | confirm/alert/prompt 패턴 |
-| Form Field Wrapper | P0 | 규격 확정 | label/help/error/required |
-| Alert / Inline Message | P0 | 규격 확정 | success/warning/error/info |
-| Progress | P0 | 규격 확정 | linear + step progress |
+| Button | P0 | 완료 | Primary/Secondary/Danger/Ghost, size, loading |
+| Input | P0 | 완료 | text/email/number/password, error, helpText |
+| Select / ComboBox | P0 | 완료 | single select + placeholder, error |
+| Checkbox | P0 | 완료 | 단일/그룹 + indeterminate |
+| Radio | P0 | 완료 | RadioGroup |
+| Switch / Toggle | P0 | 완료 | on/off + keyboard |
+| Modal / Dialog | P0 | 완료 | size(sm/md/lg), ESC 닫기, backdrop 클릭 닫기 |
+| Form Field Wrapper | P0 | 완료 | label/help/error/required |
+| Alert / Inline Message | P0 | 완료 | success/warning/error/info, onClose |
+| Progress | P0 | 완료 | linear + StepProgress |
 
 ## P0.5 (핵심 흐름 반복 사용)
 
 | Control | 우선순위 | 1.5 구현상태 | 비고 |
 | --- | --- | --- | --- |
-| Textarea | P0.5 | 규격 확정 | multi-line input |
-| Password Input | P0.5 | 규격 확정 | show/hide + strength hint |
-| OTP / PIN Input | P0.5 | 규격 확정 | 4~6자리 step-up 인증 |
-| Search Input | P0.5 | 규격 확정 | debounce/clear |
-| Spinner / Loader | P0.5 | 규격 확정 | blocking/non-blocking 로딩 |
-| Toast / Notification | P0.5 | 규격 확정 | 전역 피드백 메시지 |
-| Empty State Block | P0.5 | 규격 확정 | CTA 포함 빈 상태 |
-| Skeleton Loader | P0.5 | 규격 확정 | list/card/form skeleton |
+| Textarea | P0.5 | 완료 | multi-line, error, helpText |
+| Password Input | P0.5 | 완료 | show/hide + strength hint |
+| OTP / PIN Input | P0.5 | 완료 | 4~6자리, paste 지원, keyboard 이동 |
+| Search Input | P0.5 | 완료 | debounce, clear 버튼 |
+| Spinner / Loader | P0.5 | 완료 | blocking overlay / inline |
+| Toast / Notification | P0.5 | 완료 | ToastProvider + useToast hook |
+| Empty State Block | P0.5 | 완료 | icon, title, description, CTA action |
+| Skeleton Loader | P0.5 | 완료 | text(lines) / circular / rect |
 
 ## P1 (자주 쓰이지만 일부 우선 구현)
 
