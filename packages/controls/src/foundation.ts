@@ -1,6 +1,4 @@
-export interface ThemeColorScale {
-  [key: string]: string;
-}
+export type ThemeColorScale = Record<string, string>;
 
 export interface UiThemeTokens {
   primary: ThemeColorScale;

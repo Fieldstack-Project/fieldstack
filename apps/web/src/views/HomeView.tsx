@@ -125,7 +125,7 @@ export function HomeView({ onOpenSettings }: HomeViewProps) {
               icon="⬡"
               title="No modules installed yet"
               description="첫 모듈을 설치하면 메인 허브에 즉시 표시됩니다."
-              action={{ label: "Browse Marketplace", onClick: () => {} }}
+              action={{ label: "Browse Marketplace", onClick: () => { window.location.hash = '#marketplace'; } }}
             />
           )}
         </section>
