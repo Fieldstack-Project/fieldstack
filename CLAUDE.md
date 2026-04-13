@@ -1,0 +1,103 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
+## Project Status
+
+Phase 1.5 진행 중 (2026-04-13 기준). Core UI Shell은 mock으로 동작하며 실제 백엔드 API 엔드포인트는 미구현. `packages/controls`에 React 컴포넌트 미구현 (`ready: false` 상태).
+
+---
+
+## Commands
+
+```bash
+# 개발 서버
+pnpm dev              # web + api 병렬 실행 (설치 마법사 포함)
+pnpm dev:bypass       # 설치 마법사 스킵 (INSTALL_MODE=bypass)
+pnpm dev:web          # web만 (port 5173)
+pnpm dev:api          # api만 (port 3000)
+
+# 빌드 (web → api → copy-frontend.js로 api/public에 복사)
+pnpm build
+pnpm start            # 프로덕션 서버 (apps/api/dist/index.js)
+
+# 테스트
+pnpm test                                   # 전체
+pnpm --filter api test                      # api만
+pnpm --filter core test                     # core만
+pnpm exec vitest run apps/api/src/loader/index.test.ts  # 단일 파일
+
+# 타입 체크
+pnpm typecheck
+```
+
+---
+
+## Architecture
+
+### 패키지 구조
+
+```
+apps/
+  web/     — React 19 + Vite SPA (@fieldstack/web)
+  api/     — Node.js + tsx dev server (@fieldstack/api)
+packages/
+  core/    — 공유 타입·계약·유틸 (@fieldstack/core)
+  controls/— UI 컴포넌트 계약 (@fieldstack/controls, 구현 미착수)
+modules/   — Phase 2 모듈 (Ledger, Subscription) 위치 예정
+```
+
+pnpm workspace, `node-linker=hoisted`.
+
+### apps/web — 라우팅 & 상태
+
+- **Hash 기반 라우팅**: `#login` `#otp` `#forgot-password` `#home` `#marketplace` `#admin` `#change-password`
+- 모든 라우트 상태 머신은 `apps/web/src/main.tsx`의 `App` 컴포넌트에서 관리 (`effectiveRoute` useMemo).
+- 인증 상태는 `sessionStorage`에 `fs_` 접두사 키로 저장 (`fs_auth`, `fs_admin`, `fs_pin_verified` 등).
+- **AppShell** (`src/components/AppShell.tsx`): 220px 고정 사이드바 레이아웃. login/otp/forgot-password/change-password는 shell 없이 전체 화면.
+- **개발 mock 비밀번호**: `otp1234` → OTP 플로우, `temp1234` → 강제 비밀번호 변경 플로우.
+
+### apps/api — 모듈 로더
+
+- `apps/api/src/loader/index.ts`: `parseModuleJson` → `scanBackendModules` → `buildBackendRouteRegistrations` → `validateModuleDependencies` 순서로 모듈을 스캔·등록.
+- 각 모듈은 `module.json` 매니페스트로 식별되며 `enabled: true`인 것만 활성화.
+- 프로덕션 빌드 시 `scripts/copy-frontend.js`가 `apps/web/dist`를 `apps/api/public`으로 복사해 단일 서버에서 서빙.
+
+### packages/core
+
+- `auth/` — TOTP, JWT, Whitelist, admin PIN, 비밀번호 복구 계약
+- `db/` — DB provider 추상 인터페이스 + PostgreSQL·SQLite·Supabase·MongoDB scaffold + 마이그레이션
+- `types/` — API·User·Module·Integration 공통 타입
+- `utils/` — 날짜·포맷·검증·암호화
+
+### packages/controls
+
+TypeScript 계약(`ControlDescriptor`, `CONTROL_DESCRIPTORS`)만 선언되어 있고 실제 React 컴포넌트는 없음. P0/P0.5 Control 목록과 구현 상태는 `docs/v2_FINANCIAL-LEDGER/ui/03-control-backlog.md` 기준으로 추적. 구현 시 `apps/web` 인라인 View 스타일이 레퍼런스이며, 확정된 다크 모드 CSS 토큰 시스템 기반으로 작성.
+
+### 스타일
+
+- CSS 커스텀 프로퍼티 기반 다크 모드 디자인 토큰 (`apps/web/src/styles/`).
+- Primary `#3B82F6`, success `#10B981`, warning `#F59E0B`, danger `#EF4444`.
+- 현재 Tailwind 미적용 (계획 중). 현재는 각 View별 CSS 파일 직접 작성.
+
+---
+
+## Code Conventions
+
+- **TypeScript strict** — `any`, `@ts-ignore`, `@ts-expect-error` 사용 금지.
+- **Import 순서**: 외부 라이브러리 → `@fieldstack/*` 내부 패키지 → 상대 경로. `import type` 사용.
+- **Prettier**: `printWidth: 100`, `singleQuote: true`, `trailingComma: all`.
+- **명명**: 컴포넌트 PascalCase, 훅 `use` + camelCase, 서비스 camelCase, 상수 UPPER_SNAKE_CASE, API 라우트 kebab-case.
+- **검증**: Zod 우선.
+- **모듈 간 의존성 금지**: 모듈끼리 직접 import 불가, Event Bus 경유.
+
+---
+
+## Key Docs
+
+- `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md` — 전체 로드맵 및 Phase별 체크리스트
+- `docs/v2_FINANCIAL-LEDGER/ui/03-control-backlog.md` — Control 구현 상태 추적
+- `docs/v2_FINANCIAL-LEDGER/technical/00-tech-stack.md` — 기술 스택 결정 내역
+- `AGENTS.md` — 추가 코드 스타일 및 아키텍처 가이드라인
