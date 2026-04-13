@@ -166,7 +166,7 @@ navigation 객체를 별도로 export합니다. 이 정보는 앱의 네비게�
 ### pages/List.tsx
 
 > 📖 **Core UI 컴포넌트:**  
-> → `ui/01-core-components.md`
+> → `ui/02-core-components.md`
 
 목록 페이지입니다. useNavigate 훅으로 페이지 이동을 준비하고, useMyModule 훅에서 항목 목록, 로딩 상태, 삭제 함수를 가져옵니다.
 
@@ -250,7 +250,7 @@ module-registry 저장소에 PR 제출
 ### ✅ 해야 할 것
 
 > 📖 **Core UI 컴포넌트 사용:**  
-> → `ui/01-core-components.md`
+> → `ui/02-core-components.md`
 
 - Core UI 컴포넌트 사용
 - 타입 정의 명확하게
@@ -288,7 +288,7 @@ module-registry 저장소에 PR 제출
 - 모듈 로더 계약 검증은 `apps/api/src/loader/index.test.ts`를 기준으로 확장합니다.
 
 ### UI
-- 📖 `ui/01-core-components.md` - Core UI 컴포넌트
+- 📖 `ui/02-core-components.md` - Core UI 컴포넌트
 - 📖 `ui/00-design-system.md` - 디자인 시스템
 
 ### 마켓플레이스

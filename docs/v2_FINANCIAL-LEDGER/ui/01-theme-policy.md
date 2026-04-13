@@ -163,15 +163,93 @@ Fieldstack 기본 제공 테마
 
 사용자는 다음 범위 내에서만 개인화를 할 수 있습니다:
 
-- Light / Dark / System Mode
-- 시즌 테마 자동 적용 ON/OFF
 - 공식 테마 선택
+- Light / Dark / System(자동) 모드 선택 (테마가 지원하는 경우에 한함)
+- 시즌 테마 자동 적용 ON/OFF
+
+> **System(자동)** 은 OS/브라우저의 `prefers-color-scheme` 설정을 따라 Light/Dark를 자동 전환합니다.
 
 > Fieldstack은 **제한된 선택지**를 통해 안정적인 경험을 제공합니다.
 
 ---
 
-## 8. 정책 요약
+## 8. 테마 모드 시스템 (Theme Mode System)
+
+### 8.1 구조
+
+테마와 모드는 **독립된 두 축**으로 관리됩니다.
+
+```html
+<html data-theme="halloween" data-mode="dark">
+```
+
+CSS는 두 축의 조합으로 토큰을 결정합니다:
+
+```css
+/* Default Light */
+:root { --color-bg: #ffffff; }
+
+/* Default Dark */
+[data-mode="dark"] { --color-bg: #0f172a; }
+
+/* Halloween Light */
+[data-theme="halloween"] { --color-bg: #1a0a00; --color-primary: #f97316; }
+
+/* Halloween Dark */
+[data-theme="halloween"][data-mode="dark"] { --color-bg: #0d0500; }
+
+/* Standalone 전용 테마 (모드 구분 없음) */
+[data-theme="collab-x"] { --color-bg: #0a0a1a; --color-primary: #a855f7; }
+```
+
+---
+
+### 8.2 테마별 지원 모드 정의
+
+모든 테마는 지원하는 모드 목록(`modes`)을 메타데이터로 선언합니다.
+
+```ts
+type ThemeMode = 'light' | 'dark' | 'standalone';
+type UserModeSelection = 'light' | 'dark' | 'system' | 'standalone';
+
+type Theme = {
+  id: string;
+  name: string;
+  modes: ThemeMode[];
+};
+```
+
+---
+
+### 8.3 모드 선택 UI 동작 규칙
+
+| 테마의 `modes` | 설정 UI 동작 |
+|---------------|-------------|
+| `['light', 'dark']` | 모드 선택 활성화 — **Light / Dark / System(자동)** 선택 가능 |
+| `['light']` 또는 `['dark']` | 모드 선택 비활성화 — 해당 모드로 고정, 안내 문구 표시 |
+| `['standalone']` | 모드 선택 영역 자체를 숨김 — 테마 자체가 고유한 시각 경험 |
+
+> **System(자동)** 은 `prefers-color-scheme` 미디어 쿼리를 기반으로 동작하며,
+> 라이트/다크를 모두 지원하는 테마(`['light', 'dark']`)에서만 선택 가능합니다.
+>
+> `standalone` 테마는 라이트/다크 어느 쪽으로도 분류되지 않는 전용 테마입니다.
+> 콜라보 테마, 특정 이벤트 전용 테마 등이 이 유형에 해당할 수 있습니다.
+
+---
+
+### 8.4 테마 예시
+
+| 테마 | modes | 비고 |
+|------|-------|------|
+| Default | `['light', 'dark']` | 기본 제공, 항상 사용 가능 |
+| High Contrast | `['light', 'dark']` | 접근성 기준 충족 |
+| Halloween | `['light', 'dark']` | 시즌 테마 |
+| Christmas | `['dark']` | 다크 전용 시즌 테마 |
+| Collab-X | `['standalone']` | 전용 시각 경험, 모드 구분 없음 |
+
+---
+
+## 10. 정책 요약
 
 - Fieldstack은 사용자 정의 테마를 직접 지원하지 않습니다
 - 테마는 공식적으로만 제공됩니다
@@ -181,7 +259,7 @@ Fieldstack 기본 제공 테마
 
 ---
 
-## 9. 철학 한 줄 요약
+## 11. 철학 한 줄 요약
 
 > 자유를 무제한으로 제공하는 대신 책임을 나누는 것이 아니라,
 > 책임질 수 있는 범위 안에서 최고의 품질을 제공합니다.

@@ -337,7 +337,7 @@ cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 
 - **통일된 인터페이스**
 
 #### Common UI Components
-> 📖 → `ui/01-core-components.md`
+> 📖 → `ui/02-core-components.md`
 
 - Button, Input, Table, Modal 등
 - Layout 컴포넌트

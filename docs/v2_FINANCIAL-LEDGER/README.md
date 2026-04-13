@@ -114,9 +114,9 @@ pnpm start
 - [📋 기본 모듈](modules/00-default-modules.md)
 
 ### UI/UX
-- [🎨 Core Components](ui/01-core-components.md)
+- [🎨 Core Components](ui/02-core-components.md)
 - [🖼️ 디자인 시스템](ui/00-design-system.md)
-- [💅 테마 정책](ui/02-theme-policy.md)
+- [💅 테마 정책](ui/01-theme-policy.md)
 - [🧩 Control Backlog](ui/03-control-backlog.md)
 
 ### 마켓플레이스

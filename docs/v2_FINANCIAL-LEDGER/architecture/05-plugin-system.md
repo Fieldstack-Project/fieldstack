@@ -69,5 +69,5 @@ Core 엔진에 기본적으로 포함되어 항상 작동하는 핵심 인프라
 
 ## 📚 관련 문서
 - 📖 `architecture/02-core-principles.md` - Core / Module / Plugin 분리 철학
-- 📖 `ui/02-theme-policy.md` - 공식 테마 운영 정책
+- 📖 `ui/01-theme-policy.md` - 공식 테마 운영 정책
 - 📖 `roadmap/01-development-plan.md` - 기술 로드맵
