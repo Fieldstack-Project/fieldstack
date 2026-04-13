@@ -39,6 +39,9 @@ export type { PasswordInputProps, PasswordStrength } from './PasswordInput.js';
 export { OtpInput } from './OtpInput.js';
 export type { OtpInputProps } from './OtpInput.js';
 
+export { PinInput } from './PinInput.js';
+export type { PinInputProps } from './PinInput.js';
+
 export { SearchInput } from './SearchInput.js';
 export type { SearchInputProps } from './SearchInput.js';
 
@@ -66,7 +69,8 @@ export type ControlName =
   | 'form-field'
   | 'input'
   | 'modal'
-  | 'otp-pin-input'
+  | 'otp-input'
+  | 'pin-input'
   | 'password-input'
   | 'progress'
   | 'radio'
@@ -98,7 +102,8 @@ export const CONTROL_DESCRIPTORS: ControlDescriptor[] = [
   { name: 'progress',     tier: 'p0',   ready: true },
   { name: 'textarea',     tier: 'p0_5', ready: true },
   { name: 'password-input', tier: 'p0_5', ready: true },
-  { name: 'otp-pin-input',  tier: 'p0_5', ready: true },
+  { name: 'otp-input',      tier: 'p0_5', ready: true },
+  { name: 'pin-input',      tier: 'p0_5', ready: true },
   { name: 'search-input',   tier: 'p0_5', ready: true },
   { name: 'spinner',      tier: 'p0_5', ready: true },
   { name: 'toast',        tier: 'p0_5', ready: true },

@@ -18,7 +18,7 @@ export function OtpInput({
   className = '',
 }: OtpInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const digits = value.padEnd(length, '').slice(0, length).split('');
+  const digits = Array.from({ length }, (_, i) => value[i] ?? '');
 
   const update = (index: number, char: string) => {
     const next = digits.map((d, i) => (i === index ? char : d)).join('').trimEnd();

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
-import { Button, Input, Modal } from "@fieldstack/controls";
+import { Button, Modal, PinInput } from "@fieldstack/controls";
 
 // 개발 mock PIN — 실제 구현 시 API 검증으로 교체
 const MOCK_ADMIN_PIN = "1234";
@@ -18,7 +18,6 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
   const [attempts, setAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // 잠금 카운트다운
   useEffect(() => {
@@ -30,7 +29,6 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
         setAttempts(0);
         setError("");
         setRemaining(0);
-        inputRef.current?.focus();
       } else {
         setRemaining(left);
       }
@@ -39,11 +37,6 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [lockedUntil]);
-
-  // 모달 열릴 때 포커스
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   const isLocked = lockedUntil !== null;
 
@@ -66,7 +59,6 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
       setError(`PIN ${MAX_ATTEMPTS}회 오류 — 5분간 잠금`);
     } else {
       setError(`PIN이 올바르지 않습니다. (${next}/${MAX_ATTEMPTS})`);
-      inputRef.current?.focus();
     }
   };
 
@@ -91,21 +83,14 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
       </div>
 
       <form id="pin-form" onSubmit={handleSubmit} noValidate>
-        <Input
-          ref={inputRef}
-          type="password"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={6}
-          placeholder="••••"
+        <PinInput
+          length={4}
           value={pin}
-          onChange={(e) => {
-            setPin(e.target.value.replace(/\D/g, ""));
+          onChange={(val: string) => {
+            setPin(val);
             if (!isLocked) setError("");
           }}
           disabled={isLocked}
-          autoComplete="off"
-          aria-label="관리자 PIN"
           error={error ? (isLocked ? `${error} — ${remaining}초 후 재시도 가능` : error) : undefined}
         />
       </form>
