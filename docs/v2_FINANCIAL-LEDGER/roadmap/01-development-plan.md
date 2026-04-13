@@ -127,20 +127,34 @@ Fieldstack/
 > 원칙: "모든 Control 선제 구현"이 아니라, Core 흐름에 필요한 Control MVP를 먼저 고정하고,
 > 추가 Control은 Phase 2 모듈 개발/커뮤니티 요청 기반으로 점진 확장한다.
 
+> **현재 상태:** P0/P0.5 Control은 규격·계약 정의만 완료된 상태이며, `packages/controls` 실제 구현은 미착수입니다.
+> `apps/web` 각 View에 인라인으로 작성된 UI가 현재 동작 레퍼런스이고,
+> 2026-04-12 확정된 다크 모드 디자인 토큰 시스템을 기반으로 `packages/controls` 구현을 진행하면 됩니다.
+> 상세 구현 상태는 `docs/v2_FINANCIAL-LEDGER/ui/03-control-backlog.md` 기준으로 추적합니다.
+
 Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - `docs/v2_FINANCIAL-LEDGER/ui/03-control-backlog.md` (P0 -> P0.5 -> P1)
 
+**규격 확정 (완료):**
 - [x] Button 규격 확정 (Primary/Secondary/Danger/Ghost, size, loading, disabled)
 - [x] Toggle/Switch 규격 확정 (on/off 상태, 라벨 결합, 키보드 조작)
 - [x] ComboBox/Select 규격 확정 (단일/다중 선택, 검색, 빈 상태)
 - [x] Checkbox/Radio 규격 확정 (단일/그룹 선택, indeterminate 포함)
 - [x] Input 계열 공통 규칙 확정 (text/email/password/number/search/tel/url, validation/error/help text)
-- [ ] Control 접근성 기준 체크 (focus ring, 명도 대비, aria role/label, tab 순서)
 - [x] Control 우선순위 분류 (P0: Core 필수 / P0.5: 반복 사용 / P1/P2: 요청 기반)
 - [x] 신규 Control 추가 정책 확정 (요청 -> RFC/이슈 -> 디자인/접근성 검토 -> 릴리스)
 
+**packages/ui 실제 구현 (미착수):**
+- [ ] P0 Control 구현 — Button / Input / Select / Checkbox / Radio / Switch / Modal / Form Field / Alert / Progress
+- [ ] P0.5 Control 구현 — Textarea / Password Input / OTP Input / Search Input / Spinner / Toast / Empty State / Skeleton
+- [ ] Control 접근성 기준 체크 (focus ring, 명도 대비, aria role/label, tab 순서)
+- [ ] `apps/web` View에서 `@fieldstack/controls` Control로 교체 검증
+
 #### 1.5.2 설치 마법사 (초기 설정)
 **예상 기간: 4일**
+
+> **향후 계획:** 현재 구현은 Phase 1.5 범위 내 기본 흐름 검증 목적이며, 완성 이후 별도 Setup 설치 시스템으로 분리 개발 예정.
+> UX 방향은 Synology DSM 초기 설정 또는 Windows 설치 마법사 스타일을 참고할 예정.
 
 - [x] 개발용 bypass 실행 모드 제공 (`dev:bypass`, `dev:web:bypass`, `dev:api:bypass`)
 - [ ] Welcome 화면
@@ -211,7 +225,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - ✅ Phase 2 모듈 UI를 붙일 수 있는 라우팅/레이아웃 기반 확보
 
 ### Phase 2 진입 게이트 (권장)
-- [x] Control 패키지 MVP 완료 (Button/Input/Select/Toggle/Checkbox/Radio/Modal/Form + P0.5 계약)
+- [ ] Control 패키지 MVP 완료 (P0/P0.5 규격 확정됨 — `packages/ui` 실제 구현 및 `ready: true` 반영 필요)
 - [ ] Auth/Install/Home/Settings/Admin 흐름에서 공통 Control 재사용 검증
 - [ ] 접근성/반응형/상태 처리(Loading/Empty/Error/Unauthorized) 기준 통과
 - [ ] 핵심 E2E 통과 (설치 -> 로그인 -> 홈 -> 설정/관리자)

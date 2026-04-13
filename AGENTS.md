@@ -107,7 +107,7 @@ node dist/index.js
 
 Order (planned ESLint rule):
 1. External libraries (`react`, `express`)
-2. Internal packages (`@fieldstack/core`, `@fieldstack/ui`)
+2. Internal packages (`@fieldstack/core`, `@fieldstack/controls`)
 3. Relative imports (`./`, `../`)
 
 Use `import type` for types.
@@ -141,7 +141,7 @@ Use `import type` for types.
 ## UI/UX Guidelines (Planned)
 
 - UI is fully separated from core/module business logic.
-- Prefer `@fieldstack/ui` components for consistency.
+- Prefer `@fieldstack/controls` components for consistency.
 - Tailwind CSS is the planned styling approach.
 - Users can override UI with `apps/web/src/custom-ui/`.
 

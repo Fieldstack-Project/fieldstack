@@ -48,7 +48,7 @@ Current phase: **Development in progress (Roadmap Phase 1.5)**
 #### Phase 1.5 Snapshot (2026-02-26)
 
 - Control contracts (P0/P0.5): **100%**
-- `@fieldstack/ui` scaffold: **100%**
+- `@fieldstack/controls` scaffold: **100%**
 - Render components (TSX + styles + a11y behaviors): **0%**
 - End-to-end flow verification: **0%**
 
