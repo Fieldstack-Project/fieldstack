@@ -9,13 +9,14 @@ export default meta;
 
 type Story = StoryObj<typeof Spinner>;
 
-export const Inline: Story = { args: { label: '로딩 중...', inline: true } };
+export const Default: Story = { args: { label: '로딩 중...' } };
+export const Blocking: Story = { args: { blocking: true, label: '처리 중...' } };
 export const Sizes: Story = {
   render: () => (
     <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-      <Spinner size="sm" inline />
-      <Spinner size="md" inline />
-      <Spinner size="lg" inline />
+      <Spinner size="sm" />
+      <Spinner size="md" />
+      <Spinner size="lg" />
     </div>
   ),
 };

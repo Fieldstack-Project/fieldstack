@@ -1,4 +1,7 @@
-import { FormEvent, useState } from "react";
+import { useState, type FormEvent } from "react";
+
+import { Button, FormField, Input } from "@fieldstack/controls";
+
 import "../styles/forgot-password.css";
 
 interface ForgotPasswordViewProps {
@@ -33,17 +36,15 @@ export function ForgotPasswordView({ onBack }: ForgotPasswordViewProps) {
               이메일이 도착하지 않으면 스팸함을 확인해 주세요.
             </p>
           </div>
-
           <div className="fpw-notice">
             <p className="fpw-notice-label">이메일을 받지 못하셨나요?</p>
             <p className="fpw-notice-text">
               관리자에게 문의하면 임시 비밀번호를 발급받을 수 있습니다.
             </p>
           </div>
-
-          <button className="button button-block" type="button" onClick={onBack}>
+          <Button block type="button" onClick={onBack}>
             로그인으로 돌아가기
-          </button>
+          </Button>
         </section>
       </main>
     );
@@ -62,24 +63,23 @@ export function ForgotPasswordView({ onBack }: ForgotPasswordViewProps) {
         </div>
 
         <form className="stack fpw-form" onSubmit={handleSubmit} noValidate>
-          <label className="field">
-            <span>이메일 주소</span>
-            <input
-              className={`input${showError ? " fpw-input-error" : ""}`}
+          <FormField
+            label="이메일 주소"
+            htmlFor="fpw-email"
+            error={showError ? "올바른 이메일 주소를 입력하세요." : undefined}
+          >
+            <Input
+              id="fpw-email"
               type="email"
               autoComplete="email"
               placeholder="owner@fieldstack.dev"
               value={email}
               onChange={(e) => { setEmail(e.target.value); setTouched(true); }}
             />
-            {showError && (
-              <p className="fpw-field-error" role="alert">올바른 이메일 주소를 입력하세요.</p>
-            )}
-          </label>
-
-          <button className="button button-primary button-block" type="submit">
+          </FormField>
+          <Button variant="primary" block type="submit">
             재설정 링크 전송
-          </button>
+          </Button>
         </form>
 
         <div className="fpw-divider" aria-hidden="true" />
@@ -91,9 +91,9 @@ export function ForgotPasswordView({ onBack }: ForgotPasswordViewProps) {
           </p>
         </div>
 
-        <button className="fpw-back-btn" type="button" onClick={onBack}>
+        <Button variant="ghost" type="button" className="fpw-back-btn" onClick={onBack}>
           로그인으로 돌아가기
-        </button>
+        </Button>
       </section>
     </main>
   );

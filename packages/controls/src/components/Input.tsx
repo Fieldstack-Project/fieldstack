@@ -1,11 +1,14 @@
-import type { InputHTMLAttributes } from 'react';
+import { forwardRef, type InputHTMLAttributes } from 'react';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   helpText?: string;
 }
 
-export function Input({ error, helpText, className = '', id, ...props }: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { error, helpText, className = '', id, ...props }: InputProps,
+  ref,
+) {
   const classes = ['fs-input', error ? 'fs-input-error' : '', className]
     .filter(Boolean)
     .join(' ');
@@ -14,6 +17,7 @@ export function Input({ error, helpText, className = '', id, ...props }: InputPr
     <>
       <input
         {...props}
+        ref={ref}
         id={id}
         className={classes}
         aria-invalid={error ? true : undefined}
@@ -33,4 +37,4 @@ export function Input({ error, helpText, className = '', id, ...props }: InputPr
       )}
     </>
   );
-}
+});

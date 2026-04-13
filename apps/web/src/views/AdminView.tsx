@@ -1,5 +1,7 @@
 import "../styles/admin.css";
 
+import { Button } from "@fieldstack/controls";
+
 interface AdminViewProps {
   isPinVerified: boolean;
   onRequestPin: () => void;
@@ -12,11 +14,11 @@ const MOCK_STATS = [
 ];
 
 const ADMIN_SECTIONS = [
-  { id: "users",   icon: "👥", name: "사용자 관리",      desc: "Whitelist 추가·제거, 역할 관리" },
-  { id: "modules", icon: "📦", name: "모듈 레지스트리",   desc: "모듈 활성화·비활성화, 버전 관리" },
-  { id: "system",  icon: "🗄️", name: "시스템 설정",      desc: "DB 설정, 업데이트, 백업" },
-  { id: "security",icon: "🔐", name: "보안 설정",         desc: "PIN 변경, 세션 정책" },
-  { id: "audit",   icon: "📋", name: "감사 로그",         desc: "PIN 실패, 주요 설정 변경 이력" },
+  { id: "users",    icon: "👥", name: "사용자 관리",    desc: "Whitelist 추가·제거, 역할 관리" },
+  { id: "modules",  icon: "📦", name: "모듈 레지스트리", desc: "모듈 활성화·비활성화, 버전 관리" },
+  { id: "system",   icon: "🗄️", name: "시스템 설정",    desc: "DB 설정, 업데이트, 백업" },
+  { id: "security", icon: "🔐", name: "보안 설정",       desc: "PIN 변경, 세션 정책" },
+  { id: "audit",    icon: "📋", name: "감사 로그",       desc: "PIN 실패, 주요 설정 변경 이력" },
 ];
 
 const MOCK_AUDIT_LOG = [
@@ -37,9 +39,9 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
           <p className="admin-lock-desc">
             관리자 콘솔은 PIN Step-up 인증 이후에만 접근 가능합니다.
           </p>
-          <button className="button button-primary" type="button" onClick={onRequestPin}>
+          <Button variant="primary" type="button" onClick={onRequestPin}>
             PIN 인증하기
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -73,9 +75,7 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
             {ADMIN_SECTIONS.map((section) => (
               <button key={section.id} className="admin-section-row" type="button">
                 <div className="admin-section-info">
-                  <span className="admin-section-name">
-                    {section.icon} {section.name}
-                  </span>
+                  <span className="admin-section-name">{section.icon} {section.name}</span>
                   <span className="admin-section-desc">{section.desc}</span>
                 </div>
                 <span className="admin-section-arrow" aria-hidden="true">›</span>
@@ -85,21 +85,18 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
 
           <section className="admin-audit-panel">
             <h2 className="admin-block-title">최근 감사 로그</h2>
-          <ul className="admin-audit-list" aria-label="감사 로그">
-            {MOCK_AUDIT_LOG.map((item) => (
-              <li key={item.id} className="admin-audit-item">
-                <span
-                  className={`admin-audit-dot admin-audit-dot-${item.dot}`}
-                  aria-hidden="true"
-                />
-                <span>
-                  {item.text}
-                  <br />
-                  <span className="admin-audit-time">{item.time}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+            <ul className="admin-audit-list" aria-label="감사 로그">
+              {MOCK_AUDIT_LOG.map((item) => (
+                <li key={item.id} className="admin-audit-item">
+                  <span className={`admin-audit-dot admin-audit-dot-${item.dot}`} aria-hidden="true" />
+                  <span>
+                    {item.text}
+                    <br />
+                    <span className="admin-audit-time">{item.time}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </section>
         </div>
       </div>

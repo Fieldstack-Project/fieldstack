@@ -1,4 +1,6 @@
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+
+import { Button, Checkbox, FormField, Input } from "@fieldstack/controls";
 
 interface LoginViewProps {
   onLogin: (event: FormEvent<HTMLFormElement>) => void;
@@ -8,6 +10,8 @@ interface LoginViewProps {
 }
 
 export function LoginView({ onLogin, onQuickLogin, onForgotPassword, showDevBypass }: LoginViewProps) {
+  const [remember, setRemember] = useState(false);
+
   return (
     <>
       <section className="login-showcase" aria-hidden="true">
@@ -30,60 +34,50 @@ export function LoginView({ onLogin, onQuickLogin, onForgotPassword, showDevBypa
         </div>
         {showDevBypass ? <span className="login-dev-badge login-dev-badge-top">DEV BYPASS</span> : null}
         <div className="login-panel-body">
-        <div className="login-panel-head">
-          <h2 className="title" id="login-title">
-            Welcome back
-          </h2>
-          <p className="subtitle">Use your workspace account to continue to the control plane.</p>
-        </div>
-        <form className="stack login-form" onSubmit={onLogin}>
-          <label className="field">
-            <span>Email address</span>
-            <input
-              className="input"
-              type="email"
-              name="email"
-              placeholder="owner@fieldstack.dev"
-              autoComplete="email"
-              required
-            />
-          </label>
-          <label className="field">
-            <span>Password</span>
-            <input
-              className="input"
-              type="password"
-              name="password"
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              required
-            />
-          </label>
-          <div className="login-row">
-            <label className="remember">
-              <input type="checkbox" name="remember" />
-              <span>Remember me</span>
-            </label>
-            <button
-              type="button"
-              className="text-link"
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
-              onClick={onForgotPassword}
-            >
-              Forgot password?
-            </button>
+          <div className="login-panel-head">
+            <h2 className="title" id="login-title">
+              Welcome back
+            </h2>
+            <p className="subtitle">Use your workspace account to continue to the control plane.</p>
           </div>
-          <div className="actions login-actions">
-            <button className="button button-primary button-block" type="submit">
-              Sign in
-            </button>
-            {showDevBypass ? (
-              <button className="button button-block" type="button" onClick={onQuickLogin}>
-                Bypass login
-              </button>
-            ) : null}
-          </div>
-        </form>
+          <form className="stack login-form" onSubmit={onLogin}>
+            <FormField label="Email address" htmlFor="login-email">
+              <Input
+                id="login-email"
+                type="email"
+                name="email"
+                placeholder="owner@fieldstack.dev"
+                autoComplete="email"
+                required
+              />
+            </FormField>
+            <FormField label="Password" htmlFor="login-password">
+              <Input
+                id="login-password"
+                type="password"
+                name="password"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                required
+              />
+            </FormField>
+            <div className="login-row">
+              <Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)} label="Remember me" />
+              <Button variant="ghost" type="button" onClick={onForgotPassword}>
+                Forgot password?
+              </Button>
+            </div>
+            <div className="actions login-actions">
+              <Button variant="primary" block type="submit">
+                Sign in
+              </Button>
+              {showDevBypass ? (
+                <Button block type="button" onClick={onQuickLogin}>
+                  Bypass login
+                </Button>
+              ) : null}
+            </div>
+          </form>
         </div>
       </section>
     </>

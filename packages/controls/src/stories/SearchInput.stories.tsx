@@ -11,8 +11,9 @@ export const Default: StoryObj = {
     return (
       <SearchInput
         value={value}
-        onChange={setValue}
+        onChange={(e) => setValue(e.target.value)}
         onClear={() => setValue('')}
+        onSearch={(v) => console.log('search:', v)}
         placeholder="검색어 입력..."
         debounceMs={300}
       />

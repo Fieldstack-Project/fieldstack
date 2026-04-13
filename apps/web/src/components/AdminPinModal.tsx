@@ -1,4 +1,6 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+
+import { Button, Input, Modal } from "@fieldstack/controls";
 
 // 개발 mock PIN — 실제 구현 시 API 검증으로 교체
 const MOCK_ADMIN_PIN = "1234";
@@ -43,15 +45,6 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
     inputRef.current?.focus();
   }, []);
 
-  // ESC로 닫기
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const isLocked = lockedUntil !== null;
 
   const handleSubmit = (e: FormEvent) => {
@@ -78,64 +71,46 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
   };
 
   return (
-    <div
-      className="pin-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="pin-modal-title"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <Modal
+      open
+      onClose={onClose}
+      title="관리자 인증"
+      size="sm"
+      footer={
+        <>
+          <Button type="button" onClick={onClose}>취소</Button>
+          <Button variant="primary" type="submit" form="pin-form" disabled={pin.length < 4 || isLocked}>
+            확인
+          </Button>
+        </>
+      }
     >
-      <div className="pin-modal">
-        <div className="pin-modal-header">
-          <span className="pin-modal-icon" aria-hidden="true">🔐</span>
-          <h2 className="pin-modal-title" id="pin-modal-title">관리자 인증</h2>
-          <p className="pin-modal-desc">
-            관리자 PIN을 입력하세요. 인증은 30분간 유효합니다.
-          </p>
-        </div>
-
-        <form className="pin-modal-form" onSubmit={handleSubmit} noValidate>
-          <input
-            ref={inputRef}
-            className={`input pin-input${error ? " pin-input-error" : ""}`}
-            type="password"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={6}
-            placeholder="••••"
-            value={pin}
-            onChange={(e) => {
-              setPin(e.target.value.replace(/\D/g, ""));
-              if (!isLocked) setError("");
-            }}
-            disabled={isLocked}
-            autoComplete="off"
-            aria-label="관리자 PIN"
-            aria-describedby={error ? "pin-error" : undefined}
-          />
-
-          {error && (
-            <p className="pin-error" id="pin-error" role="alert">
-              {isLocked ? `${error} — ${remaining}초 후 재시도 가능` : error}
-            </p>
-          )}
-
-          <div className="pin-modal-actions">
-            <button type="button" className="button" onClick={onClose}>
-              취소
-            </button>
-            <button
-              type="submit"
-              className="button button-primary"
-              disabled={pin.length < 4 || isLocked}
-            >
-              확인
-            </button>
-          </div>
-        </form>
-
-        <p className="pin-modal-hint">개발 mock PIN: 1234</p>
+      <div className="pin-modal-header">
+        <span className="pin-modal-icon" aria-hidden="true">🔐</span>
+        <p className="pin-modal-desc">관리자 PIN을 입력하세요. 인증은 30분간 유효합니다.</p>
       </div>
-    </div>
+
+      <form id="pin-form" onSubmit={handleSubmit} noValidate>
+        <Input
+          ref={inputRef}
+          type="password"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={6}
+          placeholder="••••"
+          value={pin}
+          onChange={(e) => {
+            setPin(e.target.value.replace(/\D/g, ""));
+            if (!isLocked) setError("");
+          }}
+          disabled={isLocked}
+          autoComplete="off"
+          aria-label="관리자 PIN"
+          error={error ? (isLocked ? `${error} — ${remaining}초 후 재시도 가능` : error) : undefined}
+        />
+      </form>
+
+      <p className="pin-modal-hint">개발 mock PIN: 1234</p>
+    </Modal>
   );
 }

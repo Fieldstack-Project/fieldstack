@@ -1,5 +1,7 @@
 import "../styles/home.css";
 
+import { Button, EmptyState } from "@fieldstack/controls";
+
 import type { NavigationItem } from "../loader";
 
 const MOCK_INSTALLED_MODULES: NavigationItem[] = [];
@@ -34,14 +36,13 @@ export function HomeView({ onOpenSettings }: HomeViewProps) {
           </h1>
           <p className="home-subtitle">모듈 실행, 설정 변경, 관리 진입을 한 화면에서 제어</p>
         </div>
-
         <div className="home-hero-actions">
-          <button className="button home-button-secondary" type="button" onClick={onOpenSettings}>
+          <Button className="home-button-secondary" type="button" onClick={onOpenSettings}>
             General Settings
-          </button>
-          <button className="button button-primary" type="button">
+          </Button>
+          <Button variant="primary" type="button">
             Open Marketplace
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -104,35 +105,29 @@ export function HomeView({ onOpenSettings }: HomeViewProps) {
             </span>
           </div>
 
-        {hasModules ? (
-          <div className="home-modules-grid">
-            {MOCK_INSTALLED_MODULES.map((mod) => (
-              <button
-                key={mod.id}
-                className="module-card"
-                type="button"
-                onClick={() => {
-                  window.location.hash = mod.path;
-                }}
-              >
-                <p className="module-card-icon">{MODULE_ICONS[mod.id] ?? "🧩"}</p>
-                <p className="module-card-name">{mod.label}</p>
-                <p className="module-card-desc">Open module workspace</p>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="home-empty">
-            <div className="home-empty-icon">⬡</div>
-            <h2 className="home-empty-title">No modules installed yet</h2>
-            <p className="home-empty-desc">
-              첫 모듈을 설치하면 메인 허브에 즉시 표시됩니다.
-            </p>
-            <button className="button button-primary" type="button">
-              Browse Marketplace
-            </button>
-          </div>
-        )}
+          {hasModules ? (
+            <div className="home-modules-grid">
+              {MOCK_INSTALLED_MODULES.map((mod) => (
+                <button
+                  key={mod.id}
+                  className="module-card"
+                  type="button"
+                  onClick={() => { window.location.hash = mod.path; }}
+                >
+                  <p className="module-card-icon">{MODULE_ICONS[mod.id] ?? "🧩"}</p>
+                  <p className="module-card-name">{mod.label}</p>
+                  <p className="module-card-desc">Open module workspace</p>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon="⬡"
+              title="No modules installed yet"
+              description="첫 모듈을 설치하면 메인 허브에 즉시 표시됩니다."
+              action={{ label: "Browse Marketplace", onClick: () => {} }}
+            />
+          )}
         </section>
 
         <section className="home-section">
@@ -140,15 +135,9 @@ export function HomeView({ onOpenSettings }: HomeViewProps) {
             <h2 className="home-section-title">Quick Actions</h2>
           </div>
           <div className="home-quick-actions">
-            <button className="button home-pill" type="button">
-              Add module
-            </button>
-            <button className="button home-pill" type="button" onClick={onOpenSettings}>
-              Open settings
-            </button>
-            <button className="button home-pill" type="button">
-              View logs
-            </button>
+            <Button className="home-pill" type="button">Add module</Button>
+            <Button className="home-pill" type="button" onClick={onOpenSettings}>Open settings</Button>
+            <Button className="home-pill" type="button">View logs</Button>
           </div>
         </section>
 
@@ -159,10 +148,7 @@ export function HomeView({ onOpenSettings }: HomeViewProps) {
           <ul className="home-activity-list" aria-label="최근 활동 목록">
             {MOCK_RECENT_ACTIVITY.map((item) => (
               <li key={item.id} className="home-activity-item">
-                <span
-                  className={`home-activity-dot home-activity-dot-${item.dot}`}
-                  aria-hidden="true"
-                />
+                <span className={`home-activity-dot home-activity-dot-${item.dot}`} aria-hidden="true" />
                 <span>
                   {item.text}
                   <br />

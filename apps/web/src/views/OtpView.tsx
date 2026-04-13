@@ -1,4 +1,7 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+
+import { Button, OtpInput } from "@fieldstack/controls";
+
 import "../styles/otp.css";
 
 interface OtpViewProps {
@@ -12,15 +15,10 @@ const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN = 30;
 
 export function OtpView({ email, onVerified, onCancel }: OtpViewProps) {
-  const [digits, setDigits] = useState(["", "", "", "", "", ""]);
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, []);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -29,7 +27,6 @@ export function OtpView({ email, onVerified, onCancel }: OtpViewProps) {
   }, [resendCooldown]);
 
   const locked = attempts >= MAX_ATTEMPTS;
-  const code = digits.join("");
 
   const verify = (value: string) => {
     if (value === MOCK_CODE) {
@@ -43,24 +40,13 @@ export function OtpView({ email, onVerified, onCancel }: OtpViewProps) {
         ? "시도 횟수를 초과했습니다. 관리자에게 문의하세요."
         : `인증 코드가 올바르지 않습니다. (${next}/${MAX_ATTEMPTS})`,
     );
-    setDigits(["", "", "", "", "", ""]);
-    setTimeout(() => inputRefs.current[0]?.focus(), 0);
+    setCode("");
   };
 
-  const handleChange = (index: number, value: string) => {
-    const char = value.replace(/\D/g, "").slice(-1);
-    const next = [...digits];
-    next[index] = char;
-    setDigits(next);
+  const handleChange = (value: string) => {
+    setCode(value);
     setError("");
-    if (char && index < 5) inputRefs.current[index + 1]?.focus();
-    if (char && next.every((d) => d !== "")) verify(next.join(""));
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !digits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
+    if (value.length === 6) verify(value);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -72,8 +58,7 @@ export function OtpView({ email, onVerified, onCancel }: OtpViewProps) {
     setResendCooldown(RESEND_COOLDOWN);
     setError("");
     setAttempts(0);
-    setDigits(["", "", "", "", "", ""]);
-    setTimeout(() => inputRefs.current[0]?.focus(), 0);
+    setCode("");
   };
 
   return (
@@ -89,50 +74,34 @@ export function OtpView({ email, onVerified, onCancel }: OtpViewProps) {
         </div>
 
         <form className="stack otp-form" onSubmit={handleSubmit} noValidate>
-          <div className="otp-digits" role="group" aria-label="인증 코드 입력">
-            {digits.map((d, i) => (
-              <input
-                key={i}
-                ref={(el) => { inputRefs.current[i] = el; }}
-                className={`otp-digit${error ? " otp-digit-error" : ""}`}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={d}
-                disabled={locked}
-                onChange={(e) => handleChange(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                aria-label={`${i + 1}번째 자리`}
-              />
-            ))}
-          </div>
-
-          {error && <p className="otp-error" role="alert">{error}</p>}
+          <OtpInput
+            length={6}
+            value={code}
+            onChange={handleChange}
+            error={error || undefined}
+            disabled={locked}
+          />
 
           {!locked && (
-            <button
-              className="button button-primary button-block"
-              type="submit"
-              disabled={code.length < 6}
-            >
+            <Button variant="primary" block type="submit" disabled={code.length < 6}>
               인증 확인
-            </button>
+            </Button>
           )}
 
           <div className="otp-footer">
             {!locked && (
-              <button
-                className="otp-text-btn"
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={handleResend}
                 disabled={resendCooldown > 0}
               >
                 {resendCooldown > 0 ? `재전송 (${resendCooldown}s)` : "코드 재전송"}
-              </button>
+              </Button>
             )}
-            <button className="otp-text-btn otp-text-btn-muted" type="button" onClick={onCancel}>
+            <Button variant="ghost" type="button" onClick={onCancel}>
               로그인으로 돌아가기
-            </button>
+            </Button>
           </div>
         </form>
       </section>

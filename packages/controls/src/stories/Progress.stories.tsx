@@ -9,11 +9,8 @@ export const Linear75: StoryObj = { render: () => <Progress value={75} /> };
 export const Steps: StoryObj = {
   render: () => (
     <StepProgress
-      steps={[
-        { id: '1', label: '기본 정보', status: 'done' },
-        { id: '2', label: '계정 설정', status: 'active' },
-        { id: '3', label: '완료', status: 'pending' },
-      ]}
+      steps={['기본 정보', '계정 설정', '완료']}
+      currentStep={1}
     />
   ),
 };

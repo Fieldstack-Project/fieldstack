@@ -8,7 +8,13 @@ export default meta;
 export const Single: StoryObj = {
   render: () => {
     const [checked, setChecked] = useState(false);
-    return <Checkbox checked={checked} onChange={setChecked} label="동의합니다" />;
+    return (
+      <Checkbox
+        checked={checked}
+        onChange={(e) => setChecked(e.target.checked)}
+        label="동의합니다"
+      />
+    );
   },
 };
 
@@ -18,17 +24,14 @@ export const Indeterminate: StoryObj = {
 
 export const Group: StoryObj = {
   render: () => {
-    const [values, setValues] = useState<string[]>(['a']);
+    const [checkedA, setCheckedA] = useState(true);
+    const [checkedB, setCheckedB] = useState(false);
     return (
-      <CheckboxGroup
-        values={values}
-        onChange={setValues}
-        options={[
-          { label: '항목 A', value: 'a' },
-          { label: '항목 B', value: 'b' },
-          { label: '항목 C (비활성)', value: 'c', disabled: true },
-        ]}
-      />
+      <CheckboxGroup label="항목 선택">
+        <Checkbox checked={checkedA} onChange={(e) => setCheckedA(e.target.checked)} label="항목 A" />
+        <Checkbox checked={checkedB} onChange={(e) => setCheckedB(e.target.checked)} label="항목 B" />
+        <Checkbox checked={false} onChange={() => {}} label="항목 C (비활성)" disabled />
+      </CheckboxGroup>
     );
   },
 };

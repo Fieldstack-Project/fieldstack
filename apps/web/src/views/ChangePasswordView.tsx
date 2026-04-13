@@ -1,11 +1,13 @@
-import { FormEvent, useState } from "react";
+import { useState, type FormEvent } from "react";
 
 import { PASSWORD_POLICY, validatePassword } from "@fieldstack/core";
+
+import { Button, FormField, Input } from "@fieldstack/controls";
 
 import "../styles/change-password.css";
 
 interface ChangePasswordViewProps {
-  isFirstLogin: boolean; // true = 임시 비번 첫 로그인, false = 일반 변경
+  isFirstLogin: boolean;
   onChanged: () => void;
 }
 
@@ -23,14 +25,10 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
   const nextValidation = validatePassword(next.value);
   const confirmMismatch = confirm.value !== next.value;
 
-  const showNextErrors = (next.touched || submitted) && !nextValidation.valid;
-  const showConfirmError = (confirm.touched || submitted) && confirmMismatch;
   const showCurrentError = (current.touched || submitted) && current.value.length === 0;
+  const showConfirmError = (confirm.touched || submitted) && confirmMismatch;
 
-  const canSubmit =
-    current.value.length > 0 &&
-    nextValidation.valid &&
-    !confirmMismatch;
+  const canSubmit = current.value.length > 0 && nextValidation.valid && !confirmMismatch;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -56,27 +54,24 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
         </div>
 
         <form className="stack cpw-form" onSubmit={handleSubmit} noValidate>
-          {/* 현재(임시) 비밀번호 */}
-          <label className="field">
-            <span>{isFirstLogin ? "임시 비밀번호" : "현재 비밀번호"}</span>
-            <input
-              className={`input${showCurrentError ? " cpw-input-error" : ""}`}
+          <FormField
+            label={isFirstLogin ? "임시 비밀번호" : "현재 비밀번호"}
+            htmlFor="cpw-current"
+            error={showCurrentError ? "필수 입력 항목입니다." : undefined}
+          >
+            <Input
+              id="cpw-current"
               type="password"
               autoComplete="current-password"
               value={current.value}
               onChange={(e) => setCurrent({ value: e.target.value, touched: true })}
               placeholder="••••••••"
             />
-            {showCurrentError && (
-              <p className="cpw-field-error" role="alert">필수 입력 항목입니다.</p>
-            )}
-          </label>
+          </FormField>
 
-          {/* 새 비밀번호 */}
-          <label className="field">
-            <span>새 비밀번호</span>
-            <input
-              className={`input${showNextErrors ? " cpw-input-error" : ""}`}
+          <FormField label="새 비밀번호" htmlFor="cpw-next">
+            <Input
+              id="cpw-next"
               type="password"
               autoComplete="new-password"
               value={next.value}
@@ -84,30 +79,17 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
               placeholder="••••••••"
               aria-describedby="cpw-policy"
             />
-          </label>
+          </FormField>
 
-          {/* 정책 체크리스트 */}
           <ul className="cpw-policy" id="cpw-policy" aria-label="비밀번호 조건">
             <PolicyItem
               met={next.value.length >= PASSWORD_POLICY.minLength && next.value.length <= PASSWORD_POLICY.maxLength}
               active={next.touched || submitted}
               label={`${PASSWORD_POLICY.minLength}~${PASSWORD_POLICY.maxLength}자`}
             />
-            <PolicyItem
-              met={/[A-Z]/.test(next.value)}
-              active={next.touched || submitted}
-              label="영어 대문자 포함"
-            />
-            <PolicyItem
-              met={/[a-z]/.test(next.value)}
-              active={next.touched || submitted}
-              label="영어 소문자 포함"
-            />
-            <PolicyItem
-              met={/\d/.test(next.value)}
-              active={next.touched || submitted}
-              label="숫자 포함"
-            />
+            <PolicyItem met={/[A-Z]/.test(next.value)} active={next.touched || submitted} label="영어 대문자 포함" />
+            <PolicyItem met={/[a-z]/.test(next.value)} active={next.touched || submitted} label="영어 소문자 포함" />
+            <PolicyItem met={/\d/.test(next.value)} active={next.touched || submitted} label="숫자 포함" />
             <PolicyItem
               met={/[^a-zA-Z0-9]/.test(next.value)}
               active={next.touched || submitted}
@@ -115,44 +97,31 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
             />
           </ul>
 
-          {/* 비밀번호 확인 */}
-          <label className="field">
-            <span>새 비밀번호 확인</span>
-            <input
-              className={`input${showConfirmError ? " cpw-input-error" : ""}`}
+          <FormField
+            label="새 비밀번호 확인"
+            htmlFor="cpw-confirm"
+            error={showConfirmError ? "비밀번호가 일치하지 않습니다." : undefined}
+          >
+            <Input
+              id="cpw-confirm"
               type="password"
               autoComplete="new-password"
               value={confirm.value}
               onChange={(e) => setConfirm({ value: e.target.value, touched: true })}
               placeholder="••••••••"
             />
-            {showConfirmError && (
-              <p className="cpw-field-error" role="alert">비밀번호가 일치하지 않습니다.</p>
-            )}
-          </label>
+          </FormField>
 
-          <button
-            className="button button-primary button-block"
-            type="submit"
-          >
+          <Button variant="primary" block type="submit">
             비밀번호 변경
-          </button>
+          </Button>
         </form>
       </section>
     </main>
   );
 }
 
-// ─── Policy Checklist Item ────────────────────────────────────
-function PolicyItem({
-  met,
-  active,
-  label,
-}: {
-  met: boolean;
-  active: boolean;
-  label: string;
-}) {
+function PolicyItem({ met, active, label }: { met: boolean; active: boolean; label: string }) {
   const state = !active ? "idle" : met ? "ok" : "fail";
   return (
     <li className={`cpw-policy-item cpw-policy-${state}`} aria-live="polite">
