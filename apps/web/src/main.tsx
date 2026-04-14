@@ -288,7 +288,7 @@ function App({ installMode }: { installMode: InstallMode }) {
     setCurrentUser({ email });
     sessionStorage.setItem(SS.auth, "true");
     sessionStorage.setItem(SS.email, email);
-    setNotice("Login successful (mock).");
+    setNotice("로그인 성공.");
     // 첫 방문 온보딩
     try {
       if (localStorage.getItem(LS.firstVisitShown) !== "true") setIsFirstVisit(true);
@@ -345,7 +345,7 @@ function App({ installMode }: { installMode: InstallMode }) {
     setIsPinModalOpen(false);
     sessionStorage.setItem(SS.admin, "true");
     sessionStorage.setItem(SS.pinVerified, "true");
-    setNotice("관리자 인증 완료 (mock). 30분간 유효합니다.");
+    setNotice("관리자 인증 완료. 30분간 유효합니다.");
     navigate("admin");
   };
 
@@ -363,7 +363,7 @@ function App({ installMode }: { installMode: InstallMode }) {
     setLoginAttempts(0);
     setLoginLockedUntil(null);
     setSessionExpired(expired);
-    setNotice(expired ? "" : "Logged out.");
+    setNotice(expired ? "" : "로그아웃 되었습니다.");
     navigate("login");
   };
 
@@ -461,7 +461,7 @@ function App({ installMode }: { installMode: InstallMode }) {
                   setPinVerifiedAt(null);
                   sessionStorage.removeItem(SS.pinVerified);
                 }
-                setNotice(next ? "Admin authority enabled (mock)." : "Admin authority disabled.");
+                setNotice(next ? "관리자 권한이 부여되었습니다." : "관리자 권한이 해제되었습니다.");
                 return next;
               });
             }}
