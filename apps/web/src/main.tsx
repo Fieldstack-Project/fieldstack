@@ -13,7 +13,6 @@ import { SettingsView } from "./views/SettingsView";
 import { AdminView } from "./views/AdminView";
 import { MarketplaceView } from "./views/MarketplaceView";
 import { ChangePasswordView } from "./views/ChangePasswordView";
-import { OtpView } from "./views/OtpView";
 import { ForgotPasswordView } from "./views/ForgotPasswordView";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -43,7 +42,7 @@ function resolveInstallMode(runtimeEnv: WebRuntimeEnv): InstallMode {
 function getRouteFromHash(rawHash: string): RouteKey {
   const hash = rawHash.replace("#", "");
   if (hash === "settings") return "home";
-  const valid: RouteKey[] = ["login", "otp", "forgot-password", "home", "marketplace", "admin", "change-password"];
+  const valid: RouteKey[] = ["login", "forgot-password", "home", "marketplace", "admin", "change-password"];
   return (valid as string[]).includes(hash) ? (hash as RouteKey) : "login";
 }
 
@@ -125,8 +124,8 @@ function App({ installMode }: { installMode: InstallMode }) {
   }, []);
 
   const effectiveRoute = useMemo<RouteKey>(() => {
-    // OTP 대기 중: otp 화면만 허용
-    if (pendingOtpEmail) return "otp";
+    // OTP 대기 중: login 화면 유지 (LoginView 내부에서 step 전환)
+    if (pendingOtpEmail) return "login";
     // 미인증: login / forgot-password만 허용
     if (!isAuthenticated) {
       return route === "forgot-password" ? "forgot-password" : "login";
@@ -154,10 +153,9 @@ function App({ installMode }: { installMode: InstallMode }) {
     const email = (formData.get("email") as string | null) ?? "user@fieldstack.dev";
     const password = formData.get("password") as string | null;
 
-    // mock: "otp1234" → 2FA OTP 화면으로 이동
+    // mock: "otp1234" → LoginView 내 OTP step으로 전환
     if (password === "otp1234") {
       setPendingOtpEmail(email);
-      navigate("otp");
       return;
     }
 
@@ -236,7 +234,7 @@ function App({ installMode }: { installMode: InstallMode }) {
     navigate("login");
   };
 
-  // Login page (no shell)
+  // Login page (no shell) — OTP step도 이 안에서 처리
   if (effectiveRoute === "login") {
     return (
       <main className="auth-shell">
@@ -246,6 +244,9 @@ function App({ installMode }: { installMode: InstallMode }) {
             onQuickLogin={onQuickLogin}
             onForgotPassword={() => navigate("forgot-password")}
             showDevBypass={installMode === "bypass"}
+            pendingEmail={pendingOtpEmail}
+            onOtpVerified={onOtpVerified}
+            onOtpCancel={onOtpCancel}
           />
         </section>
       </main>
@@ -255,17 +256,6 @@ function App({ installMode }: { installMode: InstallMode }) {
   // 비밀번호 찾기 (no shell)
   if (effectiveRoute === "forgot-password") {
     return <ForgotPasswordView onBack={() => navigate("login")} />;
-  }
-
-  // 2FA OTP 인증 (no shell)
-  if (effectiveRoute === "otp") {
-    return (
-      <OtpView
-        email={pendingOtpEmail ?? ""}
-        onVerified={onOtpVerified}
-        onCancel={onOtpCancel}
-      />
-    );
   }
 
   // 비밀번호 강제 변경 (shell 없이 전체 화면)

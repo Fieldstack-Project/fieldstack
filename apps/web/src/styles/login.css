@@ -100,6 +100,7 @@
   transform: translateX(-50px);
 }
 
+/* ── Top label ──────────────────────────────────────────────── */
 .login-top-label {
   position: absolute;
   top: 0;
@@ -122,8 +123,33 @@
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  text-transform: none;
   color: var(--accent-hover);
+}
+
+/* ── OTP Step (login-panel 내부) ────────────────────────────── */
+.login-otp-head {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.login-otp-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.login-otp-form {
+  width: 100%;
+  max-width: 340px;
+  gap: 16px;
+}
+
+.login-otp-footer {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
 }
 
 .login-dev-badge {
