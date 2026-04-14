@@ -355,11 +355,6 @@
   color: var(--accent-hover);
 }
 
-/* 감사 로그 항목에 타입 뱃지 */
-.admin-audit-item {
-  justify-content: space-between;
-}
-
 .admin-audit-type-badge {
   flex-shrink: 0;
   margin-left: auto;
