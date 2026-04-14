@@ -5,11 +5,14 @@ import { Button, FormField, Input, Modal, Select } from "@fieldstack/controls";
 import "../styles/settings.css";
 
 type ThemeSetting = "light" | "dark" | "system";
+type StartupRoute = "home" | "marketplace";
 
 interface SettingsViewProps {
   isAdmin: boolean;
   theme: ThemeSetting;
   onThemeChange: (theme: ThemeSetting) => void;
+  initialStartupRoute: StartupRoute;
+  onStartupRouteChange: (route: StartupRoute) => void;
   onToggleAdmin: () => void;
   onClose: () => void;
   onSaved: () => void;
@@ -22,16 +25,22 @@ export function SettingsView({
   isAdmin,
   theme,
   onThemeChange,
+  initialStartupRoute,
+  onStartupRouteChange,
   onToggleAdmin,
   onClose,
   onSaved,
 }: SettingsViewProps) {
   const [displayName, setDisplayName] = useState(INIT_DISPLAY_NAME);
   const [language, setLanguage] = useState(INIT_LANGUAGE);
+  const [startupRoute, setStartupRoute] = useState<StartupRoute>(initialStartupRoute);
   const [isSaving, setIsSaving] = useState(false);
 
   // 테마는 변경 즉시 localStorage에 저장되므로 dirty 체크 제외
-  const isDirty = displayName !== INIT_DISPLAY_NAME || language !== INIT_LANGUAGE;
+  const isDirty =
+    displayName !== INIT_DISPLAY_NAME ||
+    language !== INIT_LANGUAGE ||
+    startupRoute !== initialStartupRoute;
 
   const handleClose = () => {
     if (isDirty && !window.confirm("저장하지 않은 변경사항이 있습니다. 닫으시겠습니까?")) return;
@@ -41,6 +50,7 @@ export function SettingsView({
   const handleSave = () => {
     setIsSaving(true);
     setTimeout(() => {
+      onStartupRouteChange(startupRoute);
       setIsSaving(false);
       onSaved();
       onClose();
@@ -115,6 +125,17 @@ export function SettingsView({
               { label: "라이트", value: "light" },
               { label: "다크", value: "dark" },
               { label: "시스템 따르기", value: "system" },
+            ]}
+          />
+        </FormField>
+        <FormField label="로그인 후 첫 화면" htmlFor="settings-startup-route">
+          <Select
+            id="settings-startup-route"
+            value={startupRoute}
+            onChange={(e) => setStartupRoute(e.target.value as StartupRoute)}
+            options={[
+              { label: "홈 화면", value: "home" },
+              { label: "마켓플레이스", value: "marketplace" },
             ]}
           />
         </FormField>

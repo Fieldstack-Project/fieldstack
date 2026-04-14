@@ -203,16 +203,16 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 **예상 기간: 4일**
 
 - [x] 일반 설정 화면 뼈대 구현 (프로필/언어/테마) - shell
-- [ ] 개인화 설정: 로그인 후 첫 화면(Home vs 특정 모듈) 선택 옵션 구현
+- [x] 개인화 설정: 로그인 후 첫 화면(Home vs Marketplace) 선택 옵션 구현 (localStorage fs_startup_route, 저장 시 반영)
 - [x] 관리자 전용 영역 라우트 분리 - shell
 - [x] 관리자 PIN Step-up 모달 흐름 구현 (isAdmin/isPinVerified 분리, 비관리자 진입점 숨김)
 - [x] Protected Route 정책 구현 (권한 부족 시 리다이렉트) - shell
-- [ ] 관리자 PIN 관리 UI 구현 (최초 설정/변경/오류 처리)
+- [x] 관리자 PIN 관리 UI 구현 (AdminView 보안 설정 패널 — 현재/새 PIN 입력, 유효성 검증, 성공/오류 상태)
 - [x] 관리자 세션 만료 UX 구현 (30분 만료 시 재인증 모달)
 - [x] 일반 설정 저장 UX 보강 (저장 성공/실패, 미저장 변경 경고)
 
   > 변경 감지(dirty state) 구현 — 변경 없으면 저장 버튼 비활성화. 저장 클릭 시 로딩(500ms) 후 모달 닫힘 + notice 표시. 미저장 상태에서 닫기 시 브라우저 기본 confirm 창으로 경고.
-- [ ] 관리자 활동/감사 로그 화면 진입점 정의 (PIN 실패/주요 설정 변경 확인)
+- [x] 관리자 활동/감사 로그 화면 진입점 정의 (AdminView master-detail 패널 — 전체 로그 10건 + 필터 탭 All/로그인/설정/PIN)
 
 #### 1.5.6 UX 품질 기준
 **예상 기간: 2일**
@@ -239,6 +239,21 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - [ ] 핵심 E2E 통과 (설치 -> 로그인 -> 홈 -> 설정/관리자)
 - [ ] UI 계약 동결 (Phase 2에서는 신규 Control 추가보다 모듈 기능 구현 우선)
 - [ ] 신규 Control은 예외적으로 수요 기반 추가 (모듈 요구사항/커뮤니티 제안 시 배치 처리)
+
+### 🔄 Phase 1.5 진행 이력
+
+| 날짜 | 내용 |
+|------|------|
+| 2026-02-26 | P0, P0.5 Control 타입 계약 정의 및 export 반영 완료. 상세 구현 상태는 `ui/03-control-backlog.md` 기준으로 추적 |
+| 2026-02-27 | Web 진입점을 React + TypeScript + Vite(`main.tsx`) 기준으로 전환 완료. 개발 실행 모드에 `dev:bypass` 추가. bypass 정책을 "설치만 스킵, 인증은 로그인부터"로 확정 |
+| 2026-04-12 | 1차 UI/UX 전면 개편. 다크 모드 디자인 토큰 시스템 구축 및 고정 220px 좌측 사이드바 레이아웃으로 재설계. AppShell A/B/C/D 변형 폐기 후 단일 Shell로 통합. 로그인/홈/설정/관리자 CSS 전체를 다크 토큰 기반으로 전환 |
+| 2026-04-12 | 임시 비밀번호 첫 로그인 강제 변경 화면(ChangePasswordView) 구현. 관리자 역할(isAdmin)과 PIN 인증(isPinVerified) 상태 분리 — 역할 보유자도 Admin 페이지 진입 시 PIN 재인증 필요. 비관리자 Admin 진입점 사이드바에서 숨김. Marketplace 사이드바 진입점 추가(Phase 3 플레이스홀더). @fieldstack/core ESM 빌드 전환 |
+| 2026-04-13 | P0/P0.5 Control 전 항목 `packages/controls`에 React 컴포넌트 구현 완료 (`ready: true`). `controls.css` 작성(fs- 접두사). `global.css` 토큰을 라이트 기본값 + 다크 오버라이드(`[data-theme]`/`prefers-color-scheme`) 구조로 재설계. Settings 테마 셀렉터 실제 동작 연결 (localStorage + data-theme 적용). |
+| 2026-04-14 | Phase 1.5.3 로그인 UX 개선 완료. 로그인 실패/잠금/세션 만료 UX 구현 (인라인 에러 텍스트, 5회 잠금 Alert, 30분 잠금). `ForgotPasswordView` 전면 재구성 — 경로 선택(이메일/관리자 토큰) → 각 경로별 단계 흐름 구현. 관리자 토큰 경로에 이메일+토큰 쌍 검증 구조 추가. Mock 계정 시스템 도입 (admin@/user@ 세트, 로그인 시 역할 자동 적용). `@fieldstack/core/browser` 브라우저 전용 엔트리포인트 분리 — Vite 번들링 시 Node.js 전용 패키지(jsonwebtoken 등) 포함 문제 해결. |
+| 2026-04-15 | 관리자/사용자 홈 분리 완료. HomeView에 `isAdmin` prop 추가 — 관리자 로그인 시 Admin Overview 배너(활성 사용자·설치 모듈·시스템 상태 카드) 표시, Admin 패널 바로가기 버튼 제공. 관리자 PIN 세션 30분 자동 만료 구현 — `pinVerifiedAt` 타임스탬프 기반 setTimeout, 만료 시 notice 표시 및 AdminView 재인증 게이트 자동 복원. |
+| 2026-04-15 | Phase 1.5.4 Main Home 잔여 항목 완료. 글로벌 네비게이션 상세 규격 확정 (메뉴 순서·아이콘·키보드 탐색). 모바일 Drawer 구현 — 768px 이하 햄버거 버튼 + 슬라이드인 오버레이 사이드바 + 배경 클릭 닫기. 딥 링크 라우팅 — 비인증 상태에서 앱 route 직접 진입 시 로그인 후 원래 route로 자동 복귀. 첫 로그인 온보딩 배너 — localStorage 기반 1회 표시, 닫기 버튼으로 영구 dismiss. |
+| 2026-04-15 | Phase 1.5.5 일반 설정 저장 UX 완료. SettingsView dirty state 감지, 저장 로딩 피드백, 미저장 변경 시 브라우저 confirm 경고 구현. |
+| 2026-04-15 | Phase 1.5.5 관리자 대시보드 / 일반 설정 잔여 항목 완료. Settings '로그인 후 첫 화면' 개인화 옵션 추가(fs_startup_route). AdminView master-detail 패널 시스템 도입 — 섹션 클릭 시 오른쪽 패널 전환. 보안 설정 패널에 PIN 변경 폼 구현(현재/새 PIN 유효성 검증, 성공 화면). 감사 로그 패널에 전체 로그(10건) + 필터 탭(전체/로그인/설정/PIN) 구현. |
 
 ---
 
@@ -314,20 +329,6 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - ✅ 로그인 → JWT 발급 → 리프레시 토큰 회전 → 인증 미들웨어 보호 라우트 접근
 - ✅ 프론트엔드 Shell의 mock 인증이 실제 API 호출로 교체 가능한 상태
 - ✅ 공유 링크 도메인 감지·on/off 설정 동작 확인 (PUBLIC_URL 미설정 시 DOMAIN_REQUIRED 반환)
-
-### 🔄 Phase 1.5 진행 이력
-
-| 날짜 | 내용 |
-|------|------|
-| 2026-02-26 | P0, P0.5 Control 타입 계약 정의 및 export 반영 완료. 상세 구현 상태는 `ui/03-control-backlog.md` 기준으로 추적 |
-| 2026-02-27 | Web 진입점을 React + TypeScript + Vite(`main.tsx`) 기준으로 전환 완료. 개발 실행 모드에 `dev:bypass` 추가. bypass 정책을 "설치만 스킵, 인증은 로그인부터"로 확정 |
-| 2026-04-12 | 1차 UI/UX 전면 개편. 다크 모드 디자인 토큰 시스템 구축 및 고정 220px 좌측 사이드바 레이아웃으로 재설계. AppShell A/B/C/D 변형 폐기 후 단일 Shell로 통합. 로그인/홈/설정/관리자 CSS 전체를 다크 토큰 기반으로 전환 |
-| 2026-04-12 | 임시 비밀번호 첫 로그인 강제 변경 화면(ChangePasswordView) 구현. 관리자 역할(isAdmin)과 PIN 인증(isPinVerified) 상태 분리 — 역할 보유자도 Admin 페이지 진입 시 PIN 재인증 필요. 비관리자 Admin 진입점 사이드바에서 숨김. Marketplace 사이드바 진입점 추가(Phase 3 플레이스홀더). @fieldstack/core ESM 빌드 전환 |
-| 2026-04-13 | P0/P0.5 Control 전 항목 `packages/controls`에 React 컴포넌트 구현 완료 (`ready: true`). `controls.css` 작성(fs- 접두사). `global.css` 토큰을 라이트 기본값 + 다크 오버라이드(`[data-theme]`/`prefers-color-scheme`) 구조로 재설계. Settings 테마 셀렉터 실제 동작 연결 (localStorage + data-theme 적용). |
-| 2026-04-15 | 관리자/사용자 홈 분리 완료. HomeView에 `isAdmin` prop 추가 — 관리자 로그인 시 Admin Overview 배너(활성 사용자·설치 모듈·시스템 상태 카드) 표시, Admin 패널 바로가기 버튼 제공. 관리자 PIN 세션 30분 자동 만료 구현 — `pinVerifiedAt` 타임스탬프 기반 setTimeout, 만료 시 notice 표시 및 AdminView 재인증 게이트 자동 복원. |
-| 2026-04-15 | Phase 1.5.4 Main Home 잔여 항목 완료. 글로벌 네비게이션 상세 규격 확정 (메뉴 순서·아이콘·키보드 탐색). 모바일 Drawer 구현 — 768px 이하 햄버거 버튼 + 슬라이드인 오버레이 사이드바 + 배경 클릭 닫기. 딥 링크 라우팅 — 비인증 상태에서 앱 route 직접 진입 시 로그인 후 원래 route로 자동 복귀. 첫 로그인 온보딩 배너 — localStorage 기반 1회 표시, 닫기 버튼으로 영구 dismiss. |
-| 2026-04-15 | Phase 1.5.5 일반 설정 저장 UX 완료. SettingsView dirty state 감지, 저장 로딩 피드백, 미저장 변경 시 브라우저 confirm 경고 구현. |
-| 2026-04-14 | Phase 1.5.3 로그인 UX 개선 완료. 로그인 실패/잠금/세션 만료 UX 구현 (인라인 에러 텍스트, 5회 잠금 Alert, 30분 잠금). `ForgotPasswordView` 전면 재구성 — 경로 선택(이메일/관리자 토큰) → 각 경로별 단계 흐름 구현. 관리자 토큰 경로에 이메일+토큰 쌍 검증 구조 추가. Mock 계정 시스템 도입 (admin@/user@ 세트, 로그인 시 역할 자동 적용). `@fieldstack/core/browser` 브라우저 전용 엔트리포인트 분리 — Vite 번들링 시 Node.js 전용 패키지(jsonwebtoken 등) 포함 문제 해결. |
 
 ---
 

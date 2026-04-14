@@ -89,6 +89,7 @@ const SS = {
 const LS = {
   theme:           "fs_theme",
   firstVisitShown: "fs_first_visit_shown",
+  startupRoute:    "fs_startup_route",
 } as const;
 
 // 딥 링크: 비인증 상태에서 진입한 app route 반환
@@ -96,6 +97,17 @@ function getDeepLinkTarget(): RouteKey | null {
   const hash = window.location.hash.replace("#", "");
   const appRoutes: RouteKey[] = ["home", "marketplace", "admin"];
   return (appRoutes as string[]).includes(hash) ? (hash as RouteKey) : null;
+}
+
+// 개인화: 로그인 후 첫 화면 설정
+type StartupRoute = "home" | "marketplace";
+
+function loadStartupRoute(): StartupRoute {
+  try {
+    const saved = localStorage.getItem(LS.startupRoute);
+    if (saved === "marketplace") return "marketplace";
+  } catch { /* ignore */ }
+  return "home";
 }
 
 // ─── App Root ─────────────────────────────────────────────────
@@ -149,6 +161,12 @@ function App({ installMode }: { installMode: InstallMode }) {
   const onDismissFirstVisit = () => {
     setIsFirstVisit(false);
     try { localStorage.setItem(LS.firstVisitShown, "true"); } catch { /* ignore */ }
+  };
+
+  const [startupRoute, setStartupRoute] = useState<StartupRoute>(loadStartupRoute);
+  const onStartupRouteChange = (route: StartupRoute) => {
+    setStartupRoute(route);
+    try { localStorage.setItem(LS.startupRoute, route); } catch { /* ignore */ }
   };
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -275,8 +293,8 @@ function App({ installMode }: { installMode: InstallMode }) {
     try {
       if (localStorage.getItem(LS.firstVisitShown) !== "true") setIsFirstVisit(true);
     } catch { /* ignore */ }
-    // 딥 링크 복귀
-    const target = redirectAfterLogin ?? "home";
+    // 딥 링크 복귀 (없으면 개인화 첫 화면)
+    const target = redirectAfterLogin ?? startupRoute;
     setRedirectAfterLogin(null);
     navigate(target);
   };
@@ -310,7 +328,7 @@ function App({ installMode }: { installMode: InstallMode }) {
     try {
       if (localStorage.getItem(LS.firstVisitShown) !== "true") setIsFirstVisit(true);
     } catch { /* ignore */ }
-    const target = redirectAfterLogin ?? "home";
+    const target = redirectAfterLogin ?? startupRoute;
     setRedirectAfterLogin(null);
     navigate(target);
   };
@@ -431,6 +449,8 @@ function App({ installMode }: { installMode: InstallMode }) {
             isAdmin={isAdmin}
             theme={theme}
             onThemeChange={handleThemeChange}
+            initialStartupRoute={startupRoute}
+            onStartupRouteChange={onStartupRouteChange}
             onClose={() => setIsSettingsOpen(false)}
             onToggleAdmin={() => {
               setIsAdmin((prev) => {

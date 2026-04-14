@@ -96,14 +96,14 @@
   grid-template-columns: 1.2fr 1fr;
 }
 
-.admin-sections,
-.admin-audit-panel {
+.admin-sections {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-elevated);
   padding: 12px;
   display: grid;
   gap: 8px;
+  align-content: start;
 }
 
 .admin-block-title {
@@ -226,6 +226,181 @@
 
 .admin-lock-button {
   cursor: not-allowed;
+}
+
+/* ── Section row 활성 상태 ───────────────────────────────────── */
+.admin-section-row[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  box-shadow: none;
+  transform: none;
+}
+
+.admin-section-row[aria-pressed="true"] .admin-section-name {
+  color: var(--accent-hover);
+}
+
+.admin-section-row[aria-pressed="true"] .admin-section-arrow {
+  color: var(--accent);
+}
+
+/* ── 오른쪽 패널 ─────────────────────────────────────────────── */
+.admin-panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.admin-panel-sub-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.admin-panel-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-faint);
+  padding: 12px 0;
+  text-align: center;
+}
+
+/* ── PIN 변경 폼 ─────────────────────────────────────────────── */
+.admin-pin-form {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-pin-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--err);
+}
+
+.admin-pin-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+/* PIN 변경 성공 */
+.admin-pin-success {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.07);
+  padding: 20px 14px;
+  text-align: center;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.admin-pin-success-icon {
+  margin: 0;
+  font-size: 28px;
+  color: var(--ok);
+  font-weight: 800;
+}
+
+.admin-pin-success-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.admin-pin-success-desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ── 감사 로그 필터 ──────────────────────────────────────────── */
+.admin-audit-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.admin-audit-filter-btn {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 110ms ease;
+}
+
+.admin-audit-filter-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.admin-audit-filter-btn[aria-pressed="true"] {
+  background: var(--accent-subtle);
+  border-color: rgba(124, 124, 240, 0.3);
+  color: var(--accent-hover);
+}
+
+/* 감사 로그 항목에 타입 뱃지 */
+.admin-audit-item {
+  justify-content: space-between;
+}
+
+.admin-audit-type-badge {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-faint);
+  background: var(--bg-surface);
+}
+
+/* ── 미구현 플레이스홀더 ─────────────────────────────────────── */
+.admin-panel-placeholder {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 28px 14px;
+  text-align: center;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.admin-panel-placeholder-icon {
+  margin: 0;
+  font-size: 28px;
+}
+
+.admin-panel-placeholder-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.admin-panel-placeholder-desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
 }
 
 /* ── Admin PIN Modal ─────────────────────────────────────────── */
