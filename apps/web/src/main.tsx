@@ -377,7 +377,7 @@ function App({ installMode }: { installMode: InstallMode }) {
                 return next;
               });
             }}
-            onSaved={() => setNotice("Settings saved (mock).")}
+            onSaved={() => setNotice("설정이 저장되었습니다.")}
           />
         )}
       </AppShell>

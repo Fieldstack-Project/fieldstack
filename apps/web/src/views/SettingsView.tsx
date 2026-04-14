@@ -15,29 +15,64 @@ interface SettingsViewProps {
   onSaved: () => void;
 }
 
-export function SettingsView({ isAdmin, theme, onThemeChange, onToggleAdmin, onClose, onSaved }: SettingsViewProps) {
-  const [displayName, setDisplayName] = useState("");
-  const [language, setLanguage] = useState("ko");
+const INIT_DISPLAY_NAME = "";
+const INIT_LANGUAGE = "ko";
+
+export function SettingsView({
+  isAdmin,
+  theme,
+  onThemeChange,
+  onToggleAdmin,
+  onClose,
+  onSaved,
+}: SettingsViewProps) {
+  const [displayName, setDisplayName] = useState(INIT_DISPLAY_NAME);
+  const [language, setLanguage] = useState(INIT_LANGUAGE);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 테마는 변경 즉시 localStorage에 저장되므로 dirty 체크 제외
+  const isDirty = displayName !== INIT_DISPLAY_NAME || language !== INIT_LANGUAGE;
+
+  const handleClose = () => {
+    if (isDirty && !window.confirm("저장하지 않은 변경사항이 있습니다. 닫으시겠습니까?")) return;
+    onClose();
+  };
 
   const handleSave = () => {
-    onSaved();
-    onClose();
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      onSaved();
+      onClose();
+    }, 500);
   };
 
   return (
     <Modal
       open
-      onClose={onClose}
+      onClose={handleClose}
       title="General Settings"
       size="md"
       footer={
         <>
-          <Button type="button" onClick={onClose}>취소</Button>
-          <Button variant="primary" type="button" onClick={handleSave}>저장</Button>
+          <Button type="button" onClick={handleClose} disabled={isSaving}>
+            취소
+          </Button>
+          <Button
+            variant="primary"
+            type="button"
+            onClick={handleSave}
+            disabled={!isDirty || isSaving}
+            loading={isSaving}
+          >
+            저장
+          </Button>
         </>
       }
     >
-      <p className="settings-dialog-subtitle">프로필, 환경설정, 권한 테스트 상태를 관리합니다.</p>
+      <p className="settings-dialog-subtitle">
+        프로필, 환경설정, 권한 테스트 상태를 관리합니다.
+      </p>
 
       <div className="settings-dialog-tabs">
         <span className="settings-tab">Profile</span>
