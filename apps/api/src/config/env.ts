@@ -8,6 +8,10 @@ const EnvSchema = z.object({
   DB_PROVIDER: z.enum(['postgres', 'sqlite']).default('postgres'),
   DATABASE_URL: z.string().url().optional(),
   SQLITE_PATH: z.string().optional(),
+  // Auth
+  JWT_SECRET: z.string().min(32).optional(),
+  JWT_REFRESH_SECRET: z.string().min(32).optional(),
+  TOTP_ISSUER: z.string().default('Fieldstack'),
 }).refine(
   (env) => env.DB_PROVIDER !== 'postgres' || Boolean(env.DATABASE_URL),
   { message: 'DATABASE_URL is required when DB_PROVIDER=postgres', path: ['DATABASE_URL'] },

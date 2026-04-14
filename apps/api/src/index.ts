@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 import { validateEnv } from './config/env';
-import { createApp, initDb } from './app';
+import { createApp, initDb, initServices, runMigrations } from './app';
 
 // ── 환경변수 검증 (누락·오류 시 즉시 종료) ────────────────────
 const env = validateEnv(process.env);
@@ -17,13 +17,18 @@ if (env.INSTALL_MODE === 'bypass') {
   console.warn('[fieldstack][api] DEV INSTALL BYPASS ACTIVE');
 }
 
-// ── DB 초기화 → 서버 시작 ─────────────────────────────────────
+// ── DB 초기화 → 마이그레이션 → 서비스 초기화 → 서버 시작 ─────
 async function start() {
+  let services;
+
   if (env.DB_PROVIDER === 'postgres' && env.DATABASE_URL) {
-    await initDb();
+    const db = await initDb();
+    await runMigrations(db);
+    services = await initServices(db);
+    console.log('[fieldstack][api] DB initialized and migrations applied');
   }
 
-  const app = createApp();
+  const app = createApp(services);
   app.listen(env.PORT, () => {
     console.log(`[fieldstack][api] server listening on http://localhost:${env.PORT}`);
   });

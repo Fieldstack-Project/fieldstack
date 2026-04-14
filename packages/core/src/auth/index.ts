@@ -80,6 +80,7 @@ export interface TotpService {
 }
 
 export * from "./totp.js";
+export * from "./services/index.js";
 
 export interface AuthService {
   login(payload: LoginRequest): Promise<SessionToken>;

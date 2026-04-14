@@ -269,13 +269,13 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 #### 1.9.3 인증 백엔드 구현
 **예상 기간: 1주**
 
-- [ ] 이메일/비밀번호 로그인 API (`POST /auth/login`)
-- [ ] JWT 세션 발급 및 검증 미들웨어
-- [ ] Whitelist 검사 로직 연결
-- [ ] TOTP 2FA 검증 API (`POST /auth/totp/verify`)
-- [ ] 관리자 PIN 검증 API (`POST /auth/pin/verify`)
-- [ ] 임시 비밀번호 강제 변경 API (`POST /auth/password/change`)
-- [ ] 비밀번호 복구 흐름 API (관리자 토큰 발급 / SMTP 연동은 Phase 2.3으로)
+- [x] 이메일/비밀번호 로그인 API (`POST /auth/login`)
+- [x] JWT 세션 발급 및 검증 미들웨어 (`requireAuth` 미들웨어, 리프레시 토큰 회전)
+- [x] Whitelist 검사 로직 연결 (로그인 시 자동 적용)
+- [x] TOTP 2FA 검증 API (`POST /auth/totp/verify`, `/totp/enroll`, `/totp/confirm`)
+- [x] 관리자 PIN 검증 API (`POST /auth/pin/verify`)
+- [x] 임시 비밀번호 강제 변경 API (`POST /auth/password/change`)
+- [x] 비밀번호 복구 흐름 API (관리자 토큰 발급 `/auth/password/recovery/issue` · 확인 `/auth/password/recovery/confirm` — SMTP는 Phase 2.3)
 
 #### 1.9.4 공유 링크 코어 시스템
 **예상 기간: 3일**
