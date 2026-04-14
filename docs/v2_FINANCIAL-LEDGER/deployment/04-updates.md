@@ -157,6 +157,38 @@ catch 블록에서 오류가 발생하면 롤백을 실행하고 오류를 throw
 
 ## Frontend 구현
 
+### What's New
+
+업데이트 후 사용자에게 변경 사항을 알리는 인앱 페이지. 강제 팝업 대신 사용자가 원할 때 확인할 수 있는 방식.
+
+**UX 레퍼런스**
+
+- **Chrome** (`chrome://whats-new/`) — 업데이트 직후 탭으로 열리며, 주요 변경사항을 카드 형태로 보여줌. 각 카드에 스크린샷·짧은 설명·관련 설정 링크 포함. 버전별 히스토리 탐색 가능.
+- **게임 패치노트** — 카테고리별 분류 (New / Bug Fixes / Improvements) 로 중요도 관계없이 모든 변경사항 나열. 소소한 수정도 포함해 투명성 확보.
+
+**포맷 (안)**
+
+```
+v1.2.0 — 2026-04-14
+
+✨ New
+- 마켓플레이스 모듈 출시
+
+🐛 Bug Fixes
+- 로그인 세션 만료 시 리다이렉트 안 되던 문제 수정
+
+🔧 Improvements
+- OTP 입력 필드 포커스 UX 개선
+```
+
+**동작 방식**
+
+- 업데이트 완료 후 앱 재진입 시 상단 배너로 "버전 X.X.X 업데이트됨 — 변경사항 보기" 노출
+- 배너 클릭 또는 설정 내 What's New 메뉴에서 언제든 확인 가능
+- GitHub Release 노트를 source of truth로 두고, 인앱에는 사용자 친화적 요약 표시
+
+---
+
 ### 업데이트 알림
 
 `apps/web/src/components/UpdateNotification.tsx`의 `UpdateNotification` 컴포넌트는 1시간마다 `/api/system/update/check`를 호출하여 새 버전 확인합니다.
