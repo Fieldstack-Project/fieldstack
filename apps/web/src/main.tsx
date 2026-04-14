@@ -179,7 +179,15 @@ function App({ installMode }: { installMode: InstallMode }) {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
 
   useEffect(() => {
-    const handleHashChange = () => setRoute(getRouteFromHash(window.location.hash));
+    const handleHashChange = () => {
+      const next = getRouteFromHash(window.location.hash);
+      setRoute(next);
+      // 비인증 상태에서 app route로 hash 변경 시 redirect 대상 갱신
+      const appRoutes: RouteKey[] = ["home", "marketplace", "admin"];
+      if (sessionStorage.getItem(SS.auth) !== "true" && (appRoutes as string[]).includes(next)) {
+        setRedirectAfterLogin(next);
+      }
+    };
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
