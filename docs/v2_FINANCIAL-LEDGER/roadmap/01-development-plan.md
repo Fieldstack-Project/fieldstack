@@ -150,7 +150,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - [x] `global.css` 토큰 라이트/다크 분리 (`[data-theme]` + `prefers-color-scheme`)
 - [x] `controls.css` 작성 (fs- 접두사, CSS 변수 기반, 라이트/다크 공통)
 - [ ] Control 접근성 기준 체크 (focus ring, 명도 대비, aria role/label, tab 순서)
-- [ ] `apps/web` View에서 `@fieldstack/controls` Control로 교체 검증
+- [x] `apps/web` View에서 `@fieldstack/controls` Control로 교체 검증
 
 #### 1.5.2 설치 마법사 (개발용 bypass)
 
