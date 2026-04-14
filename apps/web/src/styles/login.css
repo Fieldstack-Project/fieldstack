@@ -235,6 +235,20 @@
   gap: 10px;
 }
 
+.login-inline-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--err);
+  text-align: center;
+}
+
+.login-inline-warn {
+  margin: 0;
+  font-size: 12px;
+  color: var(--warn);
+  text-align: center;
+}
+
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .auth-layout {

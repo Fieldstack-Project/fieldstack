@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 
-import { PASSWORD_POLICY, validatePassword } from "@fieldstack/core";
+import { PASSWORD_POLICY, validatePassword } from "@fieldstack/core/browser";
 
 import { Button, FormField, Input } from "@fieldstack/controls";
 

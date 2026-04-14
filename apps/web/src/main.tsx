@@ -70,6 +70,13 @@ function loadTheme(): ThemeSetting {
 // 초기 테마 적용 (React 렌더 전에 FOUC 방지)
 applyTheme(loadTheme());
 
+// ─── Mock Accounts ────────────────────────────────────────────
+// TODO(Phase 1.9 연결): 실제 API 호출로 교체
+const MOCK_ACCOUNTS: { email: string; password: string; isAdmin: boolean }[] = [
+  { email: "admin@fieldstack.dev", password: "Admin1234!", isAdmin: true  },
+  { email: "user@fieldstack.dev",  password: "User1234!",  isAdmin: false },
+];
+
 // ─── Session Storage Keys ─────────────────────────────────────
 const SS = {
   auth:            "fs_auth",
@@ -99,6 +106,17 @@ function App({ installMode }: { installMode: InstallMode }) {
   );
   // OTP 인증 대기 중인 이메일 (로그인 완료 전 임시 상태 — sessionStorage 미저장)
   const [pendingOtpEmail, setPendingOtpEmail] = useState<string | null>(null);
+
+  // 로그인 실패 상태
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [loginLockedUntil, setLoginLockedUntil] = useState<number | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  const MAX_LOGIN_ATTEMPTS = 5;
+  const LOCKOUT_MS = 30 * 60 * 1000; // 30분
+
+  const isLocked = loginLockedUntil !== null && Date.now() < loginLockedUntil;
   const [currentUser, setCurrentUser] = useState<{ email: string } | null>(
     () => {
       const email = sessionStorage.getItem(SS.email);
@@ -149,32 +167,66 @@ function App({ installMode }: { installMode: InstallMode }) {
   // Auth handlers
   const onLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isLocked) return;
+
     const formData = new FormData(event.currentTarget);
     const email = (formData.get("email") as string | null) ?? "user@fieldstack.dev";
     const password = formData.get("password") as string | null;
 
     // mock: "otp1234" → LoginView 내 OTP step으로 전환
     if (password === "otp1234") {
+      setLoginError(null);
+      setLoginAttempts(0);
       setPendingOtpEmail(email);
       return;
     }
 
     // mock: "temp1234" → 임시 비번 첫 로그인 강제 변경
-    const isTempLogin = password === "temp1234";
-
-    setIsAuthenticated(true);
-    setCurrentUser({ email });
-    sessionStorage.setItem(SS.auth, "true");
-    sessionStorage.setItem(SS.email, email);
-
-    if (isTempLogin) {
+    if (password === "temp1234") {
+      setLoginError(null);
+      setLoginAttempts(0);
+      setSessionExpired(false);
+      setIsAuthenticated(true);
+      setCurrentUser({ email });
+      sessionStorage.setItem(SS.auth, "true");
+      sessionStorage.setItem(SS.email, email);
       setMustChangePassword(true);
       sessionStorage.setItem(SS.mustChangePw, "true");
       navigate("change-password");
-    } else {
-      setNotice("Login successful (mock).");
-      navigate("home");
+      return;
     }
+
+    const matchedAccount = MOCK_ACCOUNTS.find(
+      (a) => a.email === email && a.password === password,
+    );
+
+    if (!matchedAccount) {
+      const next = loginAttempts + 1;
+      setLoginAttempts(next);
+      if (next >= MAX_LOGIN_ATTEMPTS) {
+        setLoginLockedUntil(Date.now() + LOCKOUT_MS);
+        setLoginError(null);
+      } else {
+        setLoginError("이메일 또는 비밀번호가 올바르지 않습니다.");
+      }
+      return;
+    }
+
+    // 로그인 성공
+    setLoginError(null);
+    setLoginAttempts(0);
+    setLoginLockedUntil(null);
+    setSessionExpired(false);
+    setIsAuthenticated(true);
+    setIsAdmin(matchedAccount.isAdmin);
+    if (matchedAccount.isAdmin) {
+      sessionStorage.setItem(SS.admin, "true");
+    }
+    setCurrentUser({ email });
+    sessionStorage.setItem(SS.auth, "true");
+    sessionStorage.setItem(SS.email, email);
+    setNotice("Login successful (mock).");
+    navigate("home");
   };
 
   const onQuickLogin = () => {
@@ -221,7 +273,7 @@ function App({ installMode }: { installMode: InstallMode }) {
     navigate("admin");
   };
 
-  const onLogout = () => {
+  const onLogout = (expired = false) => {
     setIsAuthenticated(false);
     setIsAdmin(false);
     setIsPinVerified(false);
@@ -230,7 +282,11 @@ function App({ installMode }: { installMode: InstallMode }) {
     sessionStorage.removeItem(SS.admin);
     sessionStorage.removeItem(SS.pinVerified);
     sessionStorage.removeItem(SS.email);
-    setNotice("Logged out.");
+    setLoginError(null);
+    setLoginAttempts(0);
+    setLoginLockedUntil(null);
+    setSessionExpired(expired);
+    setNotice(expired ? "" : "Logged out.");
     navigate("login");
   };
 
@@ -247,6 +303,10 @@ function App({ installMode }: { installMode: InstallMode }) {
             pendingEmail={pendingOtpEmail}
             onOtpVerified={onOtpVerified}
             onOtpCancel={onOtpCancel}
+            loginError={loginError}
+            loginAttempts={loginAttempts}
+            isLocked={isLocked}
+            sessionExpired={sessionExpired}
           />
         </section>
       </main>
@@ -255,7 +315,15 @@ function App({ installMode }: { installMode: InstallMode }) {
 
   // 비밀번호 찾기 (no shell)
   if (effectiveRoute === "forgot-password") {
-    return <ForgotPasswordView onBack={() => navigate("login")} />;
+    return (
+      <ForgotPasswordView
+        onBack={() => navigate("login")}
+        onRecovered={() => {
+          setNotice("비밀번호가 복구되었습니다. 새 비밀번호로 로그인하세요.");
+          navigate("login");
+        }}
+      />
+    );
   }
 
   // 비밀번호 강제 변경 (shell 없이 전체 화면)

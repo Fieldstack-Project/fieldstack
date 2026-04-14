@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-Phase 1.5 진행 중 (2026-04-13 기준). Core UI Shell은 mock으로 동작하며 실제 백엔드 API 엔드포인트는 미구현. `packages/controls` P0/P0.5 컴포넌트 구현 완료 (`ready: true`). Storybook 세팅 완료 (port 6007).
+Phase 1.5 진행 중 (2026-04-14 기준). Phase 1.9 (API 서버·DB·인증 백엔드·공유 링크) 완료. Phase 1.5.3 로그인 UX 완료 (실패/잠금/세션 만료, 비밀번호 복구 UI, mock 계정 시스템). `packages/controls` P0/P0.5 컴포넌트 구현 완료 (`ready: true`). Storybook 세팅 완료 (port 6007). `@fieldstack/core/browser` 브라우저 전용 엔트리 분리 완료 — 웹 앱은 반드시 이 경로로 import.
 
 ---
 
@@ -48,7 +48,7 @@ apps/
   api/     — Node.js + tsx dev server (@fieldstack/api)
 packages/
   core/    — 공유 타입·계약·유틸 (@fieldstack/core)
-  controls/— UI 컴포넌트 계약 (@fieldstack/controls, 구현 미착수)
+  controls/— UI 컴포넌트 (@fieldstack/controls, P0/P0.5 구현 완료)
 modules/   — Phase 2 모듈 (Ledger, Subscription) 위치 예정
 ```
 
@@ -60,7 +60,9 @@ pnpm workspace, `node-linker=hoisted`.
 - 모든 라우트 상태 머신은 `apps/web/src/main.tsx`의 `App` 컴포넌트에서 관리 (`effectiveRoute` useMemo).
 - 인증 상태는 `sessionStorage`에 `fs_` 접두사 키로 저장 (`fs_auth`, `fs_admin`, `fs_pin_verified` 등).
 - **AppShell** (`src/components/AppShell.tsx`): 220px 고정 사이드바 레이아웃. login/otp/forgot-password/change-password는 shell 없이 전체 화면.
-- **개발 mock 비밀번호**: `otp1234` → OTP 플로우, `temp1234` → 강제 비밀번호 변경 플로우.
+- **개발 mock 계정**: `admin@fieldstack.dev` / `Admin1234!` (관리자), `user@fieldstack.dev` / `User1234!` (일반)
+- **개발 mock 특수 비밀번호**: `otp1234` → OTP 플로우, `temp1234` → 강제 비밀번호 변경 플로우 (어떤 이메일이든 동작)
+- **`@fieldstack/core` import 규칙**: 웹 앱(`apps/web`)에서는 반드시 `@fieldstack/core/browser`로 import. `@fieldstack/core` 직접 import는 Node.js 전용 패키지(jsonwebtoken 등)를 끌어들여 Vite 번들링 오류 발생.
 
 ### apps/api — 모듈 로더
 
