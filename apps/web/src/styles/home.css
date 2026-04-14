@@ -289,6 +289,49 @@
   color: var(--text-faint);
 }
 
+/* ── Admin Banner ─────────────────────────────────────────── */
+.home-admin-banner {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.home-admin-badge {
+  margin-right: 5px;
+}
+
+.home-admin-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.home-admin-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.home-admin-card-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.home-admin-card-value {
+  margin: 6px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.home-admin-card-ok {
+  color: var(--ok);
+}
+
 @media (max-width: 740px) {
   .home-title {
     font-size: 24px;

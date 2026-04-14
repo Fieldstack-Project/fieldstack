@@ -190,7 +190,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 
 - [x] Home 화면 정보 구조 확정 (요약 영역, 빠른 액션, 최근 활동) - shell
 - [x] 모듈 0개 상태 Empty UX 구현 (안내 + 다음 행동 CTA)
-- [ ] 관리자/일반 사용자 홈 표시 정책 분리
+- [x] 관리자/일반 사용자 홈 표시 정책 분리
 - [x] 글로벌 네비게이션 진입점 확정 (설정, 모듈 관리, 로그아웃) - shell
 - [x] 글로벌 네비게이션 Marketplace 진입점 추가 (사이드바 Workspace 섹션)
 - [ ] 글로벌 네비게이션 상세 규격 확정 (메뉴 순서, 아이콘, 모바일 Drawer, 키보드 탐색)
@@ -208,7 +208,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - [x] 관리자 PIN Step-up 모달 흐름 구현 (isAdmin/isPinVerified 분리, 비관리자 진입점 숨김)
 - [x] Protected Route 정책 구현 (권한 부족 시 리다이렉트) - shell
 - [ ] 관리자 PIN 관리 UI 구현 (최초 설정/변경/오류 처리)
-- [ ] 관리자 세션 만료 UX 구현 (30분 만료 시 재인증 모달)
+- [x] 관리자 세션 만료 UX 구현 (30분 만료 시 재인증 모달)
 - [x] 일반 설정 저장 UX 보강 (저장 성공/실패, 미저장 변경 경고)
 
   > 변경 감지(dirty state) 구현 — 변경 없으면 저장 버튼 비활성화. 저장 클릭 시 로딩(500ms) 후 모달 닫힘 + notice 표시. 미저장 상태에서 닫기 시 브라우저 기본 confirm 창으로 경고.
@@ -324,6 +324,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 | 2026-04-12 | 1차 UI/UX 전면 개편. 다크 모드 디자인 토큰 시스템 구축 및 고정 220px 좌측 사이드바 레이아웃으로 재설계. AppShell A/B/C/D 변형 폐기 후 단일 Shell로 통합. 로그인/홈/설정/관리자 CSS 전체를 다크 토큰 기반으로 전환 |
 | 2026-04-12 | 임시 비밀번호 첫 로그인 강제 변경 화면(ChangePasswordView) 구현. 관리자 역할(isAdmin)과 PIN 인증(isPinVerified) 상태 분리 — 역할 보유자도 Admin 페이지 진입 시 PIN 재인증 필요. 비관리자 Admin 진입점 사이드바에서 숨김. Marketplace 사이드바 진입점 추가(Phase 3 플레이스홀더). @fieldstack/core ESM 빌드 전환 |
 | 2026-04-13 | P0/P0.5 Control 전 항목 `packages/controls`에 React 컴포넌트 구현 완료 (`ready: true`). `controls.css` 작성(fs- 접두사). `global.css` 토큰을 라이트 기본값 + 다크 오버라이드(`[data-theme]`/`prefers-color-scheme`) 구조로 재설계. Settings 테마 셀렉터 실제 동작 연결 (localStorage + data-theme 적용). |
+| 2026-04-15 | 관리자/사용자 홈 분리 완료. HomeView에 `isAdmin` prop 추가 — 관리자 로그인 시 Admin Overview 배너(활성 사용자·설치 모듈·시스템 상태 카드) 표시, Admin 패널 바로가기 버튼 제공. 관리자 PIN 세션 30분 자동 만료 구현 — `pinVerifiedAt` 타임스탬프 기반 setTimeout, 만료 시 notice 표시 및 AdminView 재인증 게이트 자동 복원. |
 | 2026-04-15 | Phase 1.5.5 일반 설정 저장 UX 완료. SettingsView dirty state 감지, 저장 로딩 피드백, 미저장 변경 시 브라우저 confirm 경고 구현. |
 | 2026-04-14 | Phase 1.5.3 로그인 UX 개선 완료. 로그인 실패/잠금/세션 만료 UX 구현 (인라인 에러 텍스트, 5회 잠금 Alert, 30분 잠금). `ForgotPasswordView` 전면 재구성 — 경로 선택(이메일/관리자 토큰) → 각 경로별 단계 흐름 구현. 관리자 토큰 경로에 이메일+토큰 쌍 검증 구조 추가. Mock 계정 시스템 도입 (admin@/user@ 세트, 로그인 시 역할 자동 적용). `@fieldstack/core/browser` 브라우저 전용 엔트리포인트 분리 — Vite 번들링 시 Node.js 전용 패키지(jsonwebtoken 등) 포함 문제 해결. |
 

@@ -20,10 +20,12 @@ const MOCK_RECENT_ACTIVITY = [
 ];
 
 interface HomeViewProps {
+  isAdmin: boolean;
   onOpenSettings: () => void;
+  onNavigateAdmin: () => void;
 }
 
-export function HomeView({ onOpenSettings }: HomeViewProps) {
+export function HomeView({ isAdmin, onOpenSettings, onNavigateAdmin }: HomeViewProps) {
   const hasModules = MOCK_INSTALLED_MODULES.length > 0;
 
   return (
@@ -45,6 +47,34 @@ export function HomeView({ onOpenSettings }: HomeViewProps) {
           </Button>
         </div>
       </div>
+
+      {isAdmin && (
+        <section className="home-section home-admin-banner" aria-labelledby="home-admin-title">
+          <div className="home-section-head">
+            <h2 className="home-section-title" id="home-admin-title">
+              <span className="home-admin-badge" aria-hidden="true">⚡</span>
+              Admin Overview
+            </h2>
+            <Button size="sm" type="button" onClick={onNavigateAdmin}>
+              Admin 패널 →
+            </Button>
+          </div>
+          <div className="home-admin-grid">
+            <div className="home-admin-card">
+              <p className="home-admin-card-label">활성 사용자</p>
+              <p className="home-admin-card-value">1</p>
+            </div>
+            <div className="home-admin-card">
+              <p className="home-admin-card-label">설치된 모듈</p>
+              <p className="home-admin-card-value">{MOCK_INSTALLED_MODULES.length}</p>
+            </div>
+            <div className="home-admin-card">
+              <p className="home-admin-card-label">시스템 상태</p>
+              <p className="home-admin-card-value home-admin-card-ok">정상</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {hasModules ? (
         <div className="home-stat-grid">

@@ -104,6 +104,7 @@ function App({ installMode }: { installMode: InstallMode }) {
   const [isPinVerified, setIsPinVerified] = useState(
     () => sessionStorage.getItem(SS.pinVerified) === "true",
   );
+  const [pinVerifiedAt, setPinVerifiedAt] = useState<number | null>(null);
   // OTP 인증 대기 중인 이메일 (로그인 완료 전 임시 상태 — sessionStorage 미저장)
   const [pendingOtpEmail, setPendingOtpEmail] = useState<string | null>(null);
 
@@ -140,6 +141,26 @@ function App({ installMode }: { installMode: InstallMode }) {
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
+
+  // 관리자 PIN 세션 30분 만료
+  useEffect(() => {
+    if (!isPinVerified || pinVerifiedAt === null) return;
+    const remaining = pinVerifiedAt + 30 * 60 * 1000 - Date.now();
+    if (remaining <= 0) {
+      setIsPinVerified(false);
+      setPinVerifiedAt(null);
+      sessionStorage.removeItem(SS.pinVerified);
+      setNotice("관리자 세션이 만료되었습니다. 다시 인증해 주세요.");
+      return;
+    }
+    const timer = setTimeout(() => {
+      setIsPinVerified(false);
+      setPinVerifiedAt(null);
+      sessionStorage.removeItem(SS.pinVerified);
+      setNotice("관리자 세션이 만료되었습니다. 다시 인증해 주세요.");
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [isPinVerified, pinVerifiedAt]);
 
   const effectiveRoute = useMemo<RouteKey>(() => {
     // OTP 대기 중: login 화면 유지 (LoginView 내부에서 step 전환)
@@ -266,6 +287,7 @@ function App({ installMode }: { installMode: InstallMode }) {
   const onPinVerified = () => {
     setIsAdmin(true);
     setIsPinVerified(true);
+    setPinVerifiedAt(Date.now());
     setIsPinModalOpen(false);
     sessionStorage.setItem(SS.admin, "true");
     sessionStorage.setItem(SS.pinVerified, "true");
@@ -277,6 +299,7 @@ function App({ installMode }: { installMode: InstallMode }) {
     setIsAuthenticated(false);
     setIsAdmin(false);
     setIsPinVerified(false);
+    setPinVerifiedAt(null);
     setCurrentUser(null);
     sessionStorage.removeItem(SS.auth);
     sessionStorage.removeItem(SS.admin);
@@ -354,7 +377,13 @@ function App({ installMode }: { installMode: InstallMode }) {
         onLogout={onLogout}
         onOpenSettings={() => setIsSettingsOpen(true)}
       >
-        {effectiveRoute === "home" && <HomeView onOpenSettings={() => setIsSettingsOpen(true)} />}
+        {effectiveRoute === "home" && (
+          <HomeView
+            isAdmin={isAdmin}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onNavigateAdmin={() => navigate("admin")}
+          />
+        )}
         {effectiveRoute === "marketplace" && <MarketplaceView />}
         {effectiveRoute === "admin" && (
           <AdminView isPinVerified={isPinVerified} onRequestPin={() => setIsPinModalOpen(true)} />
@@ -371,6 +400,7 @@ function App({ installMode }: { installMode: InstallMode }) {
                 if (!next) {
                   // 관리자 역할 해제 시 PIN 인증도 초기화
                   setIsPinVerified(false);
+                  setPinVerifiedAt(null);
                   sessionStorage.removeItem(SS.pinVerified);
                 }
                 setNotice(next ? "Admin authority enabled (mock)." : "Admin authority disabled.");
