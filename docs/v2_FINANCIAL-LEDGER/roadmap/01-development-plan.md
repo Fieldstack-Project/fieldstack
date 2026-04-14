@@ -164,19 +164,10 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 **예상 기간: 3일**
 
 - [x] 이메일/비밀번호 로그인 화면 구현 (React shell/mock)
-- [ ] 2FA OTP 입력 화면 구현 (활성 계정 대상)
+- [x] 2FA OTP 입력 화면 구현 (활성 계정 대상)
 
-  > **UX 방향 — 인라인 단계 전환 방식으로 구현할 것**
-  >
-  > 현재는 OTP 입력 시 `#otp` 해시 라우트로 별도 페이지 이동하는 방식이나,
-  > 로그인 카드 내부에서 step 상태로 전환하는 방식으로 수정한다.
-  >
-  > - `#otp` 라우트 제거, `LoginView` 내부 step 상태로 대체
-  > - `step: 'credentials'` → 이메일/비밀번호 입력
-  > - `step: 'otp'` → OTP 입력 (같은 카드, 내용만 전환)
-  > - 상단에 "Sign In → 2단계 인증" 진행 단계 표시 포함
-  >
-  > 레퍼런스 이미지: `docs/local/otp-ex.png`
+  > `#otp` 라우트 제거, `LoginView` 내부 `step('credentials'|'otp')` 전환으로 구현 완료.
+  > 상단 레이블 "Sign in" → "2FA OTP" 전환. `OtpView.tsx`, `otp.css` 삭제.
 - [ ] 로그인 실패/잠금/세션 만료 UX 정의
 - [x] 로그인 성공 후 Home 리다이렉트 규칙 확정 (mock)
 - [x] 임시 비밀번호 첫 로그인 시 강제 변경 화면 구현 (정책 체크리스트 포함)
@@ -231,7 +222,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 
 ### Phase 2 진입 게이트 (권장)
 - [x] Control 패키지 MVP 완료 (P0/P0.5 구현 완료 — `packages/controls` 반영 + `ready: true`)
-- [ ] Auth/Install/Home/Settings/Admin 흐름에서 공통 Control 재사용 검증
+- [x] Auth/Install/Home/Settings/Admin 흐름에서 공통 Control 재사용 검증
 - [ ] 접근성/반응형/상태 처리(Loading/Empty/Error/Unauthorized) 기준 통과
 - [ ] 핵심 E2E 통과 (설치 -> 로그인 -> 홈 -> 설정/관리자)
 - [ ] UI 계약 동결 (Phase 2에서는 신규 Control 추가보다 모듈 기능 구현 우선)
