@@ -284,12 +284,15 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 > 청구서, 폼, 프로젝트 현황 등 어떤 데이터든 모듈이 이 코어를 호출하면 공개 링크를 발행할 수 있다.
 > 상세 설계는 `technical/08-shared-link.md` 참고.
 
-- [ ] 공유 링크 DB 스키마 (`shared_links` 테이블 — 토큰, 대상 리소스, 만료일, 접근 제한 등)
-- [ ] 링크 발행 API (`POST /core/share`) — 모듈이 호출하는 공통 엔드포인트
-- [ ] 링크 조회 API (`GET /s/:token`) — 비인증 공개 접근, 토큰 유효성 검증
-- [ ] 만료/비밀번호/접근 횟수 제한 옵션 지원
-- [ ] 링크별 접근 로그 기록 (접속 시각, IP)
-- [ ] 링크 무효화 API (`DELETE /core/share/:token`)
+- [x] 공유 링크 DB 스키마 (`shared_links`, `shared_link_logs`, `system_settings` 테이블)
+- [x] 링크 발행 API (`POST /core/share`) — 인증된 사용자, 도메인 감지 + admin on/off 검사
+- [x] 링크 조회 API (`GET /s/:token`) — 비인증 공개 접근, 토큰 유효성 검증
+- [x] 만료/비밀번호/접근 횟수 제한 옵션 지원
+- [x] 링크별 접근 로그 기록 (접속 시각, IP, User-Agent)
+- [x] 링크 무효화 API (`DELETE /core/share/:token`)
+- [x] 내 링크 목록 API (`GET /core/share`)
+- [x] 공유 링크 on/off 토글 (`GET|PATCH /core/share/settings`)
+- [x] Renderer Registry — 모듈 핸들러 등록 인프라 (실제 핸들러는 각 모듈 구현 시 등록)
 
 ### 마일스톤 1.9 완료 기준
 - ✅ `pnpm dev` 실행 시 API 서버가 실제로 기동되고 요청을 처리함

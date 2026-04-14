@@ -12,6 +12,8 @@ const EnvSchema = z.object({
   JWT_SECRET: z.string().min(32).optional(),
   JWT_REFRESH_SECRET: z.string().min(32).optional(),
   TOTP_ISSUER: z.string().default('Fieldstack'),
+  // Shared Link
+  PUBLIC_URL: z.string().url().optional(),
 }).refine(
   (env) => env.DB_PROVIDER !== 'postgres' || Boolean(env.DATABASE_URL),
   { message: 'DATABASE_URL is required when DB_PROVIDER=postgres', path: ['DATABASE_URL'] },

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 import { validateEnv } from './config/env';
-import { createApp, initDb, initServices, runMigrations } from './app';
+import { createApp, createAppWithPublicRouter, initDb, initServices, runMigrations } from './app';
 
 // ── 환경변수 검증 (누락·오류 시 즉시 종료) ────────────────────
 const env = validateEnv(process.env);
@@ -28,7 +28,14 @@ async function start() {
     console.log('[fieldstack][api] DB initialized and migrations applied');
   }
 
-  const app = createApp(services);
+  let app;
+  if (services) {
+    const { getSharedLinkRenderer } = await import('@fieldstack/core');
+    app = createAppWithPublicRouter(services, getSharedLinkRenderer);
+  } else {
+    // DB 없이 시작 (INSTALL_MODE=bypass 등) — 헬스체크만 동작
+    app = createApp();
+  }
   app.listen(env.PORT, () => {
     console.log(`[fieldstack][api] server listening on http://localhost:${env.PORT}`);
   });
