@@ -21,15 +21,37 @@ const MOCK_RECENT_ACTIVITY = [
 
 interface HomeViewProps {
   isAdmin: boolean;
+  isFirstVisit: boolean;
+  onDismissFirstVisit: () => void;
   onOpenSettings: () => void;
   onNavigateAdmin: () => void;
 }
 
-export function HomeView({ isAdmin, onOpenSettings, onNavigateAdmin }: HomeViewProps) {
+export function HomeView({ isAdmin, isFirstVisit, onDismissFirstVisit, onOpenSettings, onNavigateAdmin }: HomeViewProps) {
   const hasModules = MOCK_INSTALLED_MODULES.length > 0;
 
   return (
     <section className="panel home-root" aria-labelledby="home-title">
+      {isFirstVisit && (
+        <div className="home-welcome-banner" role="region" aria-label="환영 메시지">
+          <div className="home-welcome-body">
+            <p className="home-welcome-title">Fieldstack에 오신 것을 환영합니다!</p>
+            <p className="home-welcome-desc">
+              마켓플레이스에서 첫 번째 모듈을 설치하고 워크스페이스를 구성해 보세요.
+              Settings에서 테마·언어 등 기본 환경도 설정할 수 있습니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="home-welcome-dismiss"
+            onClick={onDismissFirstVisit}
+            aria-label="환영 메시지 닫기"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="home-hero">
         <div>
           <p className="home-kicker">Workspace Overview</p>

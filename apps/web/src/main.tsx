@@ -77,7 +77,7 @@ const MOCK_ACCOUNTS: { email: string; password: string; isAdmin: boolean }[] = [
   { email: "user@fieldstack.dev",  password: "User1234!",  isAdmin: false },
 ];
 
-// ─── Session Storage Keys ─────────────────────────────────────
+// ─── Storage Keys ─────────────────────────────────────────────
 const SS = {
   auth:            "fs_auth",
   admin:           "fs_admin",
@@ -85,6 +85,18 @@ const SS = {
   email:           "fs_email",
   mustChangePw:    "fs_must_change_pw",
 } as const;
+
+const LS = {
+  theme:           "fs_theme",
+  firstVisitShown: "fs_first_visit_shown",
+} as const;
+
+// 딥 링크: 비인증 상태에서 진입한 app route 반환
+function getDeepLinkTarget(): RouteKey | null {
+  const hash = window.location.hash.replace("#", "");
+  const appRoutes: RouteKey[] = ["home", "marketplace", "admin"];
+  return (appRoutes as string[]).includes(hash) ? (hash as RouteKey) : null;
+}
 
 // ─── App Root ─────────────────────────────────────────────────
 function App({ installMode }: { installMode: InstallMode }) {
@@ -127,6 +139,18 @@ function App({ installMode }: { installMode: InstallMode }) {
   const [mustChangePassword, setMustChangePassword] = useState(
     () => sessionStorage.getItem(SS.mustChangePw) === "true",
   );
+  // 딥 링크: 비인증 상태에서 진입한 app route (로그인 후 복귀)
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState<RouteKey | null>(
+    () => (sessionStorage.getItem(SS.auth) === "true" ? null : getDeepLinkTarget()),
+  );
+  // 첫 방문 온보딩 배너
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
+
+  const onDismissFirstVisit = () => {
+    setIsFirstVisit(false);
+    try { localStorage.setItem(LS.firstVisitShown, "true"); } catch { /* ignore */ }
+  };
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [notice, setNotice] = useState(
@@ -247,7 +271,14 @@ function App({ installMode }: { installMode: InstallMode }) {
     sessionStorage.setItem(SS.auth, "true");
     sessionStorage.setItem(SS.email, email);
     setNotice("Login successful (mock).");
-    navigate("home");
+    // 첫 방문 온보딩
+    try {
+      if (localStorage.getItem(LS.firstVisitShown) !== "true") setIsFirstVisit(true);
+    } catch { /* ignore */ }
+    // 딥 링크 복귀
+    const target = redirectAfterLogin ?? "home";
+    setRedirectAfterLogin(null);
+    navigate(target);
   };
 
   const onQuickLogin = () => {
@@ -276,7 +307,12 @@ function App({ installMode }: { installMode: InstallMode }) {
     sessionStorage.setItem(SS.auth, "true");
     sessionStorage.setItem(SS.email, email);
     setNotice("2단계 인증 완료.");
-    navigate("home");
+    try {
+      if (localStorage.getItem(LS.firstVisitShown) !== "true") setIsFirstVisit(true);
+    } catch { /* ignore */ }
+    const target = redirectAfterLogin ?? "home";
+    setRedirectAfterLogin(null);
+    navigate(target);
   };
 
   const onOtpCancel = () => {
@@ -380,6 +416,8 @@ function App({ installMode }: { installMode: InstallMode }) {
         {effectiveRoute === "home" && (
           <HomeView
             isAdmin={isAdmin}
+            isFirstVisit={isFirstVisit}
+            onDismissFirstVisit={onDismissFirstVisit}
             onOpenSettings={() => setIsSettingsOpen(true)}
             onNavigateAdmin={() => navigate("admin")}
           />

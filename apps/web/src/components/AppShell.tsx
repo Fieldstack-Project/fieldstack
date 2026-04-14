@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import "../styles/shell.css";
 
 export type RouteKey = "login" | "forgot-password" | "home" | "marketplace" | "admin" | "change-password";
@@ -18,6 +18,21 @@ interface AppShellProps {
 // 추후 모듈 로더에서 주입될 목록 (현재는 mock)
 const INSTALLED_MODULES: { id: string; label: string; icon: string }[] = [];
 
+// nav list 내 ArrowUp/ArrowDown 키보드 탐색
+function handleNavKeyDown(e: React.KeyboardEvent<HTMLUListElement>) {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const items = Array.from(
+    e.currentTarget.querySelectorAll<HTMLButtonElement>('button.shell-nav-item'),
+  );
+  const idx = items.indexOf(document.activeElement as HTMLButtonElement);
+  if (idx === -1) return;
+  e.preventDefault();
+  const next = e.key === 'ArrowDown'
+    ? items[(idx + 1) % items.length]
+    : items[(idx - 1 + items.length) % items.length];
+  next?.focus();
+}
+
 export function AppShell({
   installMode,
   route,
@@ -30,25 +45,52 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const userInitial = currentUser?.email.charAt(0).toUpperCase() ?? "?";
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const closeMobileMenu = () => setIsMobileOpen(false);
+  const navAndClose = (target: RouteKey) => { onNavigate(target); closeMobileMenu(); };
+
   return (
     <div className="shell">
+      {/* ── 모바일 오버레이 ──────────────────────────────── */}
+      {isMobileOpen && (
+        <div
+          className="shell-drawer-overlay"
+          onClick={closeMobileMenu}
+          aria-hidden="true"
+        />
+      )}
+
       {/* ── Sidebar ─────────────────────────────────────── */}
-      <aside className="shell-sidebar" aria-label="사이드바 네비게이션">
+      <aside
+        className="shell-sidebar"
+        data-mobile-open={isMobileOpen ? "" : undefined}
+        aria-label="사이드바 네비게이션"
+      >
         <div className="shell-brand">
           <div className="shell-brand-logo" aria-hidden="true">FS</div>
           <span className="shell-brand-name">Fieldstack</span>
+          {/* 모바일: 닫기 버튼 */}
+          <button
+            type="button"
+            className="shell-drawer-close"
+            onClick={closeMobileMenu}
+            aria-label="메뉴 닫기"
+          >
+            ✕
+          </button>
         </div>
 
         <nav className="shell-nav" aria-label="주 메뉴">
           {/* Workspace */}
           <p className="shell-nav-label" aria-hidden="true">Workspace</p>
-          <ul className="shell-nav-list">
+          <ul className="shell-nav-list" onKeyDown={handleNavKeyDown}>
             <li>
               <button
                 type="button"
                 className="shell-nav-item"
                 aria-current={route === "home" ? "page" : undefined}
-                onClick={() => onNavigate("home")}
+                onClick={() => navAndClose("home")}
               >
                 <span className="shell-nav-icon" aria-hidden="true">⊞</span>
                 Home
@@ -59,7 +101,7 @@ export function AppShell({
                 type="button"
                 className="shell-nav-item"
                 aria-current={route === "marketplace" ? "page" : undefined}
-                onClick={() => onNavigate("marketplace")}
+                onClick={() => navAndClose("marketplace")}
               >
                 <span className="shell-nav-icon" aria-hidden="true">⬡</span>
                 Marketplace
@@ -69,14 +111,14 @@ export function AppShell({
 
           {/* Modules */}
           <p className="shell-nav-label" aria-hidden="true">Modules</p>
-          <ul className="shell-nav-list" aria-label="설치된 모듈">
+          <ul className="shell-nav-list" aria-label="설치된 모듈" onKeyDown={handleNavKeyDown}>
             {INSTALLED_MODULES.length > 0 ? (
               INSTALLED_MODULES.map((mod) => (
                 <li key={mod.id}>
                   <button
                     type="button"
                     className="shell-nav-item"
-                    onClick={() => { window.location.hash = mod.id; }}
+                    onClick={() => { window.location.hash = mod.id; closeMobileMenu(); }}
                   >
                     <span className="shell-nav-icon" aria-hidden="true">{mod.icon}</span>
                     {mod.label}
@@ -105,7 +147,7 @@ export function AppShell({
               DEV BYPASS
             </div>
           )}
-          <button type="button" className="shell-nav-item" onClick={onOpenSettings}>
+          <button type="button" className="shell-nav-item" onClick={() => { onOpenSettings(); closeMobileMenu(); }}>
             <span className="shell-nav-icon" aria-hidden="true">⚙</span>
             Settings
           </button>
@@ -114,7 +156,7 @@ export function AppShell({
               type="button"
               className="shell-nav-item"
               aria-current={route === "admin" ? "page" : undefined}
-              onClick={() => onNavigate("admin")}
+              onClick={() => navAndClose("admin")}
             >
               <span className="shell-nav-icon" aria-hidden="true">⚡</span>
               Admin
@@ -123,9 +165,9 @@ export function AppShell({
           <button
             type="button"
             className="shell-nav-item shell-nav-item-danger"
-            onClick={onLogout}
+            onClick={() => { onLogout(); closeMobileMenu(); }}
           >
-            <span className="shell-nav-icon" aria-hidden="true">↪</span>
+            <span className="shell-nav-icon" aria-hidden="true">→</span>
             Sign Out
           </button>
         </div>
@@ -133,6 +175,21 @@ export function AppShell({
 
       {/* ── Body ─────────────────────────────────────────── */}
       <div className="shell-body">
+        {/* 모바일 상단 바 */}
+        <div className="shell-mobile-topbar">
+          <button
+            type="button"
+            className="shell-hamburger"
+            onClick={() => setIsMobileOpen(true)}
+            aria-label="메뉴 열기"
+            aria-expanded={isMobileOpen}
+          >
+            <span aria-hidden="true">☰</span>
+          </button>
+          <div className="shell-brand-logo" aria-hidden="true">FS</div>
+          <span className="shell-brand-name">Fieldstack</span>
+        </div>
+
         {notice && (
           <div className="shell-notice" role="status" aria-live="polite">
             <span className="shell-notice-dot" aria-hidden="true" />

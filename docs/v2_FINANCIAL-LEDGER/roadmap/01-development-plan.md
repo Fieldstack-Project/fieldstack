@@ -193,11 +193,11 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - [x] 관리자/일반 사용자 홈 표시 정책 분리
 - [x] 글로벌 네비게이션 진입점 확정 (설정, 모듈 관리, 로그아웃) - shell
 - [x] 글로벌 네비게이션 Marketplace 진입점 추가 (사이드바 Workspace 섹션)
-- [ ] 글로벌 네비게이션 상세 규격 확정 (메뉴 순서, 아이콘, 모바일 Drawer, 키보드 탐색)
+- [x] 글로벌 네비게이션 상세 규격 확정 (메뉴 순서 Workspace→Modules→Footer, 아이콘 확정, 모바일 Drawer 768px, ArrowKey 키보드 탐색)
 - [x] 사이드바(LNB) 고정 레이아웃 구현 (모듈 간 즉시 이동 및 딥 링크 지원)
-- [ ] 딥 링크(Deep Link) 라우팅 검증 (URL 직접 진입 시 해당 모듈 즉시 로드)
+- [x] 딥 링크(Deep Link) 라우팅 검증 (비인증 상태 #admin/#marketplace 진입 → 로그인 후 원래 route 복귀)
 - [x] Home 공통 상태 정의 (Loading, Empty, Error, Unauthorized) - mock 상태 전환 기준 반영
-- [ ] 첫 로그인 사용자용 온보딩 진입 UX 정의 (튜토리얼/다음 행동 안내)
+- [x] 첫 로그인 사용자용 온보딩 진입 UX 정의 (첫 로그인 시 dismissible 환영 배너, localStorage 기반 1회 표시)
 
 #### 1.5.5 관리자 대시보드 / 일반 설정
 **예상 기간: 4일**
@@ -325,6 +325,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 | 2026-04-12 | 임시 비밀번호 첫 로그인 강제 변경 화면(ChangePasswordView) 구현. 관리자 역할(isAdmin)과 PIN 인증(isPinVerified) 상태 분리 — 역할 보유자도 Admin 페이지 진입 시 PIN 재인증 필요. 비관리자 Admin 진입점 사이드바에서 숨김. Marketplace 사이드바 진입점 추가(Phase 3 플레이스홀더). @fieldstack/core ESM 빌드 전환 |
 | 2026-04-13 | P0/P0.5 Control 전 항목 `packages/controls`에 React 컴포넌트 구현 완료 (`ready: true`). `controls.css` 작성(fs- 접두사). `global.css` 토큰을 라이트 기본값 + 다크 오버라이드(`[data-theme]`/`prefers-color-scheme`) 구조로 재설계. Settings 테마 셀렉터 실제 동작 연결 (localStorage + data-theme 적용). |
 | 2026-04-15 | 관리자/사용자 홈 분리 완료. HomeView에 `isAdmin` prop 추가 — 관리자 로그인 시 Admin Overview 배너(활성 사용자·설치 모듈·시스템 상태 카드) 표시, Admin 패널 바로가기 버튼 제공. 관리자 PIN 세션 30분 자동 만료 구현 — `pinVerifiedAt` 타임스탬프 기반 setTimeout, 만료 시 notice 표시 및 AdminView 재인증 게이트 자동 복원. |
+| 2026-04-15 | Phase 1.5.4 Main Home 잔여 항목 완료. 글로벌 네비게이션 상세 규격 확정 (메뉴 순서·아이콘·키보드 탐색). 모바일 Drawer 구현 — 768px 이하 햄버거 버튼 + 슬라이드인 오버레이 사이드바 + 배경 클릭 닫기. 딥 링크 라우팅 — 비인증 상태에서 앱 route 직접 진입 시 로그인 후 원래 route로 자동 복귀. 첫 로그인 온보딩 배너 — localStorage 기반 1회 표시, 닫기 버튼으로 영구 dismiss. |
 | 2026-04-15 | Phase 1.5.5 일반 설정 저장 UX 완료. SettingsView dirty state 감지, 저장 로딩 피드백, 미저장 변경 시 브라우저 confirm 경고 구현. |
 | 2026-04-14 | Phase 1.5.3 로그인 UX 개선 완료. 로그인 실패/잠금/세션 만료 UX 구현 (인라인 에러 텍스트, 5회 잠금 Alert, 30분 잠금). `ForgotPasswordView` 전면 재구성 — 경로 선택(이메일/관리자 토큰) → 각 경로별 단계 흐름 구현. 관리자 토큰 경로에 이메일+토큰 쌍 검증 구조 추가. Mock 계정 시스템 도입 (admin@/user@ 세트, 로그인 시 역할 자동 적용). `@fieldstack/core/browser` 브라우저 전용 엔트리포인트 분리 — Vite 번들링 시 Node.js 전용 패키지(jsonwebtoken 등) 포함 문제 해결. |
 
