@@ -295,11 +295,13 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - [x] Renderer Registry — 모듈 핸들러 등록 인프라 (실제 핸들러는 각 모듈 구현 시 등록)
 
 ### 마일스톤 1.9 완료 기준
-- ✅ `pnpm dev` 실행 시 API 서버가 실제로 기동되고 요청을 처리함
-- ✅ SQLite 기반 DB 연결 및 마이그레이션이 실제로 동작함
-- ✅ 로그인 → JWT 발급 → 인증 미들웨어 보호 라우트 접근이 실제로 동작함
+> **실제 검증 완료 (2026-04-14)** — Docker Compose PostgreSQL + `node dist/index.js` 환경에서 전 항목 확인
+
+- ✅ API 서버 기동 및 요청 처리 (`GET /health` → `{"status":"ok"}`)
+- ✅ PostgreSQL 연결 및 마이그레이션 실제 동작 (001_auth_schema, 002_shared_links 적용 확인)
+- ✅ 로그인 → JWT 발급 → 리프레시 토큰 회전 → 인증 미들웨어 보호 라우트 접근
 - ✅ 프론트엔드 Shell의 mock 인증이 실제 API 호출로 교체 가능한 상태
-- ✅ 공유 링크 발행 및 접근이 실제로 동작함
+- ✅ 공유 링크 도메인 감지·on/off 설정 동작 확인 (PUBLIC_URL 미설정 시 DOMAIN_REQUIRED 반환)
 
 ### 🔄 Phase 1.5 진행 이력
 
