@@ -79,7 +79,7 @@ export interface TotpService {
   verifyLoginChallenge(challengeId: string, code: string): Promise<boolean>;
 }
 
-export * from "./totp";
+export * from "./totp.js";
 
 export interface AuthService {
   login(payload: LoginRequest): Promise<SessionToken>;

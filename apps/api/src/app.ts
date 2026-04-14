@@ -19,12 +19,18 @@ export function createApp() {
   // ── Core routes ───────────────────────────────────────────────
   app.use('/health', healthRouter);
 
-  // TODO(Phase 1.9.2): DB 초기화 후 모듈 라우트 마운트
-  // const registrations = buildBackendRouteRegistrations(manifests);
-  // registrations.forEach(({ apiBasePath, router }) => app.use(apiBasePath, router));
+  // TODO(Phase 1.9.3): 인증 라우트 마운트 (POST /auth/login 등)
+  // TODO(Phase 1.9.2): 모듈 라우트 마운트 (DB 초기화 완료 후)
 
   // ── Error handler (반드시 마지막) ─────────────────────────────
   app.use(errorHandler);
 
   return app;
+}
+
+// ── DB 초기화 (서버 시작 시 호출) ────────────────────────────
+
+export async function initDb(): Promise<void> {
+  const { getDb } = await import('@fieldstack/core');
+  await getDb();
 }

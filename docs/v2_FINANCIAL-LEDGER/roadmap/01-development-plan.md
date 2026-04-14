@@ -259,11 +259,11 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 > SQLite는 경량 단독 인스턴스용으로 2순위 구현 대상으로 유지한다.
 > 개발 환경은 Docker Compose로 PostgreSQL을 띄우는 방식을 기본으로 한다.
 
-- [ ] Docker Compose 개발 환경 세팅 (PostgreSQL 컨테이너)
-- [ ] PostgreSQL Provider 실제 구현 (`packages/core/src/db/providers/postgres.ts`)
-- [ ] DB 연결 초기화 및 연결 실패 처리
-- [ ] 마이그레이션 러너 실제 동작 구현 (`packages/core/src/db/migrations/`) — `06-migrations.md` 설계 기준
-- [ ] DB 프로바이더 추상화 검증 (SQLite 전환 시 코드 변경 최소화 확인)
+- [x] Docker Compose 개발 환경 세팅 (PostgreSQL 컨테이너)
+- [x] PostgreSQL Provider 실제 구현 (`packages/core/src/db/providers/postgres.ts`)
+- [x] DB 연결 초기화 및 연결 실패 처리 (5회 지수 백오프 재시도)
+- [x] 마이그레이션 러너 실제 동작 구현 (`packages/core/src/db/migrations/`) — `06-migrations.md` 설계 기준
+- [x] DB 프로바이더 추상화 검증 (타입체크 전체 통과, Node16 ESM 해석 이슈 수정)
 - [ ] SQLite Provider 구현 (경량 단독 인스턴스용 — 2순위)
 
 #### 1.9.3 인증 백엔드 구현

@@ -4,8 +4,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "noEmit": false,
-    "moduleResolution": "Node",
-    "module": "CommonJS",
+    "moduleResolution": "Node16",
+    "module": "Node16",
     "esModuleInterop": true
   },
   "include": ["src/**/*.ts"]
