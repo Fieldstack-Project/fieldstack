@@ -253,10 +253,18 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 #### 1.9.2 DB 레이어 구현
 **예상 기간: 1주**
 
-- [ ] DB 프로바이더 1개 실제 구현 (SQLite 우선 — 설치 없이 로컬 개발 가능)
+> **DB 우선순위 결정 (2026-04-14):**
+> PostgreSQL을 1순위로 구현한다. 재무 데이터 특성(ACID, decimal 정확도), 멀티 유저 동시 write,
+> Phase 2 복잡 쿼리를 고려하면 PostgreSQL이 더 적합하다.
+> SQLite는 경량 단독 인스턴스용으로 2순위 구현 대상으로 유지한다.
+> 개발 환경은 Docker Compose로 PostgreSQL을 띄우는 방식을 기본으로 한다.
+
+- [ ] Docker Compose 개발 환경 세팅 (PostgreSQL 컨테이너)
+- [ ] PostgreSQL Provider 실제 구현 (`packages/core/src/db/providers/postgres.ts`)
 - [ ] DB 연결 초기화 및 연결 실패 처리
-- [ ] 마이그레이션 러너 실제 동작 구현 (`packages/core/src/db/migrations/`)
-- [ ] DB 프로바이더 추상화 검증 (PostgreSQL 전환 시 코드 변경 최소화 확인)
+- [ ] 마이그레이션 러너 실제 동작 구현 (`packages/core/src/db/migrations/`) — `06-migrations.md` 설계 기준
+- [ ] DB 프로바이더 추상화 검증 (SQLite 전환 시 코드 변경 최소화 확인)
+- [ ] SQLite Provider 구현 (경량 단독 인스턴스용 — 2순위)
 
 #### 1.9.3 인증 백엔드 구현
 **예상 기간: 1주**

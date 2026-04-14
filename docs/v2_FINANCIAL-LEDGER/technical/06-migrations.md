@@ -65,6 +65,32 @@ Core는 실행 전 `{{UUID_PRIMARY_KEY}}`를 다음과 같이 치환합니다:
 ### 복구 가이드
 에러 로그를 확인하고, SQL 문법 오류를 수정한 후 서버를 재시작하거나 모듈을 다시 활성화하면 중단된 지점부터 다시 시도합니다.
 
+## Provider 전환 마이그레이션 (DB 간 이전)
+
+스키마 마이그레이션(버전 업그레이드)과 별개로, **DB Provider 자체를 전환**할 때의 전략.
+
+### 전환 시나리오
+
+- **PostgreSQL → SQLite**: 경량화 목적 (단독 인스턴스 축소 등) — 권장하지 않음
+- **SQLite → PostgreSQL**: 스케일업 목적 — 가장 흔한 전환 경로
+- **PostgreSQL → Supabase**: 클라우드 이전
+
+### 전환 절차
+
+1. **데이터 덤프**: 기존 Provider에서 테이블 전체를 JSON/CSV로 추출
+2. **스키마 적용**: 새 Provider에서 마이그레이션 러너를 실행해 스키마 생성
+3. **데이터 적재**: 추출한 데이터를 새 Provider에 삽입
+4. **검증**: 레코드 수, 체크섬 등으로 데이터 무결성 확인
+5. **환경변수 전환**: `DB_PROVIDER` 및 연결 정보 변경 후 재시작
+
+### Dialect 차이 주의사항
+
+`{{UUID_PRIMARY_KEY}}` 같은 전처리기 토큰이 있으면 SQL 파일 자체는 Provider에 독립적이지만,
+마이그레이션에 Provider 특정 raw SQL이 포함된 경우 별도 호환성 검토가 필요하다.
+가급적 전처리기 토큰을 사용하고, Provider 특정 문법은 피한다.
+
+---
+
 ## 📚 관련 문서
-- 📖 `technical/01-database.md` - 데이터베이스 아키텍처
+- 📖 `technical/01-database.md` - 데이터베이스 아키텍처 및 Provider 우선순위
 - 📖 `modules/01-development-guide.md` - 모듈 개발 가이드

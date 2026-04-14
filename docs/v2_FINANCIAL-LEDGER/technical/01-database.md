@@ -10,10 +10,16 @@
 ## 멀티 DB 지원
 
 사용자가 선택 가능:
-- **Local PostgreSQL** (권장)
-- **SQLite** (간단한 배포)
+- **Local PostgreSQL** (1순위 — 권장, Phase 1.9에서 우선 구현)
+- **SQLite** (2순위 — 경량 단독 인스턴스용)
 - **Supabase** (클라우드)
 - **MongoDB** (NoSQL 선호 시)
+
+> **구현 우선순위 결정 (2026-04-14):**
+> PostgreSQL을 먼저 구현한다. 재무 데이터의 ACID 요구사항, decimal 정확도, 멀티 유저 동시성,
+> Phase 2 복잡 쿼리를 감안하면 PostgreSQL이 Fieldstack의 주력 DB다.
+> SQLite는 DB 추상화 검증 및 경량 배포 옵션으로 후순위 구현한다.
+> Provider 간 전환 시 마이그레이션 전략은 `technical/06-migrations.md` 참고.
 
 ---
 
@@ -136,7 +142,7 @@ MongoDBProvider는 mongodb 라이브러리의 MongoClient를 사용합니다. co
 > 📌 **Provider 선택 로직:**  
 > → `architecture/01-decisions.md § 결정 #3`
 
-createDBProvider 함수는 환경 변수의 DB_PROVIDER 값에 따라 적절한 Provider 객체를 생성합니다. 기본값은 'sqlite'이며, 'postgres', 'sqlite', 'supabase', 'mongodb' 중 하나를 지정할 수 있습니다. 알 수 없는 Provider 이름이면 에러를 발생시킵니다.
+createDBProvider 함수는 환경 변수의 DB_PROVIDER 값에 따라 적절한 Provider 객체를 생성합니다. 기본값은 'postgres'이며, 'postgres', 'sqlite', 'supabase', 'mongodb' 중 하나를 지정할 수 있습니다. 알 수 없는 Provider 이름이면 에러를 발생시킵니다.
 
 getDB 함수는 전역 DB 인스턴스를 관리합니다. 처음 호출되면 createDBProvider로 Provider를 생성하고 연결한 후, 이후 호출에서는 같은 인스턴스를 반환합니다.
 
