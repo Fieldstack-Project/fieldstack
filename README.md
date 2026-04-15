@@ -80,7 +80,7 @@ Current phase: **Development in progress (Roadmap Phase 1.5)**
 
 ## Getting Started
 
-> **Production deployment guide will be published when the Setup install wizard (Phase 1.95) is complete.**
+> **Production deployment guide will be published when the Setup install wizard (Phase 1.95) is complete.**<br>
 > Until then, you can run the project locally in development mode.
 
 ### Local Development
