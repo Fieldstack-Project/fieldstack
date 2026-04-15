@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import "./styles/global.css";
 import "./styles/login.css";
+import "./styles/setup-wizard.css";
 import "@fieldstack/controls/styles";
 
 import { AppShell, type RouteKey } from "./components/AppShell";
@@ -14,6 +15,7 @@ import { AdminView } from "./views/AdminView";
 import { MarketplaceView } from "./views/MarketplaceView";
 import { ChangePasswordView } from "./views/ChangePasswordView";
 import { ForgotPasswordView } from "./views/ForgotPasswordView";
+import { SetupWizardView } from "./views/SetupWizardView";
 
 // ─── Types ────────────────────────────────────────────────────
 type InstallMode = "normal" | "bypass";
@@ -481,6 +483,45 @@ function App({ installMode }: { installMode: InstallMode }) {
   );
 }
 
+// ─── Setup Status Check ───────────────────────────────────────
+type SetupStatus = "checking" | "required" | "done";
+
+function AppRoot({ installMode }: { installMode: InstallMode }) {
+  const [setupStatus, setSetupStatus] = useState<SetupStatus>("checking");
+
+  useEffect(() => {
+    if (installMode === "bypass") {
+      setSetupStatus("done");
+      return;
+    }
+    fetch("/setup/status")
+      .then((res) => res.json() as Promise<{ success: boolean; data?: { installed?: boolean } }>)
+      .then((json) => {
+        setSetupStatus(json.data?.installed === false ? "required" : "done");
+      })
+      .catch(() => {
+        // API 연결 실패 시 정상 앱 모드로 진입 (설치 완료 후 서버 재시작 직후 등)
+        setSetupStatus("done");
+      });
+  }, [installMode]);
+
+  if (setupStatus === "checking") {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span className="setup-spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+      </div>
+    );
+  }
+
+  if (setupStatus === "required") {
+    return (
+      <SetupWizardView onComplete={() => setSetupStatus("done")} />
+    );
+  }
+
+  return <App installMode={installMode} />;
+}
+
 // ─── Bootstrap ────────────────────────────────────────────────
 const runtimeEnv = (import.meta as ImportMeta & { env?: WebRuntimeEnv }).env ?? {};
 const installMode = resolveInstallMode(runtimeEnv);
@@ -496,4 +537,4 @@ if (appRootElement === null) {
   throw new Error("App root element '#app' was not found.");
 }
 
-createRoot(appRootElement).render(<App installMode={installMode} />);
+createRoot(appRootElement).render(<AppRoot installMode={installMode} />);
