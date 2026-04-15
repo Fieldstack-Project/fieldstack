@@ -14,10 +14,9 @@ const EnvSchema = z.object({
   TOTP_ISSUER: z.string().default('Fieldstack'),
   // Shared Link
   PUBLIC_URL: z.string().url().optional(),
-}).refine(
-  (env) => env.DB_PROVIDER !== 'postgres' || Boolean(env.DATABASE_URL),
-  { message: 'DATABASE_URL is required when DB_PROVIDER=postgres', path: ['DATABASE_URL'] },
-);
+});
+// DATABASE_URL 존재 여부는 initDb() 호출 시 검증한다.
+// Setup 모드에서는 DB 설정이 아직 없으므로 여기서 강제 검증하지 않는다.
 
 export type Env = z.infer<typeof EnvSchema>;
 

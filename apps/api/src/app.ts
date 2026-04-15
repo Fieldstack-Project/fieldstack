@@ -23,6 +23,7 @@ import type { BackendRouteRegistration } from './loader';
 import { createAuthRouter } from './routes/auth';
 import { healthRouter } from './routes/health';
 import { createPublicRouter } from './routes/public';
+import { createSetupRouter } from './routes/setup';
 import { createShareRouter } from './routes/share';
 
 // ── App 팩토리 ────────────────────────────────────────────────
@@ -59,6 +60,11 @@ export function createApp(services?: AppServices) {
   // ── Core routes ───────────────────────────────────────────────
   app.use('/health', healthRouter);
 
+  // 앱 모드에서 /setup/status는 installed:true를 반환 (프론트엔드 모드 감지용)
+  app.get('/setup/status', (_req, res) => {
+    res.json({ success: true, data: { installed: true } });
+  });
+
   if (services) {
     app.use('/auth', createAuthRouter(services));
     app.use('/core/share', createShareRouter(services));
@@ -83,9 +89,39 @@ export function createAppWithPublicRouter(
   app.use(express.urlencoded({ extended: true }));
 
   app.use('/health', healthRouter);
+
+  // 앱 모드에서 /setup/status는 installed:true를 반환 (프론트엔드 모드 감지용)
+  app.get('/setup/status', (_req, res) => {
+    res.json({ success: true, data: { installed: true } });
+  });
+
   app.use('/auth', createAuthRouter(services));
   app.use('/core/share', createShareRouter(services));
   app.use('/s', createPublicRouter(services.sharedLink, getRenderer));
+
+  return app;
+}
+
+// ── Setup 전용 앱 팩토리 (installed.lock 없을 때) ─────────────
+
+export function createSetupApp(): express.Application {
+  const app = express();
+
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  app.use('/health', healthRouter);
+  app.use('/setup', createSetupRouter());
+
+  // 프로덕션: 빌드된 프론트엔드 정적 파일 서빙
+  const publicDir = path.join(__dirname, '..', 'public');
+  if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(publicDir, 'index.html'));
+    });
+  }
 
   return app;
 }

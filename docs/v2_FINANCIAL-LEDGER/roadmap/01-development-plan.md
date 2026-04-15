@@ -346,16 +346,33 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - **모드 분리**: `installed.lock` 파일 존재 여부로 Setup 모드 / 앱 모드를 구분
 - **같은 서버, 다른 모드**: 완전히 별도 프로세스가 아닌 동일 서버에서 모드 전환
 - **메인 앱은 설치 완료를 전제**: 앱 코드 전반에 "미설치 상태" 방어 코드 불필요
+- **DB 기본값은 PostgreSQL**: 장기 운영을 고려해 처음부터 PostgreSQL 권장. SQLite는 개발/테스트 전용으로 제공하며 일부 모듈 기능이 정상적으로 작동하지 않을 수 있음.
+- **DB 자동 프로비저닝**: Docker / systemd / native 세 가지 런타임을 감지해 가능한 경우 자동 설치. Docker 사용 시 `fieldstack-postgres` 컨테이너를 자동 생성 (`--restart unless-stopped`).
 
 ```
 첫 실행 (installed.lock 없음)
   └─ Setup 모드로 서버 기동 → Setup UI만 서빙
-       └─ 설치 완료 → installed.lock 생성 → 서버 재시작
-            └─ 앱 모드로 전환
+       └─ 설치 완료 → fieldstack.config.json 저장 → installed.lock 생성 → 서버 재시작
+            └─ 앱 모드로 전환 (config → process.env 자동 반영)
 
 완전 초기화 (공장 초기화)
-  └─ DB 초기화 + installed.lock 삭제 → 서버 재시작
+  └─ DB 초기화 + installed.lock + fieldstack.config.json 삭제 → 서버 재시작
        └─ Setup 모드로 자동 복귀 (설치 첫날과 동일한 흐름)
+```
+
+### DB 런타임 자동 감지 흐름
+
+```
+GET /setup/db/detect
+  ├─ Docker   — docker --version + docker info → 컨테이너 자동 생성 가능
+  ├─ systemd  — systemctl + postgresql 서비스 탐색 → 서비스 기동 + DB 생성
+  └─ native   — pg_isready / postgres 바이너리 탐색 → 이미 실행 중이면 연결
+
+POST /setup/db/provision { runtime: "docker"|"systemd"|"native" }
+  ├─ docker  : pull postgres:16-alpine → docker run --restart unless-stopped → 연결 대기
+  ├─ systemd : systemctl start → pg_isready 폴링 → fieldstack 유저/DB 생성 (sudo 폴백)
+  └─ native  : 실행 중인 pg에 접속 → fieldstack 유저/DB 생성 시도
+  └─ (모두 실패) → URL 직접 입력 폴백
 ```
 
 ### 주요 작업
@@ -363,19 +380,25 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 #### 1.95.1 모드 전환 시스템
 **예상 기간: 2일**
 
-- [ ] `installed.lock` 기반 Setup/앱 모드 감지 로직
-- [ ] Setup 모드일 때 메인 앱 라우트 전체 차단 (Setup UI만 응답)
-- [ ] 설치 완료 시 `installed.lock` 생성 후 서버 자동 재시작 처리
-- [ ] 완전 초기화 시 DB + `installed.lock` 삭제 → 서버 재시작 → Setup 모드 복귀
+- [x] `installed.lock` 기반 Setup/앱 모드 감지 로직 (`setup/mode.ts`)
+- [x] Setup 모드일 때 메인 앱 라우트 전체 차단 (`createSetupApp()`, `index.ts` 분기)
+- [x] 설치 완료 시 `installed.lock` + `fieldstack.config.json` 생성 후 서버 자동 재시작
+- [x] `fieldstack.config.json` → `process.env` 자동 반영 (`applyConfigToEnv()`)
+- [ ] 완전 초기화 시 DB + `installed.lock` + config 삭제 → 서버 재시작 → Setup 모드 복귀
 
 #### 1.95.2 Setup 백엔드 API
 **예상 기간: 3일**
 
-- [ ] 설치 상태 조회 (`GET /setup/status`)
-- [ ] 관리자 계정 생성 (`POST /setup/admin`)
-- [ ] DB 연결 테스트 (`POST /setup/db/test`)
-- [ ] 초기 설정 저장 및 설치 완료 처리 (`POST /setup/complete`)
-- [ ] 설치 진행 중 상태 스트리밍 (WebSocket 또는 SSE)
+- [x] 설치 상태 조회 (`GET /setup/status`) — 앱 모드에서도 `installed: true` 반환
+- [x] DB 런타임 감지 (`GET /setup/db/detect`) — Docker / systemd / native 병렬 감지
+- [x] DB 자동 프로비저닝 (`POST /setup/db/provision`) — 런타임별 SSE 스트리밍
+  - [x] Docker: `postgres:16-alpine` 컨테이너 자동 생성
+  - [x] systemd: `systemctl start` + fieldstack 유저/DB 생성
+  - [x] native: 실행 중인 PostgreSQL에서 유저/DB 생성 시도
+- [x] DB 연결 테스트 (`POST /setup/db/test`)
+- [x] 설치 완료 처리 (`POST /setup/complete`) — SSE 스트리밍 (DB→마이그레이션→관리자→config→lock→재시작)
+- [x] SQLite 제공자 실제 구현 (`better-sqlite3`, 개발/테스트 전용)
+- [x] 마이그레이션 SQLite 호환 (`{{SERIAL_PK}}` 토큰, `gen_random_uuid()` 유저 함수)
 - [ ] 완전 초기화 API (`POST /admin/factory-reset`) — 관리자 PIN 재확인 필수
 
 #### 1.95.3 Setup UI (프론트엔드)
@@ -384,7 +407,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - [ ] Welcome 화면 (제품 소개, 시작하기)
 - [ ] Configuration 화면
   - [ ] 관리자 계정 설정 (이메일, 비밀번호, PIN)
-  - [ ] DB 선택 및 연결 설정 (SQLite 기본 / PostgreSQL 선택)
+  - [ ] DB 설정 — PostgreSQL 기본값, 런타임별 자동 설치 버튼 / URL 직접 입력
   - [ ] 선택 옵션 (SMTP, 텔레메트리 동의 등)
 - [ ] Progress 화면 (실시간 설치 로그, 단계 표시)
 - [ ] Complete 화면 (로그인 진입 안내)
@@ -405,12 +428,23 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - ✅ 완전 초기화 실행 시 Setup 모드로 자동 복귀
 - ✅ 설치 중 새로고침해도 진행 상태 유지
 
+### 🔄 Phase 1.95 진행 이력
+
+| 날짜 | 내용 |
+|------|------|
+| 2026-04-16 | Phase 1.95.1 모드 전환 시스템 구현. `setup/mode.ts` — `installed.lock` / `fieldstack.config.json` 유틸 + `applyConfigToEnv()` + `scheduleRestart()`. `index.ts` Setup/앱 모드 분기. `app.ts` `createSetupApp()` 팩토리 추가. `config/env.ts` postgres refine 제거(DB 검증을 `initDb()` 호출 시점으로 이동, Setup 모드 기동 허용). |
+| 2026-04-16 | Phase 1.95.2 Setup 백엔드 API 구현. `routes/setup.ts` — GET /setup/status, GET /setup/db/detect, POST /setup/db/provision (SSE), POST /setup/db/test, POST /setup/complete (SSE). `setup/docker.ts` — Docker 감지·이미지 pull·컨테이너 프로비저닝·연결 폴링. `setup/runtime.ts` — Docker/systemd/native 런타임 병렬 감지 및 provisioner 추상화. |
+| 2026-04-16 | SQLite 제공자 실제 구현(`better-sqlite3`). 데이터 디렉터리 자동 생성, `gen_random_uuid()` / `now()` 유저 함수 등록, `$N`→`?` 파라미터 변환, RETURNING 절 지원, BEGIN/COMMIT 수동 트랜잭션. 마이그레이션 SQLite 호환 — `{{SERIAL_PK}}` 토큰 추가, `_migrations` 테이블 생성 시 `applyDialect()` 적용. |
+
 ---
 
 ## Phase 2 사전 작업: 모듈 레지스트리 시스템
 
 > **Phase 2 착수 전 완료 권장.** Ledger 등 실제 모듈을 붙이기 전에 모듈 라우터를
 > 런타임에 동적으로 등록/해제할 수 있는 레지스트리 구조를 먼저 확보한다.
+
+> **작업 시작전 알림**: Phase 2 pre 작업 이전 현재까지 작업된 코드에서 인용(//)으로 설명이나 메모가 안되어 있는 부분들을 확인하고
+> 만약 안되어 있거나 설명이 부족하다 싶은 부분이 있을 시 추가로 보충을 하고 넘어갈 것.
 
 ### 배경
 

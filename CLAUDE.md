@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-Phase 1.5 진행 중 (2026-04-14 기준). Phase 1.9 (API 서버·DB·인증 백엔드·공유 링크) 완료. Phase 1.5.3 로그인 UX 완료 (실패/잠금/세션 만료, 비밀번호 복구 UI, mock 계정 시스템). `packages/controls` P0/P0.5 컴포넌트 구현 완료 (`ready: true`). Storybook 세팅 완료 (port 6007). `@fieldstack/core/browser` 브라우저 전용 엔트리 분리 완료 — 웹 앱은 반드시 이 경로로 import.
+Phase 1.95 진행 중 (2026-04-16 기준). Phase 1.9 (API 서버·DB·인증 백엔드·공유 링크) 완료. Phase 1.5 전 항목 완료. Phase 1.95.1 모드 전환 시스템 완료 (`installed.lock` / `fieldstack.config.json` 기반). Phase 1.95.2 Setup 백엔드 API 완료 (Docker/systemd/native 런타임 자동 감지·프로비저닝, SSE 스트리밍). SQLite 제공자 실제 구현 완료(`better-sqlite3`). `@fieldstack/core/browser` 브라우저 전용 엔트리 분리 완료 — 웹 앱은 반드시 이 경로로 import.
 
 ---
 

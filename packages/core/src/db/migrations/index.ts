@@ -5,12 +5,13 @@ import type { DbProvider, DbRow } from '../index.js';
 
 // ── _migrations 테이블 ────────────────────────────────────────
 
-const CREATE_MIGRATIONS_TABLE = `
+// {{SERIAL_PK}} / {{NOW}} 은 applyDialect()로 치환됨 (ensureMigrationsTable 참고)
+const CREATE_MIGRATIONS_TABLE_TEMPLATE = `
   CREATE TABLE IF NOT EXISTS _migrations (
-    id        SERIAL PRIMARY KEY,
-    module    TEXT        NOT NULL,
-    filename  TEXT        NOT NULL,
-    applied_at TIMESTAMPTZ DEFAULT NOW(),
+    id         {{SERIAL_PK}},
+    module     TEXT NOT NULL,
+    filename   TEXT NOT NULL,
+    applied_at TEXT DEFAULT ({{NOW}}),
     UNIQUE (module, filename)
   )
 `;
@@ -23,12 +24,15 @@ const DIALECT_TOKENS: Record<string, Record<string, string>> = {
     '{{NOW}}': 'NOW()',
     '{{BOOLEAN_TRUE}}': 'TRUE',
     '{{BOOLEAN_FALSE}}': 'FALSE',
+    '{{SERIAL_PK}}': 'SERIAL PRIMARY KEY',
   },
   sqlite: {
-    '{{UUID_PRIMARY_KEY}}': 'TEXT PRIMARY KEY',
+    // UUID PK: DEFAULT 에 등록된 gen_random_uuid() 유저 함수 사용 (SqliteProvider.connect()에서 등록)
+    '{{UUID_PRIMARY_KEY}}': 'TEXT PRIMARY KEY DEFAULT (gen_random_uuid())',
     '{{NOW}}': "datetime('now')",
     '{{BOOLEAN_TRUE}}': '1',
     '{{BOOLEAN_FALSE}}': '0',
+    '{{SERIAL_PK}}': 'INTEGER PRIMARY KEY AUTOINCREMENT',
   },
 };
 
@@ -62,7 +66,8 @@ export class FileMigrationRunner {
   }
 
   private async ensureMigrationsTable(): Promise<void> {
-    await this.db.query(CREATE_MIGRATIONS_TABLE);
+    const sql = applyDialect(CREATE_MIGRATIONS_TABLE_TEMPLATE, this.db.name);
+    await this.db.query(sql);
   }
 
   private async getPendingFiles(): Promise<string[]> {
