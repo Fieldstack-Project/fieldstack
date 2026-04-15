@@ -1,11 +1,11 @@
 # 단계별 개발 계획
 
-> 📌 **프로젝트 상태:** 2026-04-14 기준 **Phase 1.5 진행 중**.
-> - 아키텍처, 기술 스택, 모듈 시스템, UI/UX 등 모든 핵심 설계가 문서화되었습니다.
-> - Monorepo 구조 및 초기 설정(Phase 1.1)이 완료되었습니다.
-> - Core UI Shell(로그인/홈/설정/관리자) React 구현 및 1차 UI/UX 전면 개편 완료.
-> - Phase 1.9 (API 서버 + DB + 인증 백엔드 + 공유 링크) 완료.
-> - Phase 1.5.3 로그인 UX 개선 완료 (실패/잠금/세션 만료, 비밀번호 복구 UI, mock 계정 시스템).
+> 📌 **프로젝트 상태:** 2026-04-16 기준 **Phase 1.95 진행 중** (1.95.3 Setup UI 구현 완료, 1.95.4 대기).
+> - Phase 1.5 전 항목 완료 (Core UI Shell / 로그인 / 홈 / 설정 / 관리자).
+> - Phase 1.9 완료 (API 서버 + DB + 인증 백엔드 + 공유 링크).
+> - Phase 1.95.1 모드 전환 시스템 완료 (`installed.lock` / `fieldstack.config.json` 기반).
+> - Phase 1.95.2 Setup 백엔드 API 완료 (Docker/systemd/native 런타임 감지·프로비저닝, SSE 스트리밍, IP 배너 출력).
+> - Phase 1.95.3 Setup UI 완료 (4단계 설치 마법사 — Welcome / Config / Progress / Complete).
 
 ## 개요
 
@@ -399,21 +399,23 @@ POST /setup/db/provision { runtime: "docker"|"systemd"|"native" }
 - [x] 설치 완료 처리 (`POST /setup/complete`) — SSE 스트리밍 (DB→마이그레이션→관리자→config→lock→재시작)
 - [x] SQLite 제공자 실제 구현 (`better-sqlite3`, 개발/테스트 전용)
 - [x] 마이그레이션 SQLite 호환 (`{{SERIAL_PK}}` 토큰, `gen_random_uuid()` 유저 함수)
+- [x] Setup 모드 시작 시 접속 가능한 IP 주소 콘솔 배너 출력 (`os.networkInterfaces()` — Docker/원격 서버 환경 대응)
 - [ ] 완전 초기화 API (`POST /admin/factory-reset`) — 관리자 PIN 재확인 필수
 
 #### 1.95.3 Setup UI (프론트엔드)
 **예상 기간: 1주**
 
-- [ ] Welcome 화면 (제품 소개, 시작하기)
-- [ ] Configuration 화면
-  - [ ] 관리자 계정 설정 (이메일, 비밀번호, PIN)
-  - [ ] DB 설정 — PostgreSQL 기본값, 런타임별 자동 설치 버튼 / URL 직접 입력
-  - [ ] 선택 옵션 (SMTP, 텔레메트리 동의 등)
-- [ ] Progress 화면 (실시간 설치 로그, 단계 표시)
-- [ ] Complete 화면 (로그인 진입 안내)
+- [x] Welcome 화면 (제품 소개, 시작하기)
+- [x] Configuration 화면
+  - [x] 관리자 계정 설정 (이메일, 비밀번호, PIN)
+  - [x] DB 설정 — PostgreSQL 기본값, 런타임별 자동 설치 버튼 / URL 직접 입력
+  - [ ] 선택 옵션 (SMTP, 텔레메트리 동의 등) — Phase 2.3 / 3.5 이후 확장
+- [x] Progress 화면 (실시간 설치 로그, 단계 표시)
+- [x] Complete 화면 (로그인 진입 안내)
 - [ ] 설치 중 새로고침/재접속 복구 (진행 상태 재동기화)
-- [ ] 각 단계 유효성 검증 UX (필수값, 형식 오류, DB 연결 테스트 결과)
-- [ ] Progress 실패 처리 UX (재시도 / 이전 단계 복귀 / 에러 요약)
+- [x] 각 단계 유효성 검증 UX (필수값, 형식 오류, DB 연결 테스트 결과)
+- [x] Progress 실패 처리 UX (재시도 / 이전 단계 복귀 / 에러 요약)
+- [x] Vite 개발 서버 API 프록시 설정 (`/setup`, `/core`, `/auth`, `/api` → `localhost:3000`)
 
 #### 1.95.4 부분 초기화 / 완전 초기화 UI
 **예상 기간: 2일**
@@ -435,6 +437,9 @@ POST /setup/db/provision { runtime: "docker"|"systemd"|"native" }
 | 2026-04-16 | Phase 1.95.1 모드 전환 시스템 구현. `setup/mode.ts` — `installed.lock` / `fieldstack.config.json` 유틸 + `applyConfigToEnv()` + `scheduleRestart()`. `index.ts` Setup/앱 모드 분기. `app.ts` `createSetupApp()` 팩토리 추가. `config/env.ts` postgres refine 제거(DB 검증을 `initDb()` 호출 시점으로 이동, Setup 모드 기동 허용). |
 | 2026-04-16 | Phase 1.95.2 Setup 백엔드 API 구현. `routes/setup.ts` — GET /setup/status, GET /setup/db/detect, POST /setup/db/provision (SSE), POST /setup/db/test, POST /setup/complete (SSE). `setup/docker.ts` — Docker 감지·이미지 pull·컨테이너 프로비저닝·연결 폴링. `setup/runtime.ts` — Docker/systemd/native 런타임 병렬 감지 및 provisioner 추상화. |
 | 2026-04-16 | SQLite 제공자 실제 구현(`better-sqlite3`). 데이터 디렉터리 자동 생성, `gen_random_uuid()` / `now()` 유저 함수 등록, `$N`→`?` 파라미터 변환, RETURNING 절 지원, BEGIN/COMMIT 수동 트랜잭션. 마이그레이션 SQLite 호환 — `{{SERIAL_PK}}` 토큰 추가, `_migrations` 테이블 생성 시 `applyDialect()` 적용. |
+| 2026-04-16 | Phase 1.95.3 Setup UI 구현. 4단계 설치 마법사(Welcome → Config → Progress → Complete). Config 단계: 관리자 계정(이메일/비밀번호/PIN) + DB 선택(PostgreSQL 기본값·런타임 자동 감지·자동 설치 SSE / SQLite 경고). Progress: `POST /setup/complete` SSE 스트리밍 단계별 표시. Complete: 5초 카운트다운 자동 이동. 오류 시 재시도 / 이전 단계 복귀 UX. Vite 개발 서버 프록시 추가. |
+| 2026-04-16 | Setup 모드 시작 시 접속 가능한 IP 주소 콘솔 배너 출력. `os.networkInterfaces()`로 IPv4 주소 수집 — Docker bridge / LAN / 외부 인터페이스 포함. 박스 배너 형식으로 localhost + 네트워크 주소 전체 표시. |
+| 2026-04-16 | 기술 문서 번호 논리적 순서 재정렬. migrations(06→02), startup-sequence(07→03), authentication(02→04), scheduler(04→06), shared-link(08→07), ai-integration(03→08). 관련 참조 경로 일괄 업데이트. `09-system-monitor.md` 신규 추가. |
 
 ---
 
