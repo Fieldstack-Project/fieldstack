@@ -29,8 +29,8 @@ Current phase: **Development in progress (Roadmap Phase 1.5)**
 
 - ✅ Planning and documentation are complete
 - ✅ Roadmap Phase 1 (Core foundation) is complete
-- 🚧 Development is active, and missing details are being filled during implementation
-- 🚧 Roadmap Phase 1.5 (Core Control Plane UI/UX) is in progress
+- ✅ Roadmap Phase 1.9 (API server, DB, auth backend, shared links) is complete
+- 🚧 Roadmap Phase 1.5 (Core Control Plane UI/UX) is nearing completion
 - 🎯 Target timeline remains **2026-2027**
 
 ### Phase Progress
@@ -38,35 +38,76 @@ Current phase: **Development in progress (Roadmap Phase 1.5)**
 | Phase | Scope (Roadmap) | Status | Progress |
 | ------- | ----------- | ------- | ------- |
 | Phase 1 | Core foundation setup | Completed ✅ | 100% |
-| Phase 1.5 | Core Control Plane UI/UX | In progress ⏳ | 40% |
+| Phase 1.5 | Core Control Plane UI/UX | In progress ⏳ | 90% |
+| Phase 1.9 | API server · DB · auth backend · shared links | Completed ✅ | 100% |
+| Phase 1.95 | Setup install wizard (mode switch · backend API · UI) | In progress ⏳ | 0% |
 | Phase 2 | Core module development (Ledger, Subscription) | Not started 🚧 | 0% |
 | Phase 3 | Marketplace and website | Not started 🚧 | 0% |
 | Phase 4 | Deployment optimization | Not started 🚧 | 0% |
 | Phase 5 | Expansion and ecosystem | Not started 🚧 | 0% |
 | Phase 6 | Community growth (continuous) | Not started 🚧 | 0% |
 
-#### Phase 1.5 Snapshot (2026-02-26)
+#### Phase 1.5 Snapshot (2026-04-15)
 
-- Control contracts (P0/P0.5): **100%**
-- `@fieldstack/controls` scaffold: **100%**
-- Render components (TSX + styles + a11y behaviors): **0%**
-- End-to-end flow verification: **0%**
+| Sub-phase | Scope | Status |
+| --------- | ----- | ------ |
+| 1.5.1 | Control UI components (P0/P0.5 implemented, `ready: true`) | Done ✅ |
+| 1.5.2 | Install wizard dev bypass (`dev:bypass`) | Done ✅ |
+| 1.5.3 | Login UX (failure/lock/session expiry, password recovery, mock accounts) | Done ✅ |
+| 1.5.4 | Main Home (sidebar, deep link routing, mobile drawer, onboarding banner) | Done ✅ |
+| 1.5.5 | Admin dashboard / general settings (PIN step-up, audit log, dirty-state save) | Done ✅ |
+| 1.5.6 | UX quality baseline (responsive breakpoints, QA checklist, a11y, tone guide) | Done ✅ |
+| Gate | Accessibility / responsive / E2E pass · UI contract freeze | Pending ⏳ |
 
 > Note: This phase table follows `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md` and is updated as implementation progresses.
 
 ---
 
-## Quick Start
+## Tech Stack
 
-### Docker Compose (Recommended)
+| Layer | Technology |
+| ----- | ---------- |
+| Frontend | React 19, Vite, TypeScript (strict) |
+| Backend | Node.js, Express 5, tsx |
+| Database | PostgreSQL (primary) · SQLite (planned) |
+| Auth | JWT, TOTP 2FA, Argon2id |
+| Monorepo | pnpm workspaces |
+| Testing | Vitest |
+| UI Components | `@fieldstack/controls` (internal), Storybook |
+| Styling | CSS custom properties (design token system) |
+
+---
+
+## Getting Started
+
+> **Production deployment guide will be published when the Setup install wizard (Phase 1.95) is complete.**
+> Until then, you can run the project locally in development mode.
+
+### Local Development
+
 ```bash
 git clone https://github.com/fieldstack-project/fieldstack.git
 cd fieldstack
+pnpm install
+
+# Start PostgreSQL (Docker required)
 docker-compose up -d
 
-# Browser will open automatically
-→ http://localhost:3000/install
+# Run dev server (web + api in parallel)
+pnpm dev:bypass       # skip install wizard
+# → Web:  http://localhost:5173
+# → API:  http://localhost:3000
+
+# Storybook (UI components)
+pnpm storybook        # http://localhost:6007
 ```
+
+**Dev mock accounts**
+
+| Role | Email | Password |
+| ---- | ----- | -------- |
+| Admin | `admin@fieldstack.dev` | `Admin1234!` |
+| User | `user@fieldstack.dev` | `User1234!` |
 
 ---
 
