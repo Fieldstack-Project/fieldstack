@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 export interface ModuleRoutes {
   frontend: string;
   api: string;
@@ -81,9 +84,27 @@ export function validateModuleDependencies(manifests: ModuleManifest[]): Depende
     .filter((issue) => issue.missingDependencies.length > 0);
 }
 
+export async function loadModulesFromDisk(modulesDir: string): Promise<BackendModuleEntry[]> {
+  if (!fs.existsSync(modulesDir)) return [];
+
+  const dirs = fs.readdirSync(modulesDir, { withFileTypes: true }).filter((d) => d.isDirectory());
+
+  const entries: BackendModuleEntry[] = [];
+  for (const dir of dirs) {
+    const manifestPath = path.join(modulesDir, dir.name, 'module.json');
+    if (fs.existsSync(manifestPath)) {
+      const manifestJson = fs.readFileSync(manifestPath, 'utf-8');
+      entries.push({ name: dir.name, manifestJson });
+    }
+  }
+
+  return entries;
+}
+
 export default {
   parseModuleJson,
   scanBackendModules,
   buildBackendRouteRegistrations,
   validateModuleDependencies,
+  loadModulesFromDisk,
 };
