@@ -310,7 +310,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 
 > 모든 모듈이 공통으로 사용할 수 있는 공개 링크 발행 인프라.
 > 청구서, 폼, 프로젝트 현황 등 어떤 데이터든 모듈이 이 코어를 호출하면 공개 링크를 발행할 수 있다.
-> 상세 설계는 `technical/08-shared-link.md` 참고.
+> 상세 설계는 `technical/07-shared-link.md` 참고.
 
 - [x] 공유 링크 DB 스키마 (`shared_links`, `shared_link_logs`, `system_settings` 테이블)
 - [x] 링크 발행 API (`POST /core/share`) — 인증된 사용자, 도메인 감지 + admin on/off 검사

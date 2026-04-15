@@ -58,7 +58,7 @@ BaseIntegration은 이 인터페이스를 구현하는 추상 클래스입니다
 
 > 📖 **실제 사용 예시:**  
 > → `modules/00-default-modules.md § Subscription § Google Calendar 연동`  
-> → `technical/04-scheduler.md § 작업 예시 § Google Drive 자동 백업`
+> → `technical/06-scheduler.md § 작업 예시 § Google Drive 자동 백업`
 
 GoogleCalendar 클래스는 BaseIntegration을 상속받습니다.
 
@@ -156,7 +156,7 @@ Core의 integrations 팩토리에서 'google-calendar'를 조회합니다. 먼�
 ## 보안
 
 > 📖 **보안 정책:**  
-> → `technical/02-authentication.md § 보안 고려사항`
+> → `technical/04-authentication.md § 보안 고려사항`
 
 ### API Key 암호화
 
@@ -184,7 +184,7 @@ API Key는 encrypt 함수로 암호화한 후, 사용자 ID, 통합 서비스 �
 ## Scheduler 연계
 
 > 📖 **Scheduler 활용:**  
-> → `technical/04-scheduler.md § 통합 서비스 연계`
+> → `technical/06-scheduler.md § 통합 서비스 연계`
 
 Scheduler는 통합 서비스와 함께 사용하여 강력한 자동화 구현:
 
@@ -256,8 +256,8 @@ Scheduler에 'backup-to-drive' 작업을 등록합니다. 매일 새벽 3시에 
 ### 기술
 - 📖 `technical/01-database.md § Provider 패턴` - 유사한 추상화 패턴
 - 📖 `technical/01-database.md § 암호화` - API Key 암호화
-- 📖 `technical/02-authentication.md § 보안` - 보안 정책
-- 📖 `technical/04-scheduler.md § 통합 서비스 연계` - 자동화 워크플로우
+- 📖 `technical/04-authentication.md § 보안` - 보안 정책
+- 📖 `technical/06-scheduler.md § 통합 서비스 연계` - 자동화 워크플로우
 
 ### 모듈 개발
 - 📖 `modules/development-guide.md § Backend 개발` - 통합 서비스 사용
@@ -275,7 +275,7 @@ Scheduler에 'backup-to-drive' 작업을 등록합니다. 매일 새벽 3시에 
 
 1. **설정** → `deployment/configuration.md`
 2. **모듈 개발** → `modules/development-guide.md`
-3. **자동화** → `technical/04-scheduler.md`
+3. **자동화** → `technical/06-scheduler.md`
 
 > 💬 **도움이 필요하신가요?**  
 > → Discord: https://discord.gg/5m4aHKmWgg

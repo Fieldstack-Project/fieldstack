@@ -265,7 +265,7 @@ Rate Limiting은 5회 연속 실패 시 5분간 로그인을 잠급니다. 잠�
 ### 📚 관련 문서
 
 > 📖 **상세 인증 가이드:**  
-> → `technical/02-authentication.md § 3. 관리자 인증`
+> → `technical/04-authentication.md § 3. 관리자 인증`
 
 > 📖 **보안 정책:**  
 > → `security/access-control.md` (작성 예정)
@@ -391,7 +391,7 @@ MongoDBProvider는 Query Builder를 MongoDB Query Object로 변환합니다. 예
 > → `technical/database-providers.md` (작성 예정)
 
 > 📖 **마이그레이션:**  
-> → `technical/06-migrations.md` (작성 예정)
+> → `technical/02-migrations.md` (작성 예정)
 
 ### ⚠️ 주의사항
 
@@ -457,7 +457,7 @@ Fieldstack은 프라이버시 중심의 개인 시스템이지만, OpenClaw와 �
 ### 📚 관련 문서
 
 > 📖 **AI 통합 정책:**  
-> → `technical/03-ai-integration.md § 외부 AI Agent 연동`
+> → `technical/08-ai-integration.md § 외부 AI Agent 연동`
 
 > 📖 **OpenAPI Baseline:**  
 > → `technical/05-openapi-baseline.yaml`
@@ -608,7 +608,7 @@ temp_password_hash:   string | null  -- 임시 비밀번호 해시 (변경 완�
 ### 📚 관련 문서
 
 > 📖 **인증 설계:**
-> → `technical/02-authentication.md`
+> → `technical/04-authentication.md`
 
 > 📖 **검증 유틸:**
 > → `packages/core/src/utils/validation.ts`
@@ -709,7 +709,7 @@ SMTP 포트      예: 587
 ### 📚 관련 문서
 
 > 📖 **인증 설계:**
-> → `technical/02-authentication.md`
+> → `technical/04-authentication.md`
 
 > 📖 **계정 관리 정책:**
 > → `architecture/01-decisions.md § 결정 #6`
@@ -757,7 +757,7 @@ SMTP 포트      예: 587
 
 ### 문서 정리 (Step 2)
 1. `architecture/00-overview.md` - Frontend 서빙 로직 명확화
-2. `technical/02-authentication.md` - 로컬 로그인 우선 + 선택 OAuth + PIN으로 수정
+2. `technical/04-authentication.md` - 로컬 로그인 우선 + 선택 OAuth + PIN으로 수정
 3. `modules/01-development-guide.md` - 교차 참조 추가
 
 ### 구현 시작 (Step 3)

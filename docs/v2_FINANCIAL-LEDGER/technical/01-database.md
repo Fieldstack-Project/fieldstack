@@ -19,7 +19,7 @@
 > PostgreSQL을 먼저 구현한다. 재무 데이터의 ACID 요구사항, decimal 정확도, 멀티 유저 동시성,
 > Phase 2 복잡 쿼리를 감안하면 PostgreSQL이 Fieldstack의 주력 DB다.
 > SQLite는 DB 추상화 검증 및 경량 배포 옵션으로 후순위 구현한다.
-> Provider 간 전환 시 마이그레이션 전략은 `technical/06-migrations.md` 참고.
+> Provider 간 전환 시 마이그레이션 전략은 `technical/02-migrations.md` 참고.
 
 ---
 
@@ -82,7 +82,7 @@ DBProvider 인터페이스를 정의합니다. 모든 DB Provider는 동일하�
 ## 마이그레이션 전략 (자동화)
 
 > 📖 **상세 설계:**  
-> → `technical/06-migrations.md` - 버전 관리 및 전처리기 상세
+> → `technical/02-migrations.md` - 버전 관리 및 전처리기 상세
 
 각 모듈은 `backend/migrations/` 폴더 내에 SQL 파일을 배치하여 자신의 스키마를 독립적으로 관리합니다.
 

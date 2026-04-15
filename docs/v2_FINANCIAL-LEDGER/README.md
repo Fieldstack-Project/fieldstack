@@ -102,9 +102,9 @@ pnpm start
 ### 기술 문서
 - [🔧 기술 스택](technical/00-tech-stack.md)
 - [🗄️ 데이터베이스](technical/01-database.md)
-- [🤖 AI 통합](technical/03-ai-integration.md)
-- [🔐 인증](technical/02-authentication.md)
-- [⏰ Scheduler](technical/04-scheduler.md)
+- [🤖 AI 통합](technical/08-ai-integration.md)
+- [🔐 인증](technical/04-authentication.md)
+- [⏰ Scheduler](technical/06-scheduler.md)
 - [📘 OpenAPI Baseline](technical/05-openapi-baseline.yaml)
 
 ### 모듈 개발

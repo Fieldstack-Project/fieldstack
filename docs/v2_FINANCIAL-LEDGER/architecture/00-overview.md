@@ -292,7 +292,7 @@ cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 
 ### 구성 요소
 
 #### Auth
-> 📖 → `technical/02-authentication.md`
+> 📖 → `technical/04-authentication.md`
 
 - **이메일/비밀번호 로그인** - 기본 로그인
 - **TOTP 2FA** - 추가 보안(관리자 필수 권장)
@@ -330,7 +330,7 @@ cors 미들웨어를 사용하여 CORS_ORIGIN 환경 변수의 값만 허용된 
 모듈 간 통신은 이벤트 발행/구독 패턴으로 느슨한 결합을 유지합니다. 예를 들어 Subscription 모듈에서 'subscription:payment' 이벤트를 발행하면, Ledger 모듈이 그 이벤트를 구독하여 자동으로 가계부 항목을 생성합니다.
 
 #### AI Abstraction
-> 📖 → `technical/03-ai-integration.md`
+> 📖 → `technical/08-ai-integration.md`
 
 - **Provider 추상화** (Gemini, OpenAI, Claude, Ollama)
 - **사용자 API Key 관리**
@@ -389,7 +389,7 @@ modules/[module-name]/
 - 깨져도 Core/Module에 영향 없음
 
 ### 예시
-> 📖 → `technical/04-scheduler.md`
+> 📖 → `technical/06-scheduler.md`
 
 - **Scheduler**: 정기 작업 실행
 - **AI Assistant**: 백그라운드 분석
@@ -485,7 +485,7 @@ Module → Core Integration → External API
 ## 보안 모델
 
 > 📖 **상세 보안 정책:**  
-> → `technical/02-authentication.md § 보안 고려사항`
+> → `technical/04-authentication.md § 보안 고려사항`
 
 ### 계층별 보안
 
@@ -726,8 +726,8 @@ rclone copy backup_$(date +%Y%m%d).tar.gz gdrive:backups/
 ### 기술
 - 📖 `technical/00-tech-stack.md` - 기술 스택
 - 📖 `technical/01-database.md` - DB 추상화
-- 📖 `technical/02-authentication.md` - 인증 시스템
-- 📖 `technical/04-scheduler.md` - Scheduler
+- 📖 `technical/04-authentication.md` - 인증 시스템
+- 📖 `technical/06-scheduler.md` - Scheduler
 
 ### 배포
 - 📖 `deployment/01-installation.md` - 설치 가이드

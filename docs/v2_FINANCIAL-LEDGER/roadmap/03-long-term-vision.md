@@ -187,7 +187,7 @@ DocuVerse 소속이지만 범용 라이브러리로 설계합니다:
 ## 7. 공유 링크 코어 시스템
 
 어떤 모듈이든 외부 공개 링크를 발행할 수 있는 공통 인프라.
-설계 상세는 `technical/08-shared-link.md` 참고.
+설계 상세는 `technical/07-shared-link.md` 참고.
 
 ```
 청구서 모듈  ─┐

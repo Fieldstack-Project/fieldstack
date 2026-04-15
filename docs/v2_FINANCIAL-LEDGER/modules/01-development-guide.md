@@ -148,7 +148,7 @@ initialize 함수는 모듈이 시작될 때 호출됩니다. 먼저 DB 마이�
 shutdown 함수는 모듈이 종료될 때 호출됩니다. Event Bus에서 등록한 이벤트 리스너를 제거합니다.
 
 > 📖 **Scheduler 사용법:**  
-> → `technical/04-scheduler.md`
+> → `technical/06-scheduler.md`
 
 ---
 
@@ -278,7 +278,7 @@ module-registry 저장소에 PR 제출
 
 ### 기술
 - 📖 `technical/01-database.md` - DB 추상화 레이어
-- 📖 `technical/04-scheduler.md` - Scheduler 사용법
+- 📖 `technical/06-scheduler.md` - Scheduler 사용법
 - 📖 `technical/05-openapi-baseline.yaml` - OpenAPI baseline
 - 📖 `modules/02-integrations.md` - 외부 서비스 통합
 
