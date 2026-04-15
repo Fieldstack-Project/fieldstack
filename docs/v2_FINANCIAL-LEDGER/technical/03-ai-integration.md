@@ -1,5 +1,16 @@
 # AI 통합 정책
 
+## UI 명칭
+
+- **정식 명칭**: AI Assistant & Agent (AI 어시스턴트 & 에이전트)
+- **약칭**: AI (설정 메뉴 레이블 등 공간이 좁을 때)
+- **구분 기준**:
+  - Assistant — 사용자 요청에 응답하는 대화형 분석/요약
+  - Agent — 모듈에 사전 저장된 프롬프트로 자동 동작하는 것
+- **설정 화면 구조**: 항목 수에 따라 단일 섹션 또는 서브탭으로 결정 예정
+
+---
+
 ## 개요
 
 AI는 계산 주체가 아닌 **분석/요약/해설 역할**로만 사용됩니다.
@@ -21,42 +32,76 @@ AI는 계산 주체가 아닌 **분석/요약/해설 역할**로만 사용됩니
 
 ---
 
+## 연결 방식 비교
+
+AI를 사용하는 방식은 크게 세 가지로 나뉩니다.
+
+| 항목 | 계정 연결 | API Key 연결 | 로컬 실행 |
+|------|-----------|--------------|-----------|
+| **연결 방법** | OAuth / 소비자 앱 계정 | API Key 직접 입력 | 로컬 서버 URL 입력 |
+| **해당 툴** | ChatGPT Plus, Gemini Advanced 등 | OpenAI, Anthropic, Google AI | Ollama, LM Studio, Jan, LocalAI, GPT4All 등 |
+| **학습 데이터 사용** | ⚠️ Provider 정책에 따라 다름 | ✅ 기본적으로 학습 제외 | ✅ 데이터 외부 전송 없음 |
+| **프라이버시** | 낮음 | 중간 | 높음 (완전 로컬) |
+| **비용** | 구독료 (월정액) | 사용량 기반 과금 | 무료 (하드웨어 비용 제외) |
+| **응답 품질** | 높음 | 높음 | 모델에 따라 다름 |
+| **설정 난이도** | 쉬움 | 보통 | 보통~어려움 (별도 설치 필요) |
+| **오프라인 사용** | ❌ | ❌ | ✅ |
+| **권장 여부** | 비권장 | ✅ 권장 | ✅ 권장 (프라이버시 우선 시) |
+
+> **📌 권장 사항:** API Key 연결 방식은 Provider 약관상 API 호출 데이터를 학습에 사용하지 않으므로, 계정 연결 방식보다 프라이버시 측면에서 안전합니다. 완전한 데이터 격리가 필요하다면 로컬 실행 방식을 권장합니다.
+
+---
+
 ## 지원 Provider
 
 ### 1. Google Gemini
 
-Provider를 'gemini'로 설정하고, 사용 가능한 모델으로 gemini-pro와 gemini-pro-vision이 있습니다. 지원하는 기능은 텍스트, 이미지, 멀티모달입니다.
+Provider를 'gemini'로 설정하고, 사용 가능한 모델으로 `gemini-2.5-flash`, `gemini-2.5-pro`가 있습니다. 지원하는 기능은 텍스트, 이미지, 멀티모달입니다.
 
 **장점:**
-- 무료 티어 제공
-- 멀티모달 (텍스트 + 이미지)
+- 무료 티어 제공 (Flash 계열)
+- 멀티모달 (텍스트 + 이미지) — 별도 Vision 모델 없이 통합 지원
 - 빠른 응답
 
-### 2. OpenAI
+### 2. OpenAI(ChatGPT)
 
-Provider를 'openai'로 설정하고, 사용 가능한 모델으로 gpt-4, gpt-4-turbo, gpt-3.5-turbo가 있습니다. 지원하는 기능은 텍스트와 함수 호출(Function Calling)입니다.
+Provider를 'openai'로 설정하고, 사용 가능한 모델으로 `gpt-5.4`, `gpt-5.3`, `o3`가 있습니다. 지원하는 기능은 텍스트, 이미지(Vision), 함수 호출(Function Calling)입니다.
 
 **장점:**
 - 고품질 응답
-- Function Calling 지원
+- Function Calling 및 Vision 지원
 - 안정적
 
 ### 3. Anthropic Claude
 
-Provider를 'anthropic'로 설정하고, 사용 가능한 모델으로 claude-3-opus, claude-3-sonnet, claude-3-haiku가 있습니다. 지원하는 기능은 텍스트와 긴 컨텍스트 처리입니다.
+Provider를 'anthropic'로 설정하고, 사용 가능한 모델으로 `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`가 있습니다. 지원하는 기능은 텍스트, 이미지(Vision), 긴 컨텍스트 처리입니다.
 
 **장점:**
-- 긴 컨텍스트
-- 정확한 분석
-- 안전성
+- 긴 컨텍스트 (최대 200k 토큰)
+- 정확한 분석 및 안전성
+- Vision 지원
 
-### 4. Ollama (로컬)
+### 4. 로컬 실행
 
-Provider를 'ollama'로 설정하고, 사용 가능한 모델으로 llama2, mistral, codellama가 있습니다. 지원하는 기능은 텍스트와 로컬 실행입니다.
+모델을 기기에서 직접 실행하는 방식입니다. 데이터가 외부로 전송되지 않아 완전한 프라이버시를 보장합니다.
+
+**지원 툴:**
+
+| 툴 | 특징 | 난이도 |
+|----|------|--------|
+| **Ollama** | CLI 기반, 개발자 친화적. 가장 널리 사용됨 | 보통 |
+| **LM Studio** | GUI 기반, 비개발자도 쉽게 사용 가능. OpenAI 호환 API 제공 | 쉬움 |
+| **Jan** | 프라이버시 중심 설계, GUI 앱. OpenAI 호환 API 제공 | 쉬움 |
+| **LocalAI** | OpenAI API 완전 호환 서버. 다양한 모델 형식 지원 | 어려움 |
+| **GPT4All** | 설치가 매우 간단한 데스크탑 앱 | 쉬움 |
+
+**사용 가능한 주요 모델:** `llama3.2`, `llama3.1`, `gemma4`, `gemma3`, `mistral`, `codellama` 등 (구 `llama2`는 구버전)
+
+> **Gemma 4 (Google):** Google이 공개한 최신 로컬 모델. Ollama에서 `gemma4`로 실행 가능. 경량 모델 대비 성능이 뛰어나며 한국어 처리도 개선됨.
 
 **장점:**
 - 완전 무료
-- 프라이버시
+- 프라이버시 (데이터 외부 전송 없음)
 - 오프라인 사용
 
 ---
@@ -69,7 +114,7 @@ AI_PROVIDER에 사용할 Provider 이름을 넣고, AI_API_KEY에 해당 Provide
 
 ### 웹 UI 설정
 
-**설정 → AI:**
+**설정 → AI Assistant & Agent:**
 1. Provider 선택
 2. API Key 입력
 3. 모델 선택
@@ -94,7 +139,7 @@ generate 메서드는 주어진 프롬프트를 Gemini API에 전송하여 텍�
 
 generateStream 메서드는 동일하게 프롬프트를 전송하지만, 응답을 청크 단위로 실시간으로 받아 하나씩 반환합니다.
 
-analyzeImage 메서드는 이미지를 Base64로 변환하여 프롬프트와 함께 gemini-pro-vision 모델에 전송하고, 분석 결과를 텍스트로 반환합니다.
+analyzeImage 메서드는 이미지를 Base64로 변환하여 프롬프트와 함께 멀티모달 모델(예: `gemini-2.5-flash`, `gpt-5.4`, `claude-sonnet-4-6`)에 전송하고, 분석 결과를 텍스트로 반환합니다. Vision을 지원하지 않는 Provider(예: Ollama 일부 모델)는 에러를 발생시킵니다.
 
 ### Provider 팩토리
 
@@ -198,7 +243,7 @@ AI가 비활성화되면 모든 AI 기능은 기본 통계로 대체됩니다.
 
 ---
 
-## [확정] 외부 AI Agent 연동 (OpenClaw, Custom GPTs 등)
+## [미확정 / 초안] 외부 AI Agent 연동 (Custom GPTs 등)
 
 > **📌 핵심 원칙:** Fieldstack의 기능을 외부 AI가 "스킬(Skill)"로 사용할 수 있도록 표준화된 인터페이스를 제공합니다.
 
