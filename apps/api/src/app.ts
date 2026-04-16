@@ -20,6 +20,7 @@ import type { SharedLinkRenderer } from '@fieldstack/core' with { "resolution-mo
 import { validateEnv } from './config/env';
 import { errorHandler } from './middleware/error';
 import type { BackendRouteRegistration } from './loader';
+import { createAdminRouter } from './routes/admin';
 import { createAuthRouter } from './routes/auth';
 import { healthRouter } from './routes/health';
 import { createPublicRouter } from './routes/public';
@@ -68,6 +69,7 @@ export function createApp(services?: AppServices) {
   if (services) {
     app.use('/auth', createAuthRouter(services));
     app.use('/core/share', createShareRouter(services));
+    app.use('/admin', createAdminRouter(services));
   }
 
   return app;
@@ -97,6 +99,7 @@ export function createAppWithPublicRouter(
 
   app.use('/auth', createAuthRouter(services));
   app.use('/core/share', createShareRouter(services));
+  app.use('/admin', createAdminRouter(services));
   app.use('/s', createPublicRouter(services.sharedLink, getRenderer));
 
   return app;
@@ -115,10 +118,13 @@ export function createSetupApp(): express.Application {
   app.use('/setup', createSetupRouter());
 
   // 프로덕션: 빌드된 프론트엔드 정적 파일 서빙
+  // 프로덕션에서만 빌드된 프론트엔드 정적 파일 서빙
+  // 개발 모드에서는 Vite dev server(port 5173)가 프론트엔드를 담당하므로 건너뜀
   const publicDir = path.join(__dirname, '..', 'public');
-  if (fs.existsSync(publicDir)) {
+  if (process.env['NODE_ENV'] === 'production' && fs.existsSync(publicDir)) {
     app.use(express.static(publicDir));
-    app.get('*', (_req, res) => {
+    // Express 5 + path-to-regexp v8: '*' 와일드카드 미지원 → app.use() 로 catch-all 처리
+    app.use((_req, res) => {
       res.sendFile(path.join(publicDir, 'index.html'));
     });
   }

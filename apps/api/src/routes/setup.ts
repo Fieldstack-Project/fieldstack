@@ -125,6 +125,7 @@ export function createSetupRouter(): Router {
           res.end();
           return;
         }
+        // stopped 상태는 provisionPostgresContainer() 내부에서 자동 제거 후 재생성
 
         // 이미지 pull (최초 1회)
         const alreadyPulled = await isImagePulled();
@@ -255,7 +256,8 @@ export function createSetupRouter(): Router {
       const userAuth = new UserAuthService(db, jwtManager, whitelist, totp);
       const adminPin = new AdminPinServiceImpl(db);
 
-      await userAuth.createUser(admin.email, admin.password, false);
+      // isTempPassword=false, isAdmin=true — Setup으로 생성하는 첫 계정은 관리자
+      await userAuth.createUser(admin.email, admin.password, false, true);
       // 관리자 이메일을 화이트리스트에 추가 (rules가 1개라도 있으면 체크됨)
       await whitelist.addRule({ type: 'email', value: admin.email, enabled: true });
       // 관리자 PIN 설정

@@ -9,6 +9,7 @@ type StartupRoute = "home" | "marketplace";
 
 interface SettingsViewProps {
   isAdmin: boolean;
+  installMode: "normal" | "bypass";
   theme: ThemeSetting;
   onThemeChange: (theme: ThemeSetting) => void;
   initialStartupRoute: StartupRoute;
@@ -23,6 +24,7 @@ const INIT_LANGUAGE = "ko";
 
 export function SettingsView({
   isAdmin,
+  installMode,
   theme,
   onThemeChange,
   initialStartupRoute,
@@ -141,12 +143,14 @@ export function SettingsView({
         </FormField>
       </section>
 
-      <section className="settings-section" aria-labelledby="settings-dev">
-        <p className="settings-section-label" id="settings-dev">개발 (Phase 1.5 Mock)</p>
-        <Button type="button" onClick={onToggleAdmin}>
-          {isAdmin ? "관리자 권한 해제" : "관리자 권한 부여 (테스트용)"}
-        </Button>
-      </section>
+      {installMode === "bypass" && (
+        <section className="settings-section" aria-labelledby="settings-dev">
+          <p className="settings-section-label" id="settings-dev">개발 (Phase 1.5 Mock)</p>
+          <Button type="button" onClick={onToggleAdmin}>
+            {isAdmin ? "관리자 권한 해제" : "관리자 권한 부여 (테스트용)"}
+          </Button>
+        </section>
+      )}
     </Modal>
   );
 }

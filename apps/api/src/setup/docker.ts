@@ -89,32 +89,11 @@ export function pullDockerImage(onProgress: (msg: string) => void): Promise<void
   });
 }
 
-// ── 포트 충돌 대응 후보 포트 목록 ────────────────────────────
+// ── 포트 후보 목록 ────────────────────────────────────────────
+// Windows Hyper-V/WSL2 환경에서 5432가 자주 예약되므로 5433부터 시작.
+// 고정 범위를 모두 실패하면 15432 대역으로 넘어간다.
 
-const PORT_CANDIDATES = [5432, 5433, 5434, 5435];
-
-/**
- * 이미 실행 중인 컨테이너가 없는 포트를 순서대로 반환.
- * 모두 사용 중이면 기본 포트를 그대로 사용 (Docker가 에러를 낸다).
- */
-async function pickAvailablePort(): Promise<number> {
-  for (const port of PORT_CANDIDATES) {
-    try {
-      // 해당 포트를 점유한 컨테이너가 없는지 확인
-      const { stdout } = await execFileAsync('docker', [
-        'ps',
-        '--filter',
-        `publish=${port}`,
-        '--format',
-        '{{.ID}}',
-      ]);
-      if (!stdout.trim()) return port;
-    } catch {
-      return port;
-    }
-  }
-  return DEFAULT_PORT;
-}
+const PORT_CANDIDATES = [5433, 5434, 5435, 5436, 5437, 15432, 15433, 15434];
 
 // ── PostgreSQL 컨테이너 프로비저닝 ───────────────────────────
 
@@ -124,29 +103,58 @@ export interface ProvisionResult {
 }
 
 export async function provisionPostgresContainer(): Promise<ProvisionResult> {
+  // stopped 상태로 남아있는 동일 이름 컨테이너 제거 (이전 실패 잔여물)
+  const existing = await getContainerStatus();
+  if (existing === 'stopped') {
+    await execFileAsync('docker', ['rm', CONTAINER_NAME]);
+  }
+
   const password = crypto.randomBytes(16).toString('hex');
-  const port = await pickAvailablePort();
 
-  await execFileAsync('docker', [
-    'run',
-    '-d',
-    '--name',
-    CONTAINER_NAME,
-    '--restart',
-    'unless-stopped',
-    '-e',
-    `POSTGRES_USER=${POSTGRES_USER}`,
-    '-e',
-    `POSTGRES_PASSWORD=${password}`,
-    '-e',
-    `POSTGRES_DB=${POSTGRES_DB}`,
-    '-p',
-    `${port}:5432`,
-    POSTGRES_IMAGE,
-  ]);
+  // 포트 후보를 순서대로 시도 — Docker 실행 결과로 직접 판별한다.
+  // WSL2 ↔ Windows 네트워크 스택 차이로 Node.js 바인딩 테스트는 신뢰할 수 없으므로
+  // docker run을 실제로 시도하고 포트 충돌 에러 시 다음 포트로 넘어간다.
+  for (const port of PORT_CANDIDATES) {
+    try {
+      await execFileAsync('docker', [
+        'run',
+        '-d',
+        '--name',
+        CONTAINER_NAME,
+        '--restart',
+        'unless-stopped',
+        '-e',
+        `POSTGRES_USER=${POSTGRES_USER}`,
+        '-e',
+        `POSTGRES_PASSWORD=${password}`,
+        '-e',
+        `POSTGRES_DB=${POSTGRES_DB}`,
+        '-p',
+        `${port}:5432`,
+        POSTGRES_IMAGE,
+      ]);
+      // 성공
+      const connectionUrl = `postgresql://${POSTGRES_USER}:${password}@localhost:${port}/${POSTGRES_DB}`;
+      return { connectionUrl, port };
+    } catch (err) {
+      const msg = (err as Error).message ?? '';
+      const isPortError =
+        msg.includes('ports are not available') ||
+        msg.includes('address already in use') ||
+        msg.includes('bind:') ||
+        msg.includes('access permissions');
 
-  const connectionUrl = `postgresql://${POSTGRES_USER}:${password}@localhost:${port}/${POSTGRES_DB}`;
-  return { connectionUrl, port };
+      if (!isPortError) throw err; // 포트 문제가 아니면 즉시 실패
+
+      // 포트 문제 → 컨테이너가 절반만 생성됐을 수 있으므로 정리 후 다음 포트 시도
+      try { await execFileAsync('docker', ['rm', '-f', CONTAINER_NAME]); } catch { /* ignore */ }
+    }
+  }
+
+  throw new Error(
+    `후보 포트(${PORT_CANDIDATES.join(', ')}) 모두 사용 불가. ` +
+    'PostgreSQL 연결 URL을 직접 입력해주세요.',
+  );
 }
 
 // ── PostgreSQL 준비 대기 (연결 폴링) ─────────────────────────

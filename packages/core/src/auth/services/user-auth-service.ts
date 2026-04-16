@@ -8,7 +8,7 @@ import type { TotpServiceImpl } from './totp-service.js';
 import type { WhitelistServiceImpl } from './whitelist-service.js';
 
 export type LoginResult =
-  | { type: 'session'; tokens: SessionToken; isTempPassword: boolean }
+  | { type: 'session'; tokens: SessionToken; isTempPassword: boolean; isAdmin: boolean }
   | { type: 'totp_required'; challengeId: string; userId: string };
 
 export type PasswordRecoveryResult = {
@@ -30,9 +30,9 @@ export class UserAuthService {
     const allowed = await this.whitelist.isAllowed(email);
     if (!allowed) throw new Error('Email not allowed');
 
-    type UserRow = { id: string; password_hash: string; is_temp_password: boolean };
+    type UserRow = { id: string; password_hash: string; is_temp_password: boolean; is_admin: boolean };
     const [user] = await this.db.query<UserRow>(
-      'SELECT id, password_hash, is_temp_password FROM users WHERE email = $1',
+      'SELECT id, password_hash, is_temp_password, is_admin FROM users WHERE email = $1',
       [email],
     );
     if (!user) throw new Error('Invalid credentials');
@@ -54,7 +54,7 @@ export class UserAuthService {
 
     const sessionId = crypto.randomUUID();
     const tokens = await this.jwtManager.issueTokens({ userId: user.id, sessionId });
-    return { type: 'session', tokens, isTempPassword: user.is_temp_password };
+    return { type: 'session', tokens, isTempPassword: user.is_temp_password, isAdmin: user.is_admin };
   }
 
   // ── TOTP 인증 완료 후 세션 발급 ──────────────────────────────────
@@ -90,14 +90,15 @@ export class UserAuthService {
     email: string,
     rawPassword: string,
     isTempPassword = false,
+    isAdmin = false,
   ): Promise<string> {
     const passwordHash = await hashPassword(rawPassword);
     type Row = { id: string };
     const [row] = await this.db.query<Row>(
-      `INSERT INTO users (email, password_hash, is_temp_password)
-       VALUES ($1, $2, $3)
+      `INSERT INTO users (email, password_hash, is_temp_password, is_admin)
+       VALUES ($1, $2, $3, $4)
        RETURNING id`,
-      [email, passwordHash, isTempPassword],
+      [email, passwordHash, isTempPassword, isAdmin],
     );
     return row.id;
   }

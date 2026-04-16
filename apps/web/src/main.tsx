@@ -86,6 +86,8 @@ const SS = {
   pinVerified:     "fs_pin_verified",
   email:           "fs_email",
   mustChangePw:    "fs_must_change_pw",
+  token:           "fs_token",
+  refresh:         "fs_refresh",
 } as const;
 
 const LS = {
@@ -131,8 +133,10 @@ function App({ installMode }: { installMode: InstallMode }) {
     () => sessionStorage.getItem(SS.pinVerified) === "true",
   );
   const [pinVerifiedAt, setPinVerifiedAt] = useState<number | null>(null);
-  // OTP 인증 대기 중인 이메일 (로그인 완료 전 임시 상태 — sessionStorage 미저장)
+  // OTP 인증 대기 중인 이메일 + challengeId (로그인 완료 전 임시 상태 — sessionStorage 미저장)
   const [pendingOtpEmail, setPendingOtpEmail] = useState<string | null>(null);
+  const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
+  const [otpApiError, setOtpApiError] = useState<string | null>(null);
 
   // 로그인 실패 상태
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -237,76 +241,126 @@ function App({ installMode }: { installMode: InstallMode }) {
     window.location.hash = nextRoute;
   };
 
-  // Auth handlers
-  const onLogin = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (isLocked) return;
+  // ── 로그인 성공 시 공통 처리 ─────────────────────────────────
+  const handleLoginSuccess = (email: string, isAdmin: boolean, isTempPassword: boolean) => {
+    setLoginError(null);
+    setLoginAttempts(0);
+    setLoginLockedUntil(null);
+    setSessionExpired(false);
+    setIsAuthenticated(true);
+    setIsAdmin(isAdmin);
+    if (isAdmin) sessionStorage.setItem(SS.admin, "true");
+    setCurrentUser({ email });
+    sessionStorage.setItem(SS.auth, "true");
+    sessionStorage.setItem(SS.email, email);
 
-    const formData = new FormData(event.currentTarget);
-    const email = (formData.get("email") as string | null) ?? "user@fieldstack.dev";
-    const password = formData.get("password") as string | null;
-
-    // mock: "otp1234" → LoginView 내 OTP step으로 전환
-    if (password === "otp1234") {
-      setLoginError(null);
-      setLoginAttempts(0);
-      setPendingOtpEmail(email);
-      return;
-    }
-
-    // mock: "temp1234" → 임시 비번 첫 로그인 강제 변경
-    if (password === "temp1234") {
-      setLoginError(null);
-      setLoginAttempts(0);
-      setSessionExpired(false);
-      setIsAuthenticated(true);
-      setCurrentUser({ email });
-      sessionStorage.setItem(SS.auth, "true");
-      sessionStorage.setItem(SS.email, email);
+    if (isTempPassword) {
       setMustChangePassword(true);
       sessionStorage.setItem(SS.mustChangePw, "true");
       navigate("change-password");
       return;
     }
 
-    const matchedAccount = MOCK_ACCOUNTS.find(
-      (a) => a.email === email && a.password === password,
-    );
-
-    if (!matchedAccount) {
-      const next = loginAttempts + 1;
-      setLoginAttempts(next);
-      if (next >= MAX_LOGIN_ATTEMPTS) {
-        setLoginLockedUntil(Date.now() + LOCKOUT_MS);
-        setLoginError(null);
-      } else {
-        setLoginError("이메일 또는 비밀번호가 올바르지 않습니다.");
-      }
-      return;
-    }
-
-    // 로그인 성공
-    setLoginError(null);
-    setLoginAttempts(0);
-    setLoginLockedUntil(null);
-    setSessionExpired(false);
-    setIsAuthenticated(true);
-    setIsAdmin(matchedAccount.isAdmin);
-    if (matchedAccount.isAdmin) {
-      sessionStorage.setItem(SS.admin, "true");
-    }
-    setCurrentUser({ email });
-    sessionStorage.setItem(SS.auth, "true");
-    sessionStorage.setItem(SS.email, email);
     setNotice("로그인 성공.");
-    // 첫 방문 온보딩
     try {
       if (localStorage.getItem(LS.firstVisitShown) !== "true") setIsFirstVisit(true);
     } catch { /* ignore */ }
-    // 딥 링크 복귀 (없으면 개인화 첫 화면)
     const target = redirectAfterLogin ?? startupRoute;
     setRedirectAfterLogin(null);
     navigate(target);
+  };
+
+  // Auth handlers
+  const onLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isLocked) return;
+
+    const formData = new FormData(event.currentTarget);
+    const email = (formData.get("email") as string | null) ?? "";
+    const password = (formData.get("password") as string | null) ?? "";
+
+    // ── bypass 모드: mock 계정으로 검증 ──────────────────────
+    if (installMode === "bypass") {
+      if (password === "otp1234") {
+        setLoginError(null);
+        setLoginAttempts(0);
+        setPendingOtpEmail(email);
+        return;
+      }
+      if (password === "temp1234") {
+        handleLoginSuccess(email, false, true);
+        return;
+      }
+      const matched = MOCK_ACCOUNTS.find((a) => a.email === email && a.password === password);
+      if (!matched) {
+        const next = loginAttempts + 1;
+        setLoginAttempts(next);
+        if (next >= MAX_LOGIN_ATTEMPTS) {
+          setLoginLockedUntil(Date.now() + LOCKOUT_MS);
+          setLoginError(null);
+        } else {
+          setLoginError("이메일 또는 비밀번호가 올바르지 않습니다.");
+        }
+        return;
+      }
+      handleLoginSuccess(email, matched.isAdmin, false);
+      return;
+    }
+
+    // ── normal 모드: 실제 API 호출 ────────────────────────────
+    try {
+      type LoginResponse = {
+        success: boolean;
+        error?: string;
+        data?: {
+          type: "session";
+          tokens: { accessToken: string; refreshToken: string };
+          isTempPassword: boolean;
+          isAdmin: boolean;
+        } | {
+          type: "totp_required";
+          challengeId: string;
+          userId: string;
+        };
+      };
+
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const json = await res.json() as LoginResponse;
+
+      if (!res.ok || !json.success) {
+        const next = loginAttempts + 1;
+        setLoginAttempts(next);
+        if (next >= MAX_LOGIN_ATTEMPTS) {
+          setLoginLockedUntil(Date.now() + LOCKOUT_MS);
+          setLoginError(null);
+        } else {
+          setLoginError("이메일 또는 비밀번호가 올바르지 않습니다.");
+        }
+        return;
+      }
+
+      const data = json.data!;
+
+      if (data.type === "totp_required") {
+        setLoginError(null);
+        setLoginAttempts(0);
+        setPendingOtpEmail(email);
+        setPendingChallengeId(data.challengeId);
+        setOtpApiError(null);
+        return;
+      }
+
+      // type === "session"
+      sessionStorage.setItem(SS.token, data.tokens.accessToken);
+      sessionStorage.setItem(SS.refresh, data.tokens.refreshToken);
+      handleLoginSuccess(email, data.isAdmin, data.isTempPassword);
+    } catch {
+      setLoginError("서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
   };
 
   const onQuickLogin = () => {
@@ -326,25 +380,60 @@ function App({ installMode }: { installMode: InstallMode }) {
     navigate("home");
   };
 
-  const onOtpVerified = () => {
+  const onOtpVerified = async (code: string) => {
     if (!pendingOtpEmail) return;
     const email = pendingOtpEmail;
-    setPendingOtpEmail(null);
-    setIsAuthenticated(true);
-    setCurrentUser({ email });
-    sessionStorage.setItem(SS.auth, "true");
-    sessionStorage.setItem(SS.email, email);
-    setNotice("2단계 인증 완료.");
+
+    // ── bypass 모드: mock 코드 "123456" 검증 ─────────────────
+    if (installMode === "bypass") {
+      if (code !== "123456") {
+        setOtpApiError("인증 코드가 올바르지 않습니다.");
+        return;
+      }
+      setOtpApiError(null);
+      setPendingOtpEmail(null);
+      setPendingChallengeId(null);
+      handleLoginSuccess(email, false, false);
+      setNotice("2단계 인증 완료.");
+      return;
+    }
+
+    // ── normal 모드: 실제 API 호출 ────────────────────────────
+    if (!pendingChallengeId) return;
     try {
-      if (localStorage.getItem(LS.firstVisitShown) !== "true") setIsFirstVisit(true);
-    } catch { /* ignore */ }
-    const target = redirectAfterLogin ?? startupRoute;
-    setRedirectAfterLogin(null);
-    navigate(target);
+      type TotpResponse = {
+        success: boolean;
+        error?: string;
+        data?: { accessToken: string; refreshToken: string; isTempPassword: boolean };
+      };
+      const res = await fetch("/auth/totp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: pendingChallengeId, code }),
+      });
+      const json = await res.json() as TotpResponse;
+
+      if (!res.ok || !json.success) {
+        setOtpApiError("인증 코드가 올바르지 않습니다.");
+        return;
+      }
+
+      setOtpApiError(null);
+      sessionStorage.setItem(SS.token, json.data!.accessToken);
+      sessionStorage.setItem(SS.refresh, json.data!.refreshToken);
+      setPendingOtpEmail(null);
+      setPendingChallengeId(null);
+      handleLoginSuccess(email, false, json.data!.isTempPassword);
+      setNotice("2단계 인증 완료.");
+    } catch {
+      setOtpApiError("서버 연결에 실패했습니다.");
+    }
   };
 
   const onOtpCancel = () => {
     setPendingOtpEmail(null);
+    setPendingChallengeId(null);
+    setOtpApiError(null);
     navigate("login");
   };
 
@@ -360,6 +449,15 @@ function App({ installMode }: { installMode: InstallMode }) {
   };
 
   const onLogout = (expired = false) => {
+    // 토큰이 있으면 서버 세션 폐기 (실패해도 로컬 상태는 초기화)
+    const token = sessionStorage.getItem(SS.token);
+    if (token && installMode !== "bypass") {
+      fetch("/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => { /* ignore */ });
+    }
+
     setIsAuthenticated(false);
     setIsAdmin(false);
     setIsPinVerified(false);
@@ -369,6 +467,8 @@ function App({ installMode }: { installMode: InstallMode }) {
     sessionStorage.removeItem(SS.admin);
     sessionStorage.removeItem(SS.pinVerified);
     sessionStorage.removeItem(SS.email);
+    sessionStorage.removeItem(SS.token);
+    sessionStorage.removeItem(SS.refresh);
     setLoginError(null);
     setLoginAttempts(0);
     setLoginLockedUntil(null);
@@ -390,6 +490,7 @@ function App({ installMode }: { installMode: InstallMode }) {
             pendingEmail={pendingOtpEmail}
             onOtpVerified={onOtpVerified}
             onOtpCancel={onOtpCancel}
+            otpApiError={otpApiError}
             loginError={loginError}
             loginAttempts={loginAttempts}
             isLocked={isLocked}
@@ -457,6 +558,7 @@ function App({ installMode }: { installMode: InstallMode }) {
         {isSettingsOpen && (
           <SettingsView
             isAdmin={isAdmin}
+            installMode={installMode}
             theme={theme}
             onThemeChange={handleThemeChange}
             initialStartupRoute={startupRoute}

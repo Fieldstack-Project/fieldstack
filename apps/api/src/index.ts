@@ -56,8 +56,12 @@ function getLocalIPs(): string[] {
   return ips;
 }
 
-function printSetupBanner(port: number) {
+function printSetupBanner(apiPort: number, isDev: boolean) {
   const ips = getLocalIPs();
+  // 개발 모드: Vite dev server(5173)가 프론트엔드를 서빙하므로 해당 포트를 안내
+  // 프로덕션: API 서버가 직접 프론트엔드까지 서빙하므로 apiPort를 안내
+  const frontendPort = isDev ? 5173 : apiPort;
+
   const lines = [
     '',
     '  ╔══════════════════════════════════════════════════════╗',
@@ -66,13 +70,17 @@ function printSetupBanner(port: number) {
     '  ║  아래 주소 중 하나를 브라우저에서 열어 설치를       ║',
     '  ║  진행해 주세요.                                      ║',
     '  ╠══════════════════════════════════════════════════════╣',
-    `  ║  로컬    →  http://localhost:${port}`.padEnd(56) + '║',
+    `  ║  로컬    →  http://localhost:${frontendPort}`.padEnd(56) + '║',
   ];
   for (const ip of ips) {
-    lines.push(`  ║  네트워크 →  http://${ip}:${port}`.padEnd(56) + '║');
+    lines.push(`  ║  네트워크 →  http://${ip}:${frontendPort}`.padEnd(56) + '║');
   }
   if (ips.length === 0) {
     lines.push('  ║  (네트워크 인터페이스를 감지하지 못했습니다)'.padEnd(56) + '║');
+  }
+  if (isDev) {
+    lines.push('  ╠══════════════════════════════════════════════════════╣');
+    lines.push(`  ║  API     →  http://localhost:${apiPort}  (dev only)`.padEnd(56) + '║');
   }
   lines.push('  ╚══════════════════════════════════════════════════════╝');
   lines.push('');
@@ -86,7 +94,7 @@ async function startSetup() {
   const app = createSetupApp();
   finalizeApp(app);
   app.listen(env.PORT, () => {
-    printSetupBanner(env.PORT);
+    printSetupBanner(env.PORT, env.NODE_ENV !== 'production');
   });
 }
 

@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { Alert, Button, Checkbox, FormField, Input, OtpInput } from '@fieldstack/controls';
 
-const MOCK_OTP_CODE = '123456';
 const MAX_OTP_ATTEMPTS = 5;
 const RESEND_COOLDOWN_SEC = 30;
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -22,8 +21,9 @@ interface LoginViewProps {
   onForgotPassword: () => void;
   showDevBypass: boolean;
   pendingEmail: string | null;
-  onOtpVerified: () => void;
+  onOtpVerified: (code: string) => void;
   onOtpCancel: () => void;
+  otpApiError?: string | null;
   loginError: string | null;
   loginAttempts: number;
   isLocked: boolean;
@@ -38,6 +38,7 @@ export function LoginView({
   pendingEmail,
   onOtpVerified,
   onOtpCancel,
+  otpApiError,
   loginError,
   loginAttempts,
   isLocked,
@@ -70,18 +71,8 @@ export function LoginView({
   const otpLocked = otpAttempts >= MAX_OTP_ATTEMPTS;
 
   const verifyOtp = (value: string) => {
-    if (value === MOCK_OTP_CODE) {
-      onOtpVerified();
-      return;
-    }
-    const next = otpAttempts + 1;
-    setOtpAttempts(next);
-    setOtpError(
-      next >= MAX_OTP_ATTEMPTS
-        ? '시도 횟수를 초과했습니다. 관리자에게 문의하세요.'
-        : `인증 코드가 올바르지 않습니다. (${next}/${MAX_OTP_ATTEMPTS})`,
-    );
-    setOtpCode('');
+    // OTP 검증은 App(main.tsx)에서 처리 — bypass: mock, normal: API
+    onOtpVerified(value);
   };
 
   const handleOtpChange = (value: string) => {
@@ -218,7 +209,7 @@ export function LoginView({
                 length={6}
                 value={otpCode}
                 onChange={handleOtpChange}
-                error={otpError || undefined}
+                error={otpApiError || otpError || undefined}
                 disabled={otpLocked}
               />
               {!otpLocked && (

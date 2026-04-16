@@ -400,7 +400,7 @@ POST /setup/db/provision { runtime: "docker"|"systemd"|"native" }
 - [x] SQLite 제공자 실제 구현 (`better-sqlite3`, 개발/테스트 전용)
 - [x] 마이그레이션 SQLite 호환 (`{{SERIAL_PK}}` 토큰, `gen_random_uuid()` 유저 함수)
 - [x] Setup 모드 시작 시 접속 가능한 IP 주소 콘솔 배너 출력 (`os.networkInterfaces()` — Docker/원격 서버 환경 대응)
-- [ ] 완전 초기화 API (`POST /admin/factory-reset`) — 관리자 PIN 재확인 필수
+- [x] 완전 초기화 API (`POST /admin/factory-reset`) — 관리자 PIN 재확인 필수
 
 #### 1.95.3 Setup UI (프론트엔드)
 **예상 기간: 1주**
@@ -420,9 +420,9 @@ POST /setup/db/provision { runtime: "docker"|"systemd"|"native" }
 #### 1.95.4 부분 초기화 / 완전 초기화 UI
 **예상 기간: 2일**
 
-- [ ] 관리자 설정 화면에 초기화 옵션 추가
-- [ ] 부분 초기화 (데이터만 삭제, 계정·설정 유지) — `installed.lock` 유지
-- [ ] 완전 초기화 (전체 삭제 + Setup 모드 복귀) — 관리자 PIN 재확인 + 2단계 경고
+- [x] 관리자 설정 화면에 초기화 옵션 추가
+- [x] 부분 초기화 (데이터만 삭제, 계정·설정 유지) — `installed.lock` 유지
+- [x] 완전 초기화 (전체 삭제 + Setup 모드 복귀) — 관리자 PIN 재확인 + 2단계 경고
 
 ### 마일스톤 1.95 완료 기준
 - ✅ 첫 실행 시 Setup 모드로 자동 진입, 설치 완료 후 앱 모드로 전환
@@ -440,6 +440,7 @@ POST /setup/db/provision { runtime: "docker"|"systemd"|"native" }
 | 2026-04-16 | Phase 1.95.3 Setup UI 구현. 4단계 설치 마법사(Welcome → Config → Progress → Complete). Config 단계: 관리자 계정(이메일/비밀번호/PIN) + DB 선택(PostgreSQL 기본값·런타임 자동 감지·자동 설치 SSE / SQLite 경고). Progress: `POST /setup/complete` SSE 스트리밍 단계별 표시. Complete: 5초 카운트다운 자동 이동. 오류 시 재시도 / 이전 단계 복귀 UX. Vite 개발 서버 프록시 추가. |
 | 2026-04-16 | Setup 모드 시작 시 접속 가능한 IP 주소 콘솔 배너 출력. `os.networkInterfaces()`로 IPv4 주소 수집 — Docker bridge / LAN / 외부 인터페이스 포함. 박스 배너 형식으로 localhost + 네트워크 주소 전체 표시. |
 | 2026-04-16 | 기술 문서 번호 논리적 순서 재정렬. migrations(06→02), startup-sequence(07→03), authentication(02→04), scheduler(04→06), shared-link(08→07), ai-integration(03→08). 관련 참조 경로 일괄 업데이트. `09-system-monitor.md` 신규 추가. |
+| 2026-04-16 | Phase 1.95.4 완전 초기화·부분 초기화 구현. 백엔드: `POST /admin/factory-reset` (모든 테이블 삭제 → lock·config 제거 → 서버 재시작 → Setup 모드 복귀), `POST /admin/partial-reset` (데이터 테이블만 DELETE, 계정·설정 유지). 두 엔드포인트 모두 JWT 인증 + 관리자 PIN 필수. `apps/api/src/routes/admin.ts` 신규 생성, `app.ts`에 `/admin` 라우터 등록. 프론트엔드: AdminView 시스템 설정 패널에 초기화 UI 구현 — 부분 초기화 (1단계 확인 → PIN), 완전 초기화 (2단계 확인 → PIN) mock 플로우. `admin.css`에 reset-zone 스타일 추가. |
 
 ---
 
@@ -720,6 +721,8 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 > 모듈·API가 어느 정도 안정화된 시점에 한 번에 만든다.
 > 외부 Uptime Kuma(마켓플레이스·공유 서비스 가용성 확인)와는 별개로,
 > Fieldstack 인스턴스 내부 상태를 관리자가 직접 확인하는 용도.
+
+> 작업 전에 관리자 설정 페이지 수정하고 넘어가라고 할 것.
 
 ### 목표
 관리자가 앱 내부에서 시스템 상태를 실시간으로 파악할 수 있는 모니터링 페이지 제공.

@@ -7,6 +7,17 @@ import "../styles/admin.css";
 // 개발 mock PIN — 실제 구현 시 API 검증으로 교체
 const MOCK_ADMIN_PIN = "1234";
 
+// 초기화 플로우 단계
+type ResetPhase =
+  | "idle"
+  | "p-confirm"   // 부분 초기화 확인
+  | "p-pin"       // 부분 초기화 PIN 입력
+  | "p-done"      // 부분 초기화 완료
+  | "f-confirm-1" // 완전 초기화 1차 확인
+  | "f-confirm-2" // 완전 초기화 2차 경고
+  | "f-pin"       // 완전 초기화 PIN 입력
+  | "f-done";     // 완전 초기화 완료 (서버 재시작 예정)
+
 interface AdminViewProps {
   isPinVerified: boolean;
   onRequestPin: () => void;
@@ -64,6 +75,11 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
   const [pinError, setPinError] = useState("");
   const [pinSuccess, setPinSuccess] = useState(false);
 
+  // 초기화 플로우
+  const [resetPhase, setResetPhase] = useState<ResetPhase>("idle");
+  const [resetPin, setResetPin] = useState("");
+  const [resetPinError, setResetPinError] = useState("");
+
   const resetPinForm = () => {
     setCurrentPin("");
     setNewPin("");
@@ -72,11 +88,44 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
     setPinSuccess(false);
   };
 
+  const resetResetFlow = () => {
+    setResetPhase("idle");
+    setResetPin("");
+    setResetPinError("");
+  };
+
   const handleSectionClick = (id: string) => {
     const next = (activeSection === id ? null : id) as ActiveSection;
     setActiveSection(next);
     if (next !== "security") resetPinForm();
     if (next !== "audit") setAuditFilter("all");
+    if (next !== "system") resetResetFlow();
+  };
+
+  // 부분 초기화 PIN 확인 (mock)
+  const handlePartialResetSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (resetPin !== MOCK_ADMIN_PIN) {
+      setResetPinError("PIN이 올바르지 않습니다.");
+      setResetPin("");
+      return;
+    }
+    setResetPinError("");
+    setResetPhase("p-done");
+    // 실제 구현 시: POST /admin/partial-reset { pin } 호출
+  };
+
+  // 완전 초기화 PIN 확인 (mock)
+  const handleFactoryResetSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (resetPin !== MOCK_ADMIN_PIN) {
+      setResetPinError("PIN이 올바르지 않습니다.");
+      setResetPin("");
+      return;
+    }
+    setResetPinError("");
+    setResetPhase("f-done");
+    // 실제 구현 시: POST /admin/factory-reset { pin } 호출 → 서버 재시작
   };
 
   const handlePinChange = (e: FormEvent) => {
@@ -292,8 +341,201 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
               </>
             )}
 
+            {/* 시스템 설정: 초기화 */}
+            {activeSection === "system" && (
+              <>
+                <h2 className="admin-block-title">시스템 설정</h2>
+
+                {/* 부분 초기화 */}
+                <div className="admin-reset-zone admin-reset-zone-warn">
+                  <div className="admin-reset-zone-header">
+                    <div className="admin-reset-zone-info">
+                      <p className="admin-reset-zone-title">부분 초기화</p>
+                      <p className="admin-reset-zone-desc">
+                        공유 링크 등 데이터를 삭제합니다.<br />
+                        계정·설정·whitelist는 유지됩니다.
+                      </p>
+                    </div>
+                    {resetPhase === "idle" && (
+                      <Button
+                        size="sm"
+                        type="button"
+                        onClick={() => setResetPhase("p-confirm")}
+                      >
+                        초기화
+                      </Button>
+                    )}
+                  </div>
+
+                  {resetPhase === "p-confirm" && (
+                    <div className="admin-reset-confirm">
+                      <p className="admin-reset-confirm-text">
+                        공유 링크 데이터가 모두 삭제됩니다.<br />계속하시겠습니까?
+                      </p>
+                      <div className="admin-reset-actions">
+                        <Button size="sm" type="button" onClick={resetResetFlow}>취소</Button>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          type="button"
+                          onClick={() => { setResetPin(""); setResetPhase("p-pin"); }}
+                        >
+                          계속
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {resetPhase === "p-pin" && (
+                    <div className="admin-reset-confirm">
+                      <form onSubmit={handlePartialResetSubmit} noValidate style={{ display: "grid", gap: "10px" }}>
+                        <FormField label="관리자 PIN 확인" htmlFor="reset-p-pin">
+                          <PinInput
+                            length={4}
+                            value={resetPin}
+                            onChange={(v: string) => { setResetPin(v); setResetPinError(""); }}
+                          />
+                        </FormField>
+                        {resetPinError && (
+                          <p className="admin-pin-error" role="alert">{resetPinError}</p>
+                        )}
+                        <div className="admin-reset-actions">
+                          <Button size="sm" type="button" onClick={resetResetFlow}>취소</Button>
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            type="submit"
+                            disabled={resetPin.length < 4}
+                          >
+                            초기화 실행
+                          </Button>
+                        </div>
+                        <p className="admin-pin-hint">개발 mock PIN: 1234</p>
+                      </form>
+                    </div>
+                  )}
+
+                  {resetPhase === "p-done" && (
+                    <div className="admin-reset-done admin-reset-done-ok">
+                      <p className="admin-reset-done-icon" aria-hidden="true">✓</p>
+                      <p className="admin-reset-done-title">부분 초기화 완료</p>
+                      <p className="admin-reset-done-desc">데이터가 삭제되었습니다. (Mock: 실제 삭제 안 됨)</p>
+                      <Button size="sm" type="button" onClick={resetResetFlow}>닫기</Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 완전 초기화 */}
+                {(resetPhase === "idle" ||
+                  resetPhase === "f-confirm-1" ||
+                  resetPhase === "f-confirm-2" ||
+                  resetPhase === "f-pin" ||
+                  resetPhase === "f-done") && (
+                  <div className="admin-reset-zone admin-reset-zone-danger">
+                    <div className="admin-reset-zone-header">
+                      <div className="admin-reset-zone-info">
+                        <p className="admin-reset-zone-title">완전 초기화</p>
+                        <p className="admin-reset-zone-desc">
+                          모든 데이터·계정·설정이 삭제됩니다.<br />
+                          앱이 최초 설치 상태로 돌아갑니다.
+                        </p>
+                      </div>
+                      {resetPhase === "idle" && (
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          type="button"
+                          onClick={() => setResetPhase("f-confirm-1")}
+                        >
+                          초기화
+                        </Button>
+                      )}
+                    </div>
+
+                    {resetPhase === "f-confirm-1" && (
+                      <div className="admin-reset-confirm">
+                        <p className="admin-reset-confirm-text">
+                          완전 초기화를 진행하겠습니까?<br />
+                          모든 사용자 계정과 데이터가 삭제됩니다.
+                        </p>
+                        <div className="admin-reset-actions">
+                          <Button size="sm" type="button" onClick={resetResetFlow}>취소</Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            type="button"
+                            onClick={() => setResetPhase("f-confirm-2")}
+                          >
+                            계속
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {resetPhase === "f-confirm-2" && (
+                      <div className="admin-reset-confirm">
+                        <p className="admin-reset-confirm-text">
+                          <strong>이 작업은 되돌릴 수 없습니다.</strong><br />
+                          서버는 Setup 모드로 재시작됩니다.<br />
+                          정말 진행하시겠습니까?
+                        </p>
+                        <div className="admin-reset-actions">
+                          <Button size="sm" type="button" onClick={resetResetFlow}>취소</Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            type="button"
+                            onClick={() => { setResetPin(""); setResetPhase("f-pin"); }}
+                          >
+                            PIN으로 확인
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {resetPhase === "f-pin" && (
+                      <div className="admin-reset-confirm">
+                        <form onSubmit={handleFactoryResetSubmit} noValidate style={{ display: "grid", gap: "10px" }}>
+                          <FormField label="관리자 PIN 입력" htmlFor="reset-f-pin">
+                            <PinInput
+                              length={4}
+                              value={resetPin}
+                              onChange={(v: string) => { setResetPin(v); setResetPinError(""); }}
+                            />
+                          </FormField>
+                          {resetPinError && (
+                            <p className="admin-pin-error" role="alert">{resetPinError}</p>
+                          )}
+                          <div className="admin-reset-actions">
+                            <Button size="sm" type="button" onClick={resetResetFlow}>취소</Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              type="submit"
+                              disabled={resetPin.length < 4}
+                            >
+                              완전 초기화 실행
+                            </Button>
+                          </div>
+                          <p className="admin-pin-hint">개발 mock PIN: 1234</p>
+                        </form>
+                      </div>
+                    )}
+
+                    {resetPhase === "f-done" && (
+                      <div className="admin-reset-done" style={{ borderColor: "rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.06)" }}>
+                        <p className="admin-reset-done-icon" aria-hidden="true">⚠</p>
+                        <p className="admin-reset-done-title" style={{ color: "var(--err)" }}>완전 초기화 완료</p>
+                        <p className="admin-reset-done-desc">서버가 재시작됩니다. (Mock: 실제 재시작 안 됨)</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
             {/* 미구현 섹션 플레이스홀더 */}
-            {(activeSection === "users" || activeSection === "modules" || activeSection === "system") && (
+            {(activeSection === "users" || activeSection === "modules") && (
               <div className="admin-panel-placeholder">
                 <p className="admin-panel-placeholder-icon" aria-hidden="true">🚧</p>
                 <p className="admin-panel-placeholder-title">
