@@ -30,7 +30,10 @@ export class WhitelistServiceImpl implements WhitelistService {
   public async isAllowed(email: string): Promise<boolean> {
     const rules = await this.listRules();
     const active = rules.filter((r) => r.enabled);
-    if (active.length === 0) return true; // 화이트리스트 비어있으면 전체 허용
+    // 활성 룰이 없으면 전체 허용 — 의도된 동작.
+    // Setup 직후나 룰을 모두 비활성화한 경우에도 로그인이 막히지 않도록 하기 위함.
+    // 보안을 강화하려면 룰을 명시적으로 추가해야 한다.
+    if (active.length === 0) return true;
 
     const domain = email.split('@')[1] ?? '';
     return active.some((r) => {

@@ -62,6 +62,10 @@ const SetupCompleteBody = z.object({
 });
 
 // ── DB 연결 헬퍼 (싱글턴 getDb() 를 우회, setup 전용 인스턴스) ──
+//
+// Setup 단계에서는 앱이 아직 초기화되지 않아 getDb() 싱글턴을 사용할 수 없다.
+// 환경변수(DATABASE_URL)도 미설정 상태이므로 사용자가 입력한 config로 직접 연결한다.
+// 이 함수가 반환하는 인스턴스는 전역 DB 레지스트리와 무관한 임시 연결이다.
 
 async function openDb(config: z.infer<typeof DbTestBody>) {
   if (config.provider === 'postgres') {
@@ -149,7 +153,8 @@ export function createSetupRouter(): Router {
         emit('ready', 'done', '연결 준비 완료', { connectionUrl });
       } else if (runtime === 'systemd') {
         // ── systemd 프로비저닝 ────────────────────────────────
-        // 감지 단계에서 이미 serviceName을 알고 있지만, 여기서는 재감지
+        // 클라이언트가 /setup/db/detect 응답에서 serviceName을 가지고 있으나
+        // provision 요청에 포함하지 않으므로, 여기서 다시 감지하여 serviceName을 추출한다.
         const { detectAllRuntimes: refresh } = await import('../setup/runtime.js');
         const runtimes = await refresh();
         const systemdInfo = runtimes.find((r: { id: string }) => r.id === 'systemd');
@@ -249,7 +254,9 @@ export function createSetupRouter(): Router {
         AdminPinServiceImpl,
       } = await import('@fieldstack/core');
 
-      // Setup 전용 임시 JWT 시크릿 (토큰 발급 용도가 아니므로 무방)
+      // JwtSessionManagerImpl은 UserAuthService 생성자에 필요하지만,
+      // Setup 단계에서는 실제 JWT를 발급하지 않으므로 더미 시크릿을 사용한다.
+      // 서버 재시작 후 applyConfigToEnv()가 실제 JWT_SECRET을 환경변수로 설정한다.
       const jwtManager = new JwtSessionManagerImpl(db, 'setup-temp', 'setup-temp-refresh');
       const whitelist = new WhitelistServiceImpl(db);
       const totp = new TotpServiceImpl(db, 'Fieldstack');

@@ -16,7 +16,8 @@ export class PostgresProvider implements DbProvider {
   public async connect(): Promise<void> {
     this.pool = new Pool({ connectionString: this.config.connectionString });
 
-    // 연결 실패 시 지수 백오프로 재시도
+    // 지수 백오프 재시도 — attempt 1: 2s, 2: 4s, 3: 6s, 4: 8s, 5: 실패 (최대 20s 대기)
+    // Docker 컨테이너 초기화처럼 DB가 늦게 올라오는 환경을 위한 여유 시간 확보
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const client = await this.pool.connect();
@@ -55,7 +56,9 @@ export class PostgresProvider implements DbProvider {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-      // 트랜잭션 클라이언트를 DbProvider 인터페이스로 래핑
+      // 트랜잭션 클라이언트를 DbProvider 인터페이스로 래핑.
+      // connect/disconnect는 no-op — 트랜잭션 내부에서는 커넥션 관리 불필요.
+      // 중첩 transaction() 호출은 동일 클라이언트로 위임하지만 savepoint는 미지원.
       const tx: DbProvider = {
         name: this.name,
         connect: async () => undefined,

@@ -90,8 +90,10 @@ export function pullDockerImage(onProgress: (msg: string) => void): Promise<void
 }
 
 // ── 포트 후보 목록 ────────────────────────────────────────────
-// Windows Hyper-V/WSL2 환경에서 5432가 자주 예약되므로 5433부터 시작.
-// 고정 범위를 모두 실패하면 15432 대역으로 넘어간다.
+// Windows Hyper-V/WSL2는 "동적 포트 예약" 기능으로 5432 등 일부 포트를 부팅 시점에
+// 선점해버린다. Node.js의 net.listen() 테스트는 WSL2 ↔ Windows 네트워크 스택 경계에서
+// 결과가 일치하지 않아 신뢰할 수 없으므로, docker run 자체를 시도하고 포트 충돌 에러
+// 메시지로 실패를 판별한다. 5433부터 시작하며, 고정 범위 실패 시 15432 대역을 시도한다.
 
 const PORT_CANDIDATES = [5433, 5434, 5435, 5436, 5437, 15432, 15433, 15434];
 
@@ -138,6 +140,9 @@ export async function provisionPostgresContainer(): Promise<ProvisionResult> {
       return { connectionUrl, port };
     } catch (err) {
       const msg = (err as Error).message ?? '';
+      // Docker 버전/OS마다 포트 충돌 메시지가 다르므로 여러 패턴을 포함해 체크한다.
+      // - Linux Docker: "address already in use" / "bind:"
+      // - Docker Desktop (Windows/Mac): "ports are not available" / "access permissions"
       const isPortError =
         msg.includes('ports are not available') ||
         msg.includes('address already in use') ||

@@ -63,7 +63,9 @@ export class SqliteProvider implements DbProvider {
     const converted = hasParams ? sql.replace(/\$\d+/g, '?') : sql;
     const trimmed = converted.trimStart();
 
-    // 결과 행을 반환하는 구문 판별
+    // 결과 행을 반환하는 구문 판별.
+    // SELECT/WITH로 시작하거나 RETURNING 절을 포함하면 all()로 결과 행을 가져온다.
+    // INSERT/UPDATE/DELETE without RETURNING, DDL(CREATE/ALTER/DROP) 등은 run()/exec()로 처리.
     const returnsRows =
       /^(SELECT|WITH)\b/i.test(trimmed) ||
       /\bRETURNING\b/i.test(converted);
@@ -93,7 +95,8 @@ export class SqliteProvider implements DbProvider {
 
     // better-sqlite3는 동기 API지만 DbProvider 인터페이스는 async를 요구한다.
     // BEGIN/COMMIT을 수동 관리하여 async callback을 지원한다.
-    // (트랜잭션 내부의 모든 query() 호출은 동기적으로 실행되므로 실제로는 안전)
+    // 트랜잭션 fn() 내부에서 await하면 이론상 다른 쿼리가 끼어들 수 있으나,
+    // Node.js 싱글 스레드 특성상 실제 DB 접근은 직렬화되어 안전하게 동작한다.
     this.db.exec('BEGIN');
     try {
       const result = await fn(this);

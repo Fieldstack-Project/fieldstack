@@ -102,12 +102,15 @@ async function detectSystemdPostgres(): Promise<SystemdInfo> {
       const running = stdout.trim() === 'active';
       return { available: true, serviceName: name, running };
     } catch (err) {
-      // is-active가 non-zero exit를 반환해도 서비스가 존재할 수 있음
+      // systemctl is-active는 서비스 상태가 active가 아니면 non-zero로 종료한다.
+      // 종료 코드만으로는 "서비스 없음"과 "서비스 있지만 비활성"을 구분할 수 없으므로
+      // stdout 출력값으로 판별한다.
       const output = (err as { stdout?: string }).stdout?.trim() ?? '';
       if (['inactive', 'failed', 'activating'].includes(output)) {
+        // 서비스 유닛이 존재하지만 현재 실행 중이지 않은 상태
         return { available: true, serviceName: name, running: false };
       }
-      // 해당 이름의 서비스 없음 → 다음 후보로
+      // stdout이 비어 있거나 'not-found' 등 → 해당 이름의 서비스 없음, 다음 후보로
     }
   }
 
@@ -214,7 +217,9 @@ async function detectNative(): Promise<RuntimeOption> {
       ? '로컬 PostgreSQL이 실행 중입니다. 연결 정보를 입력해주세요.'
       : 'PostgreSQL이 설치되어 있지만 실행 중이지 않습니다.',
     status: info.running ? 'ready' : 'installed_not_running',
-    // native는 자동 DB/유저 생성을 시도하지만 권한 문제로 실패할 수 있음
+    // native: 실행 중일 때만 자동 프로비저닝 시도.
+    // postgres 슈퍼유저 peer 인증 또는 sudo 권한이 없으면 실패할 수 있으며,
+    // 그 경우 연결 URL 직접 입력 안내로 폴백한다.
     canAutoProvision: info.running,
     details: { version: info.version, running: info.running, defaultUrl: info.defaultUrl },
   };
@@ -279,6 +284,8 @@ export async function provisionViaSystemd(
   // 3. postgres 슈퍼유저로 접속해 유저 + DB 생성
   onProgress('fieldstack 데이터베이스 및 사용자를 생성하는 중...');
 
+  // DO $$ BEGIN ... END $$: PL/pgSQL 익명 블록으로 조건부 DDL 실행.
+  // IF NOT EXISTS 체크로 중복 실행 시 기존 role을 덮어쓰지 않고 비밀번호만 업데이트한다.
   const createUserSql = `
     DO $$ BEGIN
       IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'fieldstack') THEN
@@ -330,7 +337,9 @@ export async function provisionViaSystemd(
 export async function provisionViaNative(
   onProgress: (msg: string) => void,
 ): Promise<ProvisionResult> {
-  // systemd와 동일한 로직이지만 서비스 시작 단계 없음
+  // provisionViaSystemd는 서비스 이름을 받아 `systemctl start <name>`을 시도하는데,
+  // '(none)'을 전달하면 start 단계가 즉시 실패하고 나머지 로직(DB/유저 생성)으로 진행한다.
+  // 즉, native는 "서비스 시작 생략 + DB/유저 생성"만 수행하는 셈이다.
   return provisionViaSystemd('(none)', onProgress).catch(() => {
     throw new Error(
       'native PostgreSQL에서 데이터베이스 자동 생성에 실패했습니다.\n' +

@@ -36,6 +36,12 @@ const DIALECT_TOKENS: Record<string, Record<string, string>> = {
   },
 };
 
+/**
+ * SQL 템플릿의 방언 토큰을 대상 DB에 맞는 실제 SQL로 치환한다.
+ *
+ * 토큰은 서로 중첩되거나 겹치지 않도록 설계되어 있어 reduce 순서에 무관하다.
+ * 알 수 없는 dialect이 전달되면 토큰을 치환하지 않고 원본 SQL을 반환한다.
+ */
 export function applyDialect(sql: string, dialect: string): string {
   const tokens = DIALECT_TOKENS[dialect] ?? {};
   return Object.entries(tokens).reduce((s, [token, value]) => s.replaceAll(token, value), sql);
@@ -73,6 +79,8 @@ export class FileMigrationRunner {
   private async getPendingFiles(): Promise<string[]> {
     let allFiles: string[];
     try {
+      // .sql 파일을 알파벳 순으로 정렬 — 파일명 앞에 001_, 002_ 같은 번호를 붙이면
+      // 사전순 정렬이 곧 적용 순서가 된다. 번호 없이 만들면 순서 보장이 안 됨에 주의.
       allFiles = (await readdir(this.migrationsDir))
         .filter((f) => f.endsWith('.sql'))
         .sort();
@@ -108,6 +116,8 @@ export class FileMigrationRunner {
 }
 
 // ── 하위 호환 (기존 InMemoryMigrationRunner 유지) ─────────────
+// 실제 DB 없이 "마이그레이션이 실행됐다"는 상태만 메모리에 유지하는 더미 러너.
+// 테스트 코드나 초기 개발 시 DB 없이도 마이그레이션 목록을 조회해야 할 때 사용한다.
 
 export interface MigrationDefinition {
   id: string;

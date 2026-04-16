@@ -8,6 +8,8 @@ import type {
 } from '../index.js';
 import { generateTotpSecret } from '../totp.js';
 
+// 챌린지 유효 시간 5분 — 고정값. OTP 앱에서 코드를 확인하기 충분한 시간.
+// 환경 설정으로 조정하는 기능은 현재 미지원 (필요 시 Phase 2 이후 추가).
 const CHALLENGE_TTL_SECS = 5 * 60; // 5분
 
 export class TotpServiceImpl implements TotpService {
@@ -23,6 +25,8 @@ export class TotpServiceImpl implements TotpService {
     const [user] = await this.db.query<UserRow>('SELECT email FROM users WHERE id = $1', [userId]);
     if (!user) throw new Error('User not found');
 
+    // ON CONFLICT DO UPDATE: 이미 TOTP가 등록된 유저가 재등록을 시도하면
+    // 기존 레코드를 덮어쓴다 (이전 시크릿 무효화 + 재등록 플로우 지원).
     await this.db.query(
       `INSERT INTO totp_credentials (user_id, secret, verified)
        VALUES ($1, $2, FALSE)

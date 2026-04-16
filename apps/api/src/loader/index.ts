@@ -24,6 +24,14 @@ export interface BackendModuleEntry {
   manifestJson: string;
 }
 
+/**
+ * module.json 문자열을 파싱해 ModuleManifest 객체로 변환한다.
+ *
+ * 필수 필드 규칙:
+ * - name: 비어 있으면 호출자(scanBackendModules)에서 디렉터리 이름으로 대체.
+ * - enabled: 기본 false — 명시적으로 true를 지정한 모듈만 활성화된다.
+ * - routes.api: 비어 있으면 해당 모듈은 백엔드 라우트 없음(프론트 전용 모듈).
+ */
 export function parseModuleJson(content: string): ModuleManifest {
   const parsed = JSON.parse(content) as Partial<ModuleManifest>;
 
@@ -46,13 +54,22 @@ export async function scanBackendModules(
     const manifest = parseModuleJson(entry.manifestJson);
     return {
       ...manifest,
+      // manifest.name이 비어 있을 경우 디렉터리 이름(entry.name)으로 폴백.
+      // module.json에 name 필드를 생략해도 디렉터리 이름이 모듈 식별자가 된다.
       name: manifest.name || entry.name,
     };
   });
 
+  // enabled: true 인 모듈만 반환 — false/미지정 모듈은 부트스트랩에서 완전히 무시됨
   return manifests.filter((manifest) => manifest.enabled);
 }
 
+/**
+ * 활성화된 모듈 목록을 백엔드 라우트 등록 정보로 변환한다.
+ *
+ * routes.api가 빈 문자열인 모듈(프론트 전용)도 포함되어 반환된다.
+ * 실제 라우터 마운트 시점(app.ts)에서 빈 apiBasePath를 가진 항목을 건너뛰어야 한다.
+ */
 export function buildBackendRouteRegistrations(
   manifests: ModuleManifest[],
 ): BackendRouteRegistration[] {

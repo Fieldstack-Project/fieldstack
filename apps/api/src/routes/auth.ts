@@ -57,10 +57,13 @@ export interface AuthRouterDeps {
 
 export function createAuthRouter(deps: AuthRouterDeps): Router {
   const router = Router();
+  // whitelist는 userAuth 내부에서 사용되므로 여기서 직접 참조 불필요
   const { userAuth, jwtManager, adminPin, totpService } = deps;
   const auth = requireAuth(jwtManager);
 
   // POST /auth/login
+  // 응답 data.type === 'session' → 즉시 로그인 완료
+  // 응답 data.type === 'totp_required' → challengeId를 가지고 /auth/totp/verify 호출 필요
   router.post('/login', async (req, res) => {
     const parsed = LoginBody.safeParse(req.body);
     if (!parsed.success) {

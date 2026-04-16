@@ -5,6 +5,9 @@ import bcrypt from 'bcryptjs';
 import type { DbProvider } from '../db/index.js';
 import type { SystemSettingsService } from './system-settings-service.js';
 
+// 16바이트 = 128비트 난수 → hex 32자 토큰.
+// URL에 포함되는 공개 식별자이므로 충돌 가능성이 충분히 낮아야 한다.
+// 128비트는 UUID v4와 동일한 엔트로피로 보안상 적절한 수준이다.
 const TOKEN_BYTES = 16; // 32자 hex
 const SALT_ROUNDS = 12;
 
@@ -60,7 +63,8 @@ export class SharedLinkService {
     try {
       const url = new URL(this.publicUrl);
       const host = url.hostname;
-      // IP 주소 또는 localhost 차단
+      // IP 주소 또는 localhost 차단 — 공유 링크는 외부에서 접근 가능한 도메인 필요.
+      // IPv6는 현재 미지원. 추후 필요 시 /^[\dA-Fa-f:]+$/ 패턴 추가.
       if (host === 'localhost' || host === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
         return false;
       }
@@ -78,6 +82,7 @@ export class SharedLinkService {
 
   public async issue(opts: IssueSharedLinkOptions): Promise<{ token: string; url: string }> {
     const enabled = await this.settings.getBoolean('shared_links_enabled', true);
+    // Object.assign으로 error.code를 설정 — 호출자가 instanceof 대신 code로 에러 종류를 판별한다.
     if (!enabled) throw Object.assign(new Error('Shared link feature is disabled'), { code: 'FEATURE_DISABLED' });
     if (!this.isAvailable()) throw Object.assign(new Error('Domain not configured'), { code: 'DOMAIN_REQUIRED' });
 
