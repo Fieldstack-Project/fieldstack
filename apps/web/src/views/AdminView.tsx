@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useCallback, type FormEvent } from "react";
 
 import { Button, FormField, PinInput } from "@fieldstack/controls";
 
@@ -18,9 +18,17 @@ type ResetPhase =
   | "f-pin"       // 완전 초기화 PIN 입력
   | "f-done";     // 완전 초기화 완료 (서버 재시작 예정)
 
+interface ModuleInfo {
+  name: string;
+  basePath: string;
+  version: string;
+  dependencies: string[];
+}
+
 interface AdminViewProps {
   isPinVerified: boolean;
   onRequestPin: () => void;
+  installMode: "normal" | "bypass";
 }
 
 const MOCK_STATS = [
@@ -62,8 +70,15 @@ const AUDIT_FILTER_LABELS: Record<AuditFilter, string> = {
 
 type ActiveSection = "users" | "modules" | "system" | "security" | "audit" | null;
 
-export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
+export function AdminView({ isPinVerified, onRequestPin, installMode }: AdminViewProps) {
   const [activeSection, setActiveSection] = useState<ActiveSection>(null);
+
+  // 모듈 레지스트리 상태
+  const [modules, setModules] = useState<ModuleInfo[]>([]);
+  const [modulesLoading, setModulesLoading] = useState(false);
+  const [modulesError, setModulesError] = useState<string | null>(null);
+  const [reloadMessage, setReloadMessage] = useState<string | null>(null);
+  const [reloading, setReloading] = useState(false);
 
   // 감사 로그 필터
   const [auditFilter, setAuditFilter] = useState<AuditFilter>("all");
@@ -79,6 +94,65 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
   const [resetPhase, setResetPhase] = useState<ResetPhase>("idle");
   const [resetPin, setResetPin] = useState("");
   const [resetPinError, setResetPinError] = useState("");
+
+  // 모듈 목록 조회
+  const fetchModules = useCallback(async () => {
+    if (installMode === "bypass") {
+      setModules([]);
+      return;
+    }
+    setModulesLoading(true);
+    setModulesError(null);
+    try {
+      const token = sessionStorage.getItem("fs_token") ?? "";
+      const res = await fetch("/core/modules", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      type Resp = { success: boolean; error?: string; data?: { modules: ModuleInfo[] } };
+      const json = await res.json() as Resp;
+      if (!res.ok || !json.success) {
+        setModulesError(json.error ?? "모듈 목록 조회 실패");
+        return;
+      }
+      setModules(json.data?.modules ?? []);
+    } catch {
+      setModulesError("서버 연결 실패");
+    } finally {
+      setModulesLoading(false);
+    }
+  }, [installMode]);
+
+  // 모듈 섹션 진입 시 목록 로드
+  useEffect(() => {
+    if (activeSection === "modules") {
+      void fetchModules();
+    }
+  }, [activeSection, fetchModules]);
+
+  const handleModuleReload = async () => {
+    if (installMode === "bypass") return;
+    setReloading(true);
+    setReloadMessage(null);
+    try {
+      const token = sessionStorage.getItem("fs_token") ?? "";
+      const res = await fetch("/core/modules/reload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      type Resp = { success: boolean; error?: string; data?: { message: string } };
+      const json = await res.json() as Resp;
+      if (!res.ok || !json.success) {
+        setReloadMessage(`오류: ${json.error ?? "갱신 실패"}`);
+        return;
+      }
+      setReloadMessage(json.data?.message ?? "갱신 완료");
+      void fetchModules();
+    } catch {
+      setReloadMessage("서버 연결 실패");
+    } finally {
+      setReloading(false);
+    }
+  };
 
   const resetPinForm = () => {
     setCurrentPin("");
@@ -534,8 +608,80 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
               </>
             )}
 
+            {/* 모듈 레지스트리 패널 */}
+            {activeSection === "modules" && (
+              <>
+                <h2 className="admin-block-title">모듈 레지스트리</h2>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                  <Button
+                    size="sm"
+                    type="button"
+                    onClick={() => void handleModuleReload()}
+                    disabled={reloading || installMode === "bypass"}
+                  >
+                    {reloading ? "갱신 중..." : "모듈 새로고침"}
+                  </Button>
+                  {reloadMessage && (
+                    <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>{reloadMessage}</span>
+                  )}
+                  {installMode === "bypass" && (
+                    <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                      (bypass 모드 — API 비활성)
+                    </span>
+                  )}
+                </div>
+
+                {modulesLoading && (
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>목록 불러오는 중...</p>
+                )}
+                {modulesError && (
+                  <p style={{ fontSize: "13px", color: "var(--err)" }}>{modulesError}</p>
+                )}
+                {!modulesLoading && !modulesError && modules.length === 0 && (
+                  <div className="admin-panel-placeholder">
+                    <p className="admin-panel-placeholder-icon" aria-hidden="true">📦</p>
+                    <p className="admin-panel-placeholder-title">설치된 모듈 없음</p>
+                    <p className="admin-panel-placeholder-desc">
+                      {installMode === "bypass"
+                        ? "bypass 모드에서는 모듈 목록을 조회할 수 없습니다."
+                        : "modules/ 디렉터리에 모듈을 추가하고 새로고침을 누르세요."}
+                    </p>
+                  </div>
+                )}
+                {modules.length > 0 && (
+                  <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "8px" }}>
+                    {modules.map((mod) => (
+                      <li
+                        key={mod.name}
+                        style={{
+                          border: "1px solid var(--border-subtle)",
+                          borderRadius: "9px",
+                          padding: "12px 14px",
+                          display: "grid",
+                          gap: "3px",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontWeight: 600, fontSize: "14px" }}>{mod.name}</span>
+                          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>v{mod.version}</span>
+                        </div>
+                        <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                          경로: {mod.basePath}
+                        </span>
+                        {mod.dependencies.length > 0 && (
+                          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                            의존: {mod.dependencies.join(", ")}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+
             {/* 미구현 섹션 플레이스홀더 */}
-            {(activeSection === "users" || activeSection === "modules") && (
+            {activeSection === "users" && (
               <div className="admin-panel-placeholder">
                 <p className="admin-panel-placeholder-icon" aria-hidden="true">🚧</p>
                 <p className="admin-panel-placeholder-title">

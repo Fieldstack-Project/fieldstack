@@ -553,7 +553,11 @@ function App({ installMode }: { installMode: InstallMode }) {
         )}
         {effectiveRoute === "marketplace" && <MarketplaceView />}
         {effectiveRoute === "admin" && (
-          <AdminView isPinVerified={isPinVerified} onRequestPin={() => setIsPinModalOpen(true)} />
+          <AdminView
+            isPinVerified={isPinVerified}
+            onRequestPin={() => setIsPinModalOpen(true)}
+            installMode={installMode}
+          />
         )}
         {isSettingsOpen && (
           <SettingsView

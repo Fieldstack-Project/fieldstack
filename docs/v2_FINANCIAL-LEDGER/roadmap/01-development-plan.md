@@ -466,18 +466,18 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 ### 주요 작업
 
 #### P2-Pre.1 ModuleRegistry 싱글턴
-- [ ] `ModuleRegistry` 클래스 구현 (동적 디스패치 방식)
+- [x] `ModuleRegistry` 클래스 구현 (동적 디스패치 방식)
   - `register(basePath, router)` / `unregister(basePath)` 메서드
   - 매 요청마다 레지스트리를 참조하는 단일 디스패처 미들웨어
-- [ ] 기존 `mountModuleRouters`를 레지스트리 방식으로 교체
+- [x] 기존 `mountModuleRouters`를 레지스트리 방식으로 교체 (`loadModulesIntoRegistry` + `reloadModules`)
 
 #### P2-Pre.2 모듈 관리 API
-- [ ] `GET /core/modules` — 현재 등록된 모듈 목록 및 매니페스트 정보 반환 (어드민 전용)
-- [ ] `POST /core/modules/reload` — `modules/*/module.json` 재스캔 후 레지스트리 갱신 (어드민 전용)
+- [x] `GET /core/modules` — 현재 등록된 모듈 목록 및 매니페스트 정보 반환 (어드민 전용)
+- [x] `POST /core/modules/reload` — `modules/*/module.json` 재스캔 후 레지스트리 갱신 (어드민 전용)
 
 #### P2-Pre.3 Admin UI 연동
-- [ ] AdminView 모듈 관리 패널에 설치된 모듈 목록 표시 (`GET /core/modules` 연동)
-- [ ] "모듈 새로고침" 버튼 추가 (`POST /core/modules/reload` 호출)
+- [x] AdminView 모듈 관리 패널에 설치된 모듈 목록 표시 (`GET /core/modules` 연동)
+- [x] "모듈 새로고침" 버튼 추가 (`POST /core/modules/reload` 호출)
 - [ ] HomeView 관리자 통계 "설치 모듈" 카드를 실제 API 데이터로 교체
 
 #### P2-Pre.4 유저별 모듈 활성화 시스템
@@ -491,18 +491,18 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - 모듈 활성화/비활성화: 각 유저 본인 (자신의 설정만 변경)
 
 **DB:**
-- [ ] `user_modules` 테이블 설계 및 마이그레이션
+- [x] `user_modules` 테이블 설계 및 마이그레이션 (`004_add_user_modules.sql`)
   - `(user_id, module_name, enabled, installed_at)` 구조
   - 모듈 설치 시 설치한 유저의 레코드 자동 생성 (`enabled: true`)
   - 모듈 제거(관리자) 시 해당 모듈의 전체 유저 레코드 삭제
 
 **API:**
-- [ ] `GET /core/modules/me` — 현재 유저의 모듈 활성화 목록 반환
-- [ ] `PATCH /core/modules/:name/toggle` — 현재 유저의 모듈 활성화/비활성화 전환
-- [ ] `POST /core/modules/:name/install` — 모듈 설치 (서버 레지스트리 등록 + user_modules 레코드 생성)
+- [x] `GET /core/modules/me` — 현재 유저의 모듈 활성화 목록 반환
+- [x] `PATCH /core/modules/:name/toggle` — 현재 유저의 모듈 활성화/비활성화 전환
+- [x] `POST /core/modules/:name/install` — 모듈 설치 (서버 레지스트리 등록 + user_modules 레코드 생성)
 
 **Frontend:**
-- [ ] 사이드바 모듈 메뉴를 `GET /core/modules/me` 기반으로 동적 구성
+- [x] 사이드바 모듈 메뉴를 `GET /core/modules/me` 기반으로 동적 구성 (AppShell 업데이트)
 - [ ] 설정 화면에서 유저별 모듈 활성화/비활성화 토글 UI
 
 ---

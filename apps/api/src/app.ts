@@ -19,9 +19,10 @@ import type { SharedLinkRenderer } from '@fieldstack/core' with { "resolution-mo
 
 import { validateEnv } from './config/env';
 import { errorHandler } from './middleware/error';
-import type { BackendRouteRegistration } from './loader';
+import { ModuleRegistry } from './module-registry';
 import { createAdminRouter } from './routes/admin';
 import { createAuthRouter } from './routes/auth';
+import { createCoreRouter } from './routes/core';
 import { healthRouter } from './routes/health';
 import { createPublicRouter } from './routes/public';
 import { createSetupRouter } from './routes/setup';
@@ -37,14 +38,6 @@ export interface AppServices {
   userAuth: UserAuthService;
   sharedLink: SharedLinkService;
   settings: SystemSettingsService;
-}
-
-// 모듈 라우터 규약:
-//   default export → express.Router (서비스 불필요)
-//   createRouter   → (services: AppServices) => express.Router (서비스 주입)
-interface ModuleRouterModule {
-  default?: express.Router;
-  createRouter?: (services: AppServices) => express.Router;
 }
 
 export function createApp(services?: AppServices) {
@@ -69,7 +62,10 @@ export function createApp(services?: AppServices) {
   if (services) {
     app.use('/auth', createAuthRouter(services));
     app.use('/core/share', createShareRouter(services));
+    app.use('/core', createCoreRouter(services));
     app.use('/admin', createAdminRouter(services));
+    // 모듈 라우터 디스패처 — ModuleRegistry에 등록된 모듈을 동적으로 서빙
+    app.use(ModuleRegistry.getInstance().dispatcher());
   }
 
   return app;
@@ -99,8 +95,11 @@ export function createAppWithPublicRouter(
 
   app.use('/auth', createAuthRouter(services));
   app.use('/core/share', createShareRouter(services));
+  app.use('/core', createCoreRouter(services));
   app.use('/admin', createAdminRouter(services));
   app.use('/s', createPublicRouter(services.sharedLink, getRenderer));
+  // 모듈 라우터 디스패처 — ModuleRegistry에 등록된 모듈을 동적으로 서빙
+  app.use(ModuleRegistry.getInstance().dispatcher());
 
   return app;
 }
@@ -132,66 +131,6 @@ export function createSetupApp(): express.Application {
   return app;
 }
 
-// ── 모듈 라우터 마운트 ────────────────────────────────────────
-
-export async function mountModuleRouters(
-  app: express.Application,
-  registrations: BackendRouteRegistration[],
-  modulesDir: string,
-  services: AppServices,
-): Promise<void> {
-  if (registrations.length === 0) {
-    console.log('[fieldstack][loader] no enabled modules found');
-    return;
-  }
-
-  for (const reg of registrations) {
-    if (!reg.apiBasePath) {
-      console.warn(`[fieldstack][loader] module "${reg.moduleName}" has no apiBasePath, skipping`);
-      continue;
-    }
-
-    // 라우터 파일 탐색: backend/index.ts (dev) → backend/index.js (prod)
-    const baseDir = path.join(modulesDir, reg.moduleName, 'backend');
-    const candidatePaths = [
-      path.join(baseDir, 'index.ts'),
-      path.join(baseDir, 'index.js'),
-    ];
-
-    const routerFile = candidatePaths.find((p) => fs.existsSync(p));
-    if (!routerFile) {
-      console.warn(
-        `[fieldstack][loader] module "${reg.moduleName}" has no backend router at ${baseDir}/index.{ts,js}`,
-      );
-      continue;
-    }
-
-    try {
-      const mod = (await import(routerFile)) as ModuleRouterModule;
-      let router: express.Router | undefined;
-
-      if (typeof mod.createRouter === 'function') {
-        router = mod.createRouter(services);
-      } else if (mod.default) {
-        router = mod.default;
-      }
-
-      if (!router) {
-        console.warn(
-          `[fieldstack][loader] module "${reg.moduleName}" router file has no default export or createRouter`,
-        );
-        continue;
-      }
-
-      app.use(reg.apiBasePath, router);
-      console.log(
-        `[fieldstack][loader] mounted module "${reg.moduleName}" at ${reg.apiBasePath}`,
-      );
-    } catch (err) {
-      console.error(`[fieldstack][loader] failed to load module "${reg.moduleName}":`, err);
-    }
-  }
-}
 
 // ── Error handler 마운트 (반드시 모든 라우트 등록 후 마지막에 호출) ──
 

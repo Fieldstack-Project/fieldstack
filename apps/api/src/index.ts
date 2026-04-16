@@ -11,7 +11,6 @@ import {
   finalizeApp,
   initDb,
   initServices,
-  mountModuleRouters,
   runMigrations,
 } from './app';
 import {
@@ -20,6 +19,7 @@ import {
   scanBackendModules,
   validateModuleDependencies,
 } from './loader';
+import { loadModulesIntoRegistry } from './module-registry';
 import { applyConfigToEnv, isInstalled } from './setup/mode';
 
 // ── fieldstack.config.json → process.env 반영 (env vars 우선) ─
@@ -140,7 +140,7 @@ async function startApp() {
     }
 
     const registrations = buildBackendRouteRegistrations(manifests);
-    await mountModuleRouters(app, registrations, MODULES_DIR, services);
+    await loadModulesIntoRegistry(registrations, manifests, MODULES_DIR, services);
   }
 
   // ── Error handler (반드시 모든 라우트 등록 후 마지막) ────────

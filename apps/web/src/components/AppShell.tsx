@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import "../styles/shell.css";
 
 export type RouteKey = "login" | "forgot-password" | "home" | "marketplace" | "admin" | "change-password";
@@ -15,8 +15,11 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-// 추후 모듈 로더에서 주입될 목록 (현재는 mock)
-const INSTALLED_MODULES: { id: string; label: string; icon: string }[] = [];
+interface SidebarModule {
+  name: string;
+  basePath: string;
+  enabled: boolean;
+}
 
 // nav list 내 ArrowUp/ArrowDown 키보드 탐색
 function handleNavKeyDown(e: React.KeyboardEvent<HTMLUListElement>) {
@@ -46,6 +49,27 @@ export function AppShell({
 }: AppShellProps) {
   const userInitial = currentUser?.email.charAt(0).toUpperCase() ?? "?";
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [sidebarModules, setSidebarModules] = useState<SidebarModule[]>([]);
+
+  // 로그인 후(currentUser 존재) GET /core/modules/me 로 사용자 모듈 목록 조회
+  useEffect(() => {
+    if (!currentUser || installMode === "bypass") {
+      setSidebarModules([]);
+      return;
+    }
+    const token = sessionStorage.getItem("fs_token") ?? "";
+    if (!token) return;
+
+    fetch("/core/modules/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((json: { success: boolean; data?: { modules: SidebarModule[] } }) => {
+        if (json.success) {
+          // 활성화(enabled: true)된 모듈만 사이드바에 표시
+          setSidebarModules((json.data?.modules ?? []).filter((m) => m.enabled));
+        }
+      })
+      .catch(() => { /* 사이드바 모듈 로드 실패는 무음 처리 */ });
+  }, [currentUser, installMode]);
 
   const closeMobileMenu = () => setIsMobileOpen(false);
   const navAndClose = (target: RouteKey) => { onNavigate(target); closeMobileMenu(); };
@@ -112,16 +136,16 @@ export function AppShell({
           {/* Modules */}
           <p className="shell-nav-label" aria-hidden="true">Modules</p>
           <ul className="shell-nav-list" aria-label="설치된 모듈" onKeyDown={handleNavKeyDown}>
-            {INSTALLED_MODULES.length > 0 ? (
-              INSTALLED_MODULES.map((mod) => (
-                <li key={mod.id}>
+            {sidebarModules.length > 0 ? (
+              sidebarModules.map((mod) => (
+                <li key={mod.name}>
                   <button
                     type="button"
                     className="shell-nav-item"
-                    onClick={() => { window.location.hash = mod.id; closeMobileMenu(); }}
+                    onClick={() => { window.location.hash = mod.name; closeMobileMenu(); }}
                   >
-                    <span className="shell-nav-icon" aria-hidden="true">{mod.icon}</span>
-                    {mod.label}
+                    <span className="shell-nav-icon" aria-hidden="true">📦</span>
+                    {mod.name}
                   </button>
                 </li>
               ))
