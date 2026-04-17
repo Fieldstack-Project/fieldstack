@@ -19,11 +19,12 @@ Phase 2 이후 모듈/커뮤니티 요청에 따라 점진 확장하기 위한 �
 - `진행중` - 작업 중
 - `완료` - `packages/controls`에 실제 컴포넌트 반영 + `ready: true` 확인 완료
 
-> **현재 상태 (2026-04-13 기준):**
+> **현재 상태 (2026-04-17 기준):**
 > P0/P0.5 전 항목 구현 완료 (`ready: true`). `packages/controls/src/components/`에 React 컴포넌트 반영.
-> `packages/controls/src/styles/controls.css`에 라이트/다크 모드 공통 스타일 정의.
+> `packages/controls/src/styles/index.css`에 라이트/다크 모드 공통 스타일 정의.
 > `global.css` 토큰도 라이트 모드 기본값 + 다크 모드 오버라이드(`[data-theme="dark"]` / `prefers-color-scheme`) 구조로 재설계 완료.
 > `apps/web` Settings에서 테마 선택 시 `document.documentElement`에 `data-theme` 적용 및 localStorage 저장 동작.
+> P1 DataTable 구현 완료 — 컬럼 정렬(3단계), 전체 검색, 페이지네이션, 커스텀 셀 렌더링 지원.
 
 ## P0 (Core 필수)
 
@@ -55,13 +56,14 @@ Phase 2 이후 모듈/커뮤니티 요청에 따라 점진 확장하기 위한 �
 
 ## P1 (자주 쓰이지만 일부 우선 구현)
 
-| Control | 우선순위 | 1.5 구현상태 | 비고 |
+| Control | 우선순위 | 구현상태 | 비고 |
 | --- | --- | --- | --- |
+| DataTable | P1 | 완료 | 컬럼 정렬(asc/desc/none), 전체 검색, 페이지네이션(10/20/50/100), 커스텀 셀 render, 로딩 스켈레톤 |
 | Tabs | P1 | 미착수 | settings/module 화면 분리 |
 | Dropdown Menu | P1 | 미착수 | header/user/action menu |
 | Tooltip | P1 | 미착수 | helper/explain UX |
 | Badge / Tag | P1 | 미착수 | 상태 표기 (active/error 등) |
-| Pagination | P1 | 미착수 | table/list 페이지 분할 |
+| Pagination | P1 | 미착수 | 독립 사용 페이지네이션 (DataTable 내장과 별개) |
 | Date Picker | P1 | 미착수 | 단일/범위 선택 |
 | File Uploader | P1 | 미착수 | drag&drop + progress |
 | Drawer / Sheet | P1 | 미착수 | 모바일/보조 패널 |

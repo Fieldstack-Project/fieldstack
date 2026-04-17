@@ -57,6 +57,10 @@ export type { EmptyStateProps } from './EmptyState.js';
 export { Skeleton } from './Skeleton.js';
 export type { SkeletonProps } from './Skeleton.js';
 
+// ─── P1 Controls ──────────────────────────────────────────────
+export { DataTable } from './DataTable.js';
+export type { DataTableProps, TableColumn, SortDir } from './DataTable.js';
+
 // ─── Control Registry ─────────────────────────────────────────
 export type ControlTier = 'p0' | 'p0_5' | 'p1' | 'p2';
 
@@ -65,6 +69,7 @@ export type ControlName =
   | 'button'
   | 'checkbox'
   | 'combobox'
+  | 'data-table'
   | 'empty-state'
   | 'form-field'
   | 'input'
@@ -109,4 +114,5 @@ export const CONTROL_DESCRIPTORS: ControlDescriptor[] = [
   { name: 'toast',        tier: 'p0_5', ready: true },
   { name: 'empty-state',  tier: 'p0_5', ready: true },
   { name: 'skeleton',     tier: 'p0_5', ready: true },
+  { name: 'data-table',  tier: 'p1',   ready: true },
 ];

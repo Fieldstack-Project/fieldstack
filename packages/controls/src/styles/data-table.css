@@ -1,0 +1,295 @@
+/* ─── DataTable wrapper ──────────────────────────────────────── */
+.fs-dt {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  overflow: hidden;
+  font-size: 13px;
+}
+
+/* ─── Toolbar ────────────────────────────────────────────────── */
+.fs-dt-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.fs-dt-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 280px;
+}
+
+.fs-dt-search-icon {
+  position: absolute;
+  left: 9px;
+  font-size: 15px;
+  color: var(--text-faint);
+  pointer-events: none;
+  line-height: 1;
+}
+
+.fs-dt-search {
+  width: 100%;
+  padding: 6px 10px 6px 28px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.fs-dt-search::placeholder {
+  color: var(--text-faint);
+}
+
+.fs-dt-search:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* 브라우저 기본 검색 아이콘 제거 */
+.fs-dt-search::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.fs-dt-count {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ─── Scrollable area ────────────────────────────────────────── */
+.fs-dt-scroll {
+  overflow: auto;
+  flex: 1;
+}
+
+/* ─── Table ──────────────────────────────────────────────────── */
+.fs-dt-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+/* ─── Header ─────────────────────────────────────────────────── */
+.fs-dt-thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fs-dt-th {
+  padding: 9px 12px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.fs-dt-th-sortable {
+  cursor: pointer;
+  transition: background 110ms ease, color 110ms ease;
+}
+
+.fs-dt-th-sortable:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.fs-dt-th-active {
+  color: var(--accent-hover);
+}
+
+.fs-dt-th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fs-dt-th-label {
+  flex-shrink: 0;
+}
+
+.fs-dt-sort-icon {
+  font-size: 11px;
+  color: var(--accent-hover);
+  line-height: 1;
+}
+
+.fs-dt-sort-icon-idle {
+  color: var(--text-faint);
+  opacity: 0.5;
+}
+
+/* ─── Body ───────────────────────────────────────────────────── */
+.fs-dt-tr {
+  transition: background 80ms ease;
+}
+
+.fs-dt-tr:nth-child(even) {
+  background: color-mix(in srgb, var(--bg-elevated) 50%, transparent);
+}
+
+.fs-dt-tr:hover {
+  background: var(--bg-hover);
+}
+
+.fs-dt-td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text);
+  vertical-align: middle;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-dt-tr:last-child .fs-dt-td {
+  border-bottom: none;
+}
+
+/* ─── Empty state ────────────────────────────────────────────── */
+.fs-dt-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+/* ─── Skeleton ───────────────────────────────────────────────── */
+.fs-dt-skeleton {
+  display: block;
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: fs-dt-shimmer 1.4s infinite;
+  width: 70%;
+}
+
+@keyframes fs-dt-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Footer / Pagination ────────────────────────────────────── */
+.fs-dt-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  flex-wrap: wrap;
+}
+
+.fs-dt-page-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fs-dt-foot-label {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+.fs-dt-page-select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.fs-dt-page-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.fs-dt-page-info {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-dt-page-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.fs-dt-page-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-family: inherit;
+  transition: background 110ms ease, color 110ms ease, border-color 110ms ease;
+}
+
+.fs-dt-page-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.fs-dt-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.fs-dt-page-cur {
+  padding: 0 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .fs-dt-foot {
+    justify-content: center;
+  }
+
+  .fs-dt-page-size {
+    order: 3;
+  }
+}
