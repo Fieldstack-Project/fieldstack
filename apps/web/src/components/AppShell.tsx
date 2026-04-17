@@ -4,7 +4,6 @@ import "../styles/shell.css";
 export type RouteKey = "login" | "forgot-password" | "home" | "marketplace" | "admin" | "change-password";
 
 interface AppShellProps {
-  installMode: "normal" | "bypass";
   route: RouteKey;
   isAdmin: boolean;
   currentUser: { email: string } | null;
@@ -37,7 +36,6 @@ function handleNavKeyDown(e: React.KeyboardEvent<HTMLUListElement>) {
 }
 
 export function AppShell({
-  installMode,
   route,
   isAdmin,
   currentUser,
@@ -50,10 +48,21 @@ export function AppShell({
   const userInitial = currentUser?.email.charAt(0).toUpperCase() ?? "?";
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [sidebarModules, setSidebarModules] = useState<SidebarModule[]>([]);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try { return localStorage.getItem("fs_sidebar_collapsed") === "true"; } catch { return false; }
+  });
+
+  const toggleCollapsed = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("fs_sidebar_collapsed", String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   // 로그인 후(currentUser 존재) GET /core/modules/me 로 사용자 모듈 목록 조회
   useEffect(() => {
-    if (!currentUser || installMode === "bypass") {
+    if (!currentUser) {
       setSidebarModules([]);
       return;
     }
@@ -69,13 +78,13 @@ export function AppShell({
         }
       })
       .catch(() => { /* 사이드바 모듈 로드 실패는 무음 처리 */ });
-  }, [currentUser, installMode]);
+  }, [currentUser]);
 
   const closeMobileMenu = () => setIsMobileOpen(false);
   const navAndClose = (target: RouteKey) => { onNavigate(target); closeMobileMenu(); };
 
   return (
-    <div className="shell">
+    <div className="shell" data-sidebar-collapsed={isCollapsed ? "" : undefined}>
       {/* ── 모바일 오버레이 ──────────────────────────────── */}
       {isMobileOpen && (
         <div
@@ -94,6 +103,16 @@ export function AppShell({
         <div className="shell-brand">
           <div className="shell-brand-logo" aria-hidden="true">FS</div>
           <span className="shell-brand-name">Fieldstack</span>
+          {/* 데스크톱: 접기/펼치기 버튼 */}
+          <button
+            type="button"
+            className="shell-collapse-btn"
+            onClick={toggleCollapsed}
+            aria-label={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+            aria-expanded={!isCollapsed}
+          >
+            <span aria-hidden="true">{isCollapsed ? "›" : "‹"}</span>
+          </button>
           {/* 모바일: 닫기 버튼 */}
           <button
             type="button"
@@ -113,22 +132,24 @@ export function AppShell({
               <button
                 type="button"
                 className="shell-nav-item"
+                data-label="Home"
                 aria-current={route === "home" ? "page" : undefined}
                 onClick={() => navAndClose("home")}
               >
                 <span className="shell-nav-icon" aria-hidden="true">⊞</span>
-                Home
+                <span className="shell-nav-text">Home</span>
               </button>
             </li>
             <li>
               <button
                 type="button"
                 className="shell-nav-item"
+                data-label="Marketplace"
                 aria-current={route === "marketplace" ? "page" : undefined}
                 onClick={() => navAndClose("marketplace")}
               >
                 <span className="shell-nav-icon" aria-hidden="true">⬡</span>
-                Marketplace
+                <span className="shell-nav-text">Marketplace</span>
               </button>
             </li>
           </ul>
@@ -142,10 +163,11 @@ export function AppShell({
                   <button
                     type="button"
                     className="shell-nav-item"
+                    data-label={mod.name}
                     onClick={() => { window.location.hash = mod.name; closeMobileMenu(); }}
                   >
                     <span className="shell-nav-icon" aria-hidden="true">📦</span>
-                    {mod.name}
+                    <span className="shell-nav-text">{mod.name}</span>
                   </button>
                 </li>
               ))
@@ -158,7 +180,7 @@ export function AppShell({
         {/* Footer */}
         <div className="shell-sidebar-footer">
           {currentUser && (
-            <div className="shell-user">
+            <div className="shell-user" title={isCollapsed ? currentUser.email : undefined}>
               <div className="shell-user-avatar" aria-hidden="true">{userInitial}</div>
               <div className="shell-user-info">
                 <p className="shell-user-email">{currentUser.email}</p>
@@ -166,33 +188,35 @@ export function AppShell({
               </div>
             </div>
           )}
-          {installMode === "bypass" && (
-            <div className="shell-bypass-pill" aria-label="개발 bypass 모드 활성">
-              DEV BYPASS
-            </div>
-          )}
-          <button type="button" className="shell-nav-item" onClick={() => { onOpenSettings(); closeMobileMenu(); }}>
+          <button
+            type="button"
+            className="shell-nav-item"
+            data-label="Settings"
+            onClick={() => { onOpenSettings(); closeMobileMenu(); }}
+          >
             <span className="shell-nav-icon" aria-hidden="true">⚙</span>
-            Settings
+            <span className="shell-nav-text">Settings</span>
           </button>
           {isAdmin && (
             <button
               type="button"
               className="shell-nav-item"
+              data-label="Admin"
               aria-current={route === "admin" ? "page" : undefined}
               onClick={() => navAndClose("admin")}
             >
               <span className="shell-nav-icon" aria-hidden="true">⚡</span>
-              Admin
+              <span className="shell-nav-text">Admin</span>
             </button>
           )}
           <button
             type="button"
             className="shell-nav-item shell-nav-item-danger"
+            data-label="Sign Out"
             onClick={() => { onLogout(); closeMobileMenu(); }}
           >
             <span className="shell-nav-icon" aria-hidden="true">→</span>
-            Sign Out
+            <span className="shell-nav-text">Sign Out</span>
           </button>
         </div>
       </aside>

@@ -41,8 +41,8 @@
   --muted:          var(--text-muted);
 
   /* Layout */
-  --sidebar-width: 220px;
-  --content-max:   900px;
+  --sidebar-width:           220px;
+  --sidebar-collapsed-width: 52px;
 }
 
 /* ─── Design Tokens: Dark Mode ───────────────────────────────── */
