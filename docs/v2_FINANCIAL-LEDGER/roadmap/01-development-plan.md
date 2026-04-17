@@ -292,7 +292,7 @@ Control 전체 목록과 상태 관리는 별도 문서에서 관리:
 - [x] DB 연결 초기화 및 연결 실패 처리 (5회 지수 백오프 재시도)
 - [x] 마이그레이션 러너 실제 동작 구현 (`packages/core/src/db/migrations/`) — `06-migrations.md` 설계 기준
 - [x] DB 프로바이더 추상화 검증 (타입체크 전체 통과, Node16 ESM 해석 이슈 수정)
-- [ ] SQLite Provider 구현 (경량 단독 인스턴스용 — 2순위)
+- [x] SQLite Provider 구현 (경량 단독 인스턴스용 — 2순위)
 
 #### 1.9.3 인증 백엔드 구현
 **예상 기간: 1주**
@@ -384,7 +384,7 @@ POST /setup/db/provision { runtime: "docker"|"systemd"|"native" }
 - [x] Setup 모드일 때 메인 앱 라우트 전체 차단 (`createSetupApp()`, `index.ts` 분기)
 - [x] 설치 완료 시 `installed.lock` + `fieldstack.config.json` 생성 후 서버 자동 재시작
 - [x] `fieldstack.config.json` → `process.env` 자동 반영 (`applyConfigToEnv()`)
-- [ ] 완전 초기화 시 DB + `installed.lock` + config 삭제 → 서버 재시작 → Setup 모드 복귀
+- [x] 완전 초기화 시 DB + `installed.lock` + config 삭제 → 서버 재시작 → Setup 모드 복귀
 
 #### 1.95.2 Setup 백엔드 API
 **예상 기간: 3일**
@@ -412,7 +412,7 @@ POST /setup/db/provision { runtime: "docker"|"systemd"|"native" }
   - [ ] 선택 옵션 (SMTP, 텔레메트리 동의 등) — Phase 2.3 / 3.5 이후 확장
 - [x] Progress 화면 (실시간 설치 로그, 단계 표시)
 - [x] Complete 화면 (로그인 진입 안내)
-- [ ] 설치 중 새로고침/재접속 복구 (진행 상태 재동기화)
+- [x] 설치 중 새로고침/재접속 복구 (진행 상태 재동기화)
 - [x] 각 단계 유효성 검증 UX (필수값, 형식 오류, DB 연결 테스트 결과)
 - [x] Progress 실패 처리 UX (재시도 / 이전 단계 복귀 / 에러 요약)
 - [x] Vite 개발 서버 API 프록시 설정 (`/setup`, `/core`, `/auth`, `/api` → `localhost:3000`)
@@ -478,7 +478,7 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 #### P2-Pre.3 Admin UI 연동
 - [x] AdminView 모듈 관리 패널에 설치된 모듈 목록 표시 (`GET /core/modules` 연동)
 - [x] "모듈 새로고침" 버튼 추가 (`POST /core/modules/reload` 호출)
-- [ ] HomeView 관리자 통계 "설치 모듈" 카드를 실제 API 데이터로 교체
+- [x] HomeView 관리자 통계 "설치 모듈" 카드를 실제 API 데이터로 교체
 
 #### P2-Pre.4 유저별 모듈 활성화 시스템
 
@@ -503,7 +503,7 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 
 **Frontend:**
 - [x] 사이드바 모듈 메뉴를 `GET /core/modules/me` 기반으로 동적 구성 (AppShell 업데이트)
-- [ ] 설정 화면에서 유저별 모듈 활성화/비활성화 토글 UI
+- [x] 설정 화면에서 유저별 모듈 활성화/비활성화 토글 UI
 
 ---
 
@@ -685,6 +685,8 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 **예상 기간: 1주**
 
 - [ ] 설치 마법사에 텔레메트리 동의 항목 추가 (opt-out 선택 가능)
+  > ⚠️ **이 항목 작업 시 체크**: Setup 진행 중 새로고침/재접속 복구 기능(sessionStorage 복원 + `/setup/status` 폴링)을
+  > 실제 설치 플로우에서 테스트할 것. 복구 배너 표시, 자동 complete 이동, 실패 후 재시도 시나리오 모두 확인.
 - [ ] 익명 설치 UUID 생성 및 관리
 - [ ] 오류/크래시 로그 수집 (에러 메시지, 스택 트레이스, 발생 컨텍스트)
 - [ ] 기능 사용 빈도 수집 (어떤 모듈·기능이 많이 쓰이는지)

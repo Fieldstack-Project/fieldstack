@@ -634,16 +634,80 @@ function CompleteStep({ onGoLogin }: { onGoLogin: () => void }) {
   );
 }
 
+// ─── 새로고침 복구 ────────────────────────────────────────────────────────────
+
+const RECOVERY_KEY = 'fs_setup_recovery';
+
+interface RecoveryData {
+  entries: ProgressEntry[];
+  hasError: boolean;
+}
+
+function saveRecovery(entries: ProgressEntry[], hasError: boolean) {
+  try {
+    sessionStorage.setItem(RECOVERY_KEY, JSON.stringify({ entries, hasError } satisfies RecoveryData));
+  } catch { /* ignore */ }
+}
+
+function loadRecovery(): RecoveryData | null {
+  try {
+    const raw = sessionStorage.getItem(RECOVERY_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as RecoveryData;
+  } catch { return null; }
+}
+
+function clearRecovery() {
+  try { sessionStorage.removeItem(RECOVERY_KEY); } catch { /* ignore */ }
+}
+
 // ─── Root Wizard ──────────────────────────────────────────────────────────────
 
 export function SetupWizardView({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep] = useState<WizardStep>("welcome");
+  // 새로고침 시 progress 단계 복원
+  const recovered = loadRecovery();
+
+  const [step, setStep] = useState<WizardStep>(recovered ? "progress" : "welcome");
   const [formData, setFormData] = useState<ConfigFormData | null>(null);
-  const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>([]);
-  const [hasError, setHasError] = useState(false);
+  const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>(recovered?.entries ?? []);
+  const [hasError, setHasError] = useState(recovered?.hasError ?? false);
+  const [isRestored, setIsRestored] = useState(recovered !== null);
+
+  // 복원된 상태: /setup/status 폴링 → 서버가 이미 완료했으면 complete로 이동
+  useEffect(() => {
+    if (!isRestored) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      for (let i = 0; i < 8 && !cancelled; i++) {
+        try {
+          const res = await fetch('/setup/status');
+          const json = await res.json() as { success: boolean; data?: { installed?: boolean } };
+          if (json.data?.installed === true) {
+            clearRecovery();
+            setStep('complete');
+            return;
+          }
+        } catch { /* API 아직 재시작 중 */ }
+        await new Promise<void>((r) => setTimeout(r, 1500));
+      }
+      // 폴링 종료 — 설치 상태 미확정: 복구 배너 유지, 유저가 재시도 가능
+    };
+
+    void poll();
+    return () => { cancelled = true; };
+  }, [isRestored]);
+
+  // progress 단계의 상태가 바뀔 때마다 sessionStorage에 저장
+  useEffect(() => {
+    if (step === 'progress') {
+      saveRecovery(progressEntries, hasError);
+    }
+  }, [step, progressEntries, hasError]);
 
   const handleConfigNext = (data: ConfigFormData) => {
     setFormData(data);
+    setIsRestored(false);
     setStep("progress");
     void runSetup(data);
   };
@@ -710,7 +774,8 @@ export function SetupWizardView({ onComplete }: { onComplete: () => void }) {
         }
       }
 
-      // 성공 완료 — 잠시 후 complete step
+      // 성공 완료 — 복구 데이터 제거 후 complete step으로 이동
+      clearRecovery();
       setTimeout(() => setStep("complete"), 1000);
     } catch (e: unknown) {
       setProgressEntries((prev) => [
@@ -748,16 +813,24 @@ export function SetupWizardView({ onComplete }: { onComplete: () => void }) {
           )}
           {step === "progress" && (
             <>
+              {/* 새로고침/재접속 복구 배너 */}
+              {isRestored && (
+                <div className="setup-alert warn" style={{ marginBottom: 16 }}>
+                  <strong>재접속 감지됨</strong> — 이전 설치 진행 상태를 복원했습니다.
+                  서버가 아직 설치 중이라면 자동으로 완료 단계로 이동합니다.
+                  설치가 중단된 경우 아래 버튼으로 다시 시도할 수 있습니다.
+                </div>
+              )}
               <ProgressStep entries={progressEntries} hasError={hasError} />
-              {hasError && (
+              {(hasError || isRestored) && (
                 <div className="setup-footer">
                   <button
                     className="setup-btn secondary"
-                    onClick={() => setStep("config")}
+                    onClick={() => { clearRecovery(); setIsRestored(false); setStep("config"); }}
                   >
                     ← 구성으로 돌아가기
                   </button>
-                  {formData && (
+                  {formData && !isRestored && (
                     <button
                       className="setup-btn primary"
                       onClick={() => { void runSetup(formData); }}
