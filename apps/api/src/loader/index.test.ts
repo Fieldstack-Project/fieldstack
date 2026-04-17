@@ -57,6 +57,7 @@ describe("api module loader", () => {
       ledger,
       {
         name: "subscription",
+        displayName: "구독 관리",
         version: "1.0.0",
         enabled: true,
         dependencies: [],

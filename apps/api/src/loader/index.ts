@@ -8,6 +8,7 @@ export interface ModuleRoutes {
 
 export interface ModuleManifest {
   name: string;
+  displayName: string;
   version: string;
   enabled: boolean;
   dependencies: string[];
@@ -37,6 +38,7 @@ export function parseModuleJson(content: string): ModuleManifest {
 
   return {
     name: parsed.name ?? "",
+    displayName: parsed.displayName ?? parsed.name ?? "",
     version: parsed.version ?? "0.0.0",
     enabled: parsed.enabled ?? false,
     dependencies: parsed.dependencies ?? [],

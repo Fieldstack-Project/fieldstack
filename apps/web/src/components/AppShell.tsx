@@ -1,7 +1,9 @@
 import { type ReactNode, useState, useEffect } from "react";
 import "../styles/shell.css";
 
-export type RouteKey = "login" | "forgot-password" | "home" | "marketplace" | "admin" | "change-password";
+// 코어 라우트 + 설치된 모듈 이름도 RouteKey에 포함 (가계부: "ledger" 등)
+export type CoreRouteKey = "login" | "forgot-password" | "home" | "marketplace" | "admin" | "change-password";
+export type RouteKey = CoreRouteKey | string;
 
 interface AppShellProps {
   route: RouteKey;
@@ -16,6 +18,7 @@ interface AppShellProps {
 
 interface SidebarModule {
   name: string;
+  displayName: string;
   basePath: string;
   enabled: boolean;
 }
@@ -163,11 +166,12 @@ export function AppShell({
                   <button
                     type="button"
                     className="shell-nav-item"
-                    data-label={mod.name}
+                    data-label={mod.displayName || mod.name}
+                    aria-current={route === mod.name ? "page" : undefined}
                     onClick={() => { window.location.hash = mod.name; closeMobileMenu(); }}
                   >
                     <span className="shell-nav-icon" aria-hidden="true">📦</span>
-                    <span className="shell-nav-text">{mod.name}</span>
+                    <span className="shell-nav-text">{mod.displayName || mod.name}</span>
                   </button>
                 </li>
               ))

@@ -3,7 +3,13 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "moduleResolution": "Bundler",
-    "types": []
+    "types": [],
+    "paths": {
+      "@fieldstack/controls": ["./node_modules/@fieldstack/controls"],
+      "@fieldstack/controls/*": ["./node_modules/@fieldstack/controls/*"],
+      "@fieldstack/core/browser": ["./node_modules/@fieldstack/core/browser"],
+      "@fieldstack/core/browser/*": ["./node_modules/@fieldstack/core/browser/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
 }

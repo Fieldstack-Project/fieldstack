@@ -83,6 +83,7 @@ export function createCoreRouter(services: AppServices): Router {
 
       const result = registryModules.map((mod) => ({
         name: mod.name,
+        displayName: mod.manifest.displayName,
         basePath: mod.basePath,
         version: mod.manifest.version,
         // user_modules 레코드 없으면 기본 활성

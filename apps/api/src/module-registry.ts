@@ -80,17 +80,15 @@ export class ModuleRegistry {
           : record.basePath + '/';
 
         if (req.path === record.basePath || req.path.startsWith(base)) {
-          // sub-path를 라우터에 전달하기 위해 url 재작성
+          // sub-path를 라우터에 전달하기 위해 url 재작성.
+          // Express 5 / router 패키지에서 req.path는 req.url 파생 getter이므로
+          // req.url만 변경하면 req.path가 자동으로 갱신된다.
           const originalUrl = req.url;
-          const originalPath = req.path;
 
           req.url = req.url.slice(record.basePath.length) || '/';
-          (req as express.Request & { path: string }).path = originalPath.slice(record.basePath.length) || '/';
 
           record.router(req, res, (err?: unknown) => {
-            // 라우터가 처리하지 못하면 url 복원 후 다음 미들웨어로
             req.url = originalUrl;
-            (req as express.Request & { path: string }).path = originalPath;
             next(err);
           });
           return;
@@ -105,7 +103,8 @@ export class ModuleRegistry {
 
 interface ModuleRouterModule {
   default?: express.Router;
-  createRouter?: (services: AppServices) => express.Router;
+  // createRouter는 동기 또는 비동기 모두 허용 (모듈 마이그레이션 등 async 초기화 지원)
+  createRouter?: (services: AppServices) => express.Router | Promise<express.Router>;
 }
 
 /**
@@ -148,11 +147,21 @@ export async function loadModulesIntoRegistry(
     }
 
     try {
+      // apps/api는 @fieldstack/core에 접근 가능하므로 여기서 마이그레이션 실행
+      const migrationsDir = path.join(modulesDir, reg.moduleName, 'backend', 'migrations');
+      if (fs.existsSync(migrationsDir)) {
+        const { FileMigrationRunner } = await import('@fieldstack/core');
+        const runner = new FileMigrationRunner(services.db, reg.moduleName, migrationsDir);
+        await runner.run();
+        console.log(`[fieldstack][registry] migrations applied for module "${reg.moduleName}"`);
+      }
+
       const mod = (await import(routerFile)) as ModuleRouterModule;
       let router: express.Router | undefined;
 
       if (typeof mod.createRouter === 'function') {
-        router = mod.createRouter(services);
+        // async createRouter도 지원
+        router = await Promise.resolve(mod.createRouter(services));
       } else if (mod.default) {
         router = mod.default;
       }

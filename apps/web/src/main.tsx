@@ -16,15 +16,21 @@ import { MarketplaceView } from "./views/MarketplaceView";
 import { ChangePasswordView } from "./views/ChangePasswordView";
 import { ForgotPasswordView } from "./views/ForgotPasswordView";
 import { SetupWizardView } from "./views/SetupWizardView";
+import { LedgerView } from "../../../modules/ledger/frontend/LedgerView";
 
 // ─── Helpers ──────────────────────────────────────────────────
-const WEB_BOOTSTRAP_MESSAGE = "Fieldstack Web bootstrap initialized";
+
+// 코어 라우트 목록 (앱 shell 없이 전체 화면으로 렌더되는 것 제외)
+const CORE_ROUTES = ["login", "forgot-password", "home", "marketplace", "admin", "change-password"] as const;
+// 모듈 라우트 — module.json name 기준 (서버 레지스트리와 일치)
+const MODULE_ROUTES: string[] = ["ledger"];
 
 function getRouteFromHash(rawHash: string): RouteKey {
   const hash = rawHash.replace("#", "");
   if (hash === "settings") return "home";
-  const valid: RouteKey[] = ["login", "forgot-password", "home", "marketplace", "admin", "change-password"];
-  return (valid as string[]).includes(hash) ? (hash as RouteKey) : "login";
+  if ((CORE_ROUTES as readonly string[]).includes(hash)) return hash as RouteKey;
+  if (MODULE_ROUTES.includes(hash)) return hash as RouteKey;
+  return "login";
 }
 
 // ─── Theme ────────────────────────────────────────────────────
@@ -63,16 +69,15 @@ const SS = {
 } as const;
 
 const LS = {
-  theme:           "fs_theme",
   firstVisitShown: "fs_first_visit_shown",
   startupRoute:    "fs_startup_route",
 } as const;
 
-// 딥 링크: 비인증 상태에서 진입한 app route 반환
+// 딥 링크: 비인증 상태에서 진입한 app route 반환 (모듈 라우트 포함)
 function getDeepLinkTarget(): RouteKey | null {
   const hash = window.location.hash.replace("#", "");
-  const appRoutes: RouteKey[] = ["home", "marketplace", "admin"];
-  return (appRoutes as string[]).includes(hash) ? (hash as RouteKey) : null;
+  const appRoutes: string[] = ["home", "marketplace", "admin", ...MODULE_ROUTES];
+  return appRoutes.includes(hash) ? (hash as RouteKey) : null;
 }
 
 // 개인화: 로그인 후 첫 화면 설정
@@ -469,6 +474,8 @@ function App() {
             onRequestPin={() => setIsPinModalOpen(true)}
           />
         )}
+        {/* ── 모듈 뷰 ────────────────────────────────────── */}
+        {effectiveRoute === "ledger" && <LedgerView />}
         {isSettingsOpen && (
           <SettingsView
             theme={theme}
@@ -533,7 +540,7 @@ function AppRoot() {
 }
 
 // ─── Bootstrap ────────────────────────────────────────────────
-console.log(WEB_BOOTSTRAP_MESSAGE);
+console.log("Fieldstack Web bootstrap initialized");
 
 const appRootElement = document.querySelector<HTMLDivElement>("#app");
 if (appRootElement === null) {

@@ -7,6 +7,7 @@ describe("api integration smoke", () => {
     const manifests: ModuleManifest[] = [
       {
         name: "ledger",
+        displayName: "가계부",
         version: "1.0.0",
         enabled: true,
         dependencies: [],

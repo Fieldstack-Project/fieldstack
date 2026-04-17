@@ -38,6 +38,8 @@ export interface AppServices {
   userAuth: UserAuthService;
   sharedLink: SharedLinkService;
   settings: SystemSettingsService;
+  // 모듈 라우터에서 사용할 DB 프로바이더 (모듈이 @fieldstack/core를 직접 import하지 않아도 되도록)
+  db: DbProvider;
 }
 
 export function createApp(services?: AppServices) {
@@ -184,5 +186,5 @@ export async function initServices(db: DbProvider): Promise<AppServices> {
   const settings = new SystemSettingsService(db);
   const sharedLink = new SharedLinkService(db, settings, env.PUBLIC_URL ?? null);
 
-  return { jwtManager, whitelist, adminPin, totpService, userAuth, sharedLink, settings };
+  return { jwtManager, whitelist, adminPin, totpService, userAuth, sharedLink, settings, db };
 }
