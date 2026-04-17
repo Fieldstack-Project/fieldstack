@@ -8,7 +8,7 @@
 
 CREATE TABLE IF NOT EXISTS user_modules (
   id           {{UUID_PRIMARY_KEY}},
-  user_id      TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id      UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   module_name  TEXT        NOT NULL,
   enabled      BOOLEAN     NOT NULL DEFAULT {{BOOLEAN_TRUE}},
   installed_at TEXT        NOT NULL DEFAULT ({{NOW}}),

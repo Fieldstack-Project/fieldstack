@@ -11,6 +11,11 @@ const ResetBody = z.object({
   pin: z.string().min(4),
 });
 
+const ChangePinBody = z.object({
+  currentPin: z.string().min(4),
+  newPin: z.string().min(4),
+});
+
 // ── 완전 초기화: 삭제할 테이블 목록 (FK 의존성 역순) ──────────
 
 const ALL_TABLES = [
@@ -35,6 +40,52 @@ const DATA_TABLES = ['shared_link_logs', 'shared_links'];
 
 export function createAdminRouter(services: AppServices): Router {
   const router = Router();
+
+  /**
+   * POST /admin/change-pin — 관리자 PIN 변경
+   *
+   * 현재 PIN 검증 후 새 PIN으로 교체한다.
+   * rotatePin()이 내부에서 현재 PIN 검증 + setPin을 원자적으로 처리한다.
+   */
+  router.post('/change-pin', requireAuth(services.jwtManager), async (req, res) => {
+    const parsed = ChangePinBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.flatten() });
+      return;
+    }
+
+    try {
+      await services.adminPin.rotatePin(parsed.data.currentPin, parsed.data.newPin);
+      res.json({ success: true });
+    } catch (err) {
+      const msg = (err as Error).message;
+      const status = msg.includes('incorrect') ? 403 : 500;
+      res.status(status).json({ success: false, error: msg });
+    }
+  });
+
+  /**
+   * POST /admin/verify-pin — 관리자 PIN 단독 검증
+   *
+   * 프론트엔드 AdminPinModal에서 PIN 인증 전용으로 호출한다.
+   * 성공 시 { success: true }만 반환하며 세션/토큰을 별도로 발급하지 않는다.
+   * 실제 인가는 각 관리자 액션 API에서 PIN을 재검증한다.
+   */
+  router.post('/verify-pin', requireAuth(services.jwtManager), async (req, res) => {
+    const parsed = ResetBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.flatten() });
+      return;
+    }
+
+    const pinOk = await services.adminPin.verifyPin(parsed.data.pin);
+    if (!pinOk) {
+      res.status(403).json({ success: false, error: 'PIN이 올바르지 않습니다.' });
+      return;
+    }
+
+    res.json({ success: true });
+  });
 
   /**
    * POST /admin/factory-reset — 완전 초기화

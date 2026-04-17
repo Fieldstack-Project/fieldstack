@@ -1,10 +1,9 @@
 import { useState, type FormEvent } from 'react';
 
+
 import { Alert, Button, FormField, Input } from '@fieldstack/controls';
 
 import '../styles/forgot-password.css';
-
-const MOCK_ADMIN_TOKEN = 'ADMIN-RECOVER-1234';
 
 type Step = 'choice' | 'email' | 'email-sent' | 'token' | 'token-newpw' | 'token-done';
 
@@ -32,8 +31,10 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [pwError, setPwError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ── 이메일 경로 핸들러 ────────────────────────────────────────
+  // SMTP 미구현(Phase 3.x) — 이메일 전송 없이 "전송됨" 화면만 표시
   const handleEmailSubmit = (e: FormEvent) => {
     e.preventDefault();
     setEmailTouched(true);
@@ -42,30 +43,39 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
   };
 
   // ── 관리자 토큰 경로 핸들러 ───────────────────────────────────
+  // 토큰 유효성 검증은 새 비밀번호 설정 단계에서 API로 처리
   const handleTokenSubmit = (e: FormEvent) => {
     e.preventDefault();
     setTokenEmailTouched(true);
     if (!isValidTokenEmail) return;
-    if (token.trim() === MOCK_ADMIN_TOKEN) {
-      setTokenError('');
-      setStep('token-newpw');
-    } else {
-      setTokenError('이메일 또는 복구 토큰이 올바르지 않습니다.');
-    }
+    if (!token.trim()) return;
+    setTokenError('');
+    setStep('token-newpw');
   };
 
-  const handleNewPwSubmit = (e: FormEvent) => {
+  const handleNewPwSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (newPw.length < 8) {
-      setPwError('비밀번호는 8자 이상이어야 합니다.');
-      return;
-    }
-    if (newPw !== confirmPw) {
-      setPwError('비밀번호가 일치하지 않습니다.');
-      return;
-    }
+    if (newPw.length < 8) { setPwError('비밀번호는 8자 이상이어야 합니다.'); return; }
+    if (newPw !== confirmPw) { setPwError('비밀번호가 일치하지 않습니다.'); return; }
+    setIsSubmitting(true);
     setPwError('');
-    setStep('token-done');
+    try {
+      const res = await fetch('/auth/password/recovery/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.trim(), newPassword: newPw }),
+      });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setPwError(json.error ?? '토큰이 유효하지 않거나 만료되었습니다.');
+        return;
+      }
+      setStep('token-done');
+    } catch {
+      setPwError('서버 연결 오류. 다시 시도해주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ── 선택 화면 ─────────────────────────────────────────────────
@@ -316,7 +326,8 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
               variant="primary"
               block
               type="submit"
-              disabled={newPw.length === 0 || confirmPw.length === 0}
+              disabled={newPw.length === 0 || confirmPw.length === 0 || isSubmitting}
+              loading={isSubmitting}
             >
               비밀번호 변경
             </Button>

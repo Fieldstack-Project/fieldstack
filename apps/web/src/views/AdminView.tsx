@@ -4,8 +4,6 @@ import { Button, FormField, PinInput } from "@fieldstack/controls";
 
 import "../styles/admin.css";
 
-// 개발 mock PIN — 실제 구현 시 API 검증으로 교체
-const MOCK_ADMIN_PIN = "1234";
 
 // 초기화 플로우 단계
 type ResetPhase =
@@ -94,6 +92,8 @@ export function AdminView({ isPinVerified, onRequestPin, installMode }: AdminVie
   const [resetPhase, setResetPhase] = useState<ResetPhase>("idle");
   const [resetPin, setResetPin] = useState("");
   const [resetPinError, setResetPinError] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
+  const [isPinChanging, setIsPinChanging] = useState(false);
 
   // 모듈 목록 조회
   const fetchModules = useCallback(async () => {
@@ -176,54 +176,84 @@ export function AdminView({ isPinVerified, onRequestPin, installMode }: AdminVie
     if (next !== "system") resetResetFlow();
   };
 
-  // 부분 초기화 PIN 확인 (mock)
-  const handlePartialResetSubmit = (e: FormEvent) => {
+  const handlePartialResetSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (resetPin !== MOCK_ADMIN_PIN) {
-      setResetPinError("PIN이 올바르지 않습니다.");
-      setResetPin("");
-      return;
-    }
+    if (isResetting) return;
+    setIsResetting(true);
     setResetPinError("");
-    setResetPhase("p-done");
-    // 실제 구현 시: POST /admin/partial-reset { pin } 호출
+    try {
+      const token = sessionStorage.getItem("fs_token") ?? "";
+      const res = await fetch("/admin/partial-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ pin: resetPin }),
+      });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setResetPinError(json.error ?? "초기화 실패");
+        setResetPin("");
+        return;
+      }
+      setResetPhase("p-done");
+    } catch {
+      setResetPinError("서버 연결 오류");
+    } finally {
+      setIsResetting(false);
+    }
   };
 
-  // 완전 초기화 PIN 확인 (mock)
-  const handleFactoryResetSubmit = (e: FormEvent) => {
+  const handleFactoryResetSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (resetPin !== MOCK_ADMIN_PIN) {
-      setResetPinError("PIN이 올바르지 않습니다.");
-      setResetPin("");
-      return;
-    }
+    if (isResetting) return;
+    setIsResetting(true);
     setResetPinError("");
-    setResetPhase("f-done");
-    // 실제 구현 시: POST /admin/factory-reset { pin } 호출 → 서버 재시작
+    try {
+      const token = sessionStorage.getItem("fs_token") ?? "";
+      const res = await fetch("/admin/factory-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ pin: resetPin }),
+      });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setResetPinError(json.error ?? "초기화 실패");
+        setResetPin("");
+        return;
+      }
+      setResetPhase("f-done");
+    } catch {
+      setResetPinError("서버 연결 오류");
+    } finally {
+      setIsResetting(false);
+    }
   };
 
-  const handlePinChange = (e: FormEvent) => {
+  const handlePinChange = async (e: FormEvent) => {
     e.preventDefault();
-    if (currentPin !== MOCK_ADMIN_PIN) {
-      setPinError("현재 PIN이 올바르지 않습니다.");
-      setCurrentPin("");
-      return;
-    }
-    if (newPin.length < 4) {
-      setPinError("새 PIN은 4자리 이상이어야 합니다.");
-      return;
-    }
-    if (newPin !== confirmPin) {
-      setPinError("새 PIN이 일치하지 않습니다.");
-      setConfirmPin("");
-      return;
-    }
-    if (newPin === MOCK_ADMIN_PIN) {
-      setPinError("현재 PIN과 동일한 PIN은 사용할 수 없습니다.");
-      return;
-    }
+    if (isPinChanging) return;
+    if (newPin.length < 4) { setPinError("새 PIN은 4자리 이상이어야 합니다."); return; }
+    if (newPin !== confirmPin) { setPinError("새 PIN이 일치하지 않습니다."); setConfirmPin(""); return; }
+    setIsPinChanging(true);
     setPinError("");
-    setPinSuccess(true);
+    try {
+      const token = sessionStorage.getItem("fs_token") ?? "";
+      const res = await fetch("/admin/change-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPin, newPin }),
+      });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setPinError(json.error ?? "PIN 변경 실패");
+        setCurrentPin("");
+        return;
+      }
+      setPinSuccess(true);
+    } catch {
+      setPinError("서버 연결 오류");
+    } finally {
+      setIsPinChanging(false);
+    }
   };
 
   if (!isPinVerified) {

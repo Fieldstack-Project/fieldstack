@@ -2,8 +2,6 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { Button, Modal, PinInput } from "@fieldstack/controls";
 
-// 개발 mock PIN — 실제 구현 시 API 검증으로 교체
-const MOCK_ADMIN_PIN = "1234";
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 300; // 5분
 
@@ -18,6 +16,7 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
   const [attempts, setAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(0);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // 잠금 카운트다운
   useEffect(() => {
@@ -40,25 +39,43 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
 
   const isLocked = lockedUntil !== null;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (isLocked || pin.length < 4) return;
+    if (isLocked || pin.length < 4 || isVerifying) return;
 
-    if (pin === MOCK_ADMIN_PIN) {
-      onVerified();
-      return;
-    }
+    setIsVerifying(true);
+    try {
+      const token = sessionStorage.getItem("fs_token") ?? "";
+      const res = await fetch("/admin/verify-pin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ pin }),
+      });
 
-    const next = attempts + 1;
-    setAttempts(next);
-    setPin("");
+      if (res.ok) {
+        onVerified();
+        return;
+      }
 
-    if (next >= MAX_ATTEMPTS) {
-      const until = Date.now() + LOCKOUT_SECONDS * 1000;
-      setLockedUntil(until);
-      setError(`PIN ${MAX_ATTEMPTS}회 오류 — 5분간 잠금`);
-    } else {
-      setError(`PIN이 올바르지 않습니다. (${next}/${MAX_ATTEMPTS})`);
+      const next = attempts + 1;
+      setAttempts(next);
+      setPin("");
+
+      if (next >= MAX_ATTEMPTS) {
+        const until = Date.now() + LOCKOUT_SECONDS * 1000;
+        setLockedUntil(until);
+        setError(`PIN ${MAX_ATTEMPTS}회 오류 — 5분간 잠금`);
+      } else {
+        setError(`PIN이 올바르지 않습니다. (${next}/${MAX_ATTEMPTS})`);
+      }
+    } catch {
+      setError("서버 연결 오류. 다시 시도해주세요.");
+      setPin("");
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -70,8 +87,14 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
       size="sm"
       footer={
         <>
-          <Button type="button" onClick={onClose}>취소</Button>
-          <Button variant="primary" type="submit" form="pin-form" disabled={pin.length < 4 || isLocked}>
+          <Button type="button" onClick={onClose} disabled={isVerifying}>취소</Button>
+          <Button
+            variant="primary"
+            type="submit"
+            form="pin-form"
+            disabled={pin.length < 4 || isLocked || isVerifying}
+            loading={isVerifying}
+          >
             확인
           </Button>
         </>
@@ -90,12 +113,10 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
             setPin(val);
             if (!isLocked) setError("");
           }}
-          disabled={isLocked}
+          disabled={isLocked || isVerifying}
           error={error ? (isLocked ? `${error} — ${remaining}초 후 재시도 가능` : error) : undefined}
         />
       </form>
-
-      <p className="pin-modal-hint">개발 mock PIN: 1234</p>
     </Modal>
   );
 }
