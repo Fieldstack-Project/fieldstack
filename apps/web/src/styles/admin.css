@@ -1,39 +1,146 @@
+/* ── Lock gate (PIN 미인증 상태) ─────────────────────────────── */
 .admin-root {
   display: grid;
   gap: 14px;
 }
 
-.admin-hero {
+.admin-lock-wrap {
+  border: 1px dashed var(--border);
+  border-radius: 13px;
+  background: var(--bg-surface);
+  padding: 28px 16px;
+  text-align: center;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.admin-lock-icon {
+  font-size: 36px;
+  color: var(--text-faint);
+}
+
+.admin-lock-title {
+  margin: 0;
+  font-size: 19px;
+  color: var(--text);
+}
+
+.admin-lock-desc {
+  margin: 0;
+  max-width: 38ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ── 좌탭 + 우콘텐츠 레이아웃 ───────────────────────────────── */
+.admin-page {
   display: flex;
-  align-items: flex-start;
+  gap: 0;
+  min-height: calc(100vh - 56px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* 왼쪽 탭 네비게이션 */
+.admin-tabs {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.admin-tabs-label {
+  margin: 0 6px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.admin-tabs-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 110ms ease, color 110ms ease;
+}
+
+.admin-tabs-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.admin-tabs-item[aria-current="page"] {
+  background: var(--accent-subtle);
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+.admin-tabs-item-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.admin-tabs-item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 오른쪽 콘텐츠 영역 */
+.admin-content {
+  flex: 1;
+  min-width: 0;
+  padding: 20px 24px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.admin-content-header {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  padding: 14px;
 }
 
+.admin-content-title {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* ── 공통 헤더 요소 ──────────────────────────────────────────── */
 .admin-kicker {
   margin: 0;
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-muted);
-}
-
-.admin-title {
-  margin: 4px 0 0;
-  font-size: 28px;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
-.admin-subtitle {
-  margin: 6px 0 0;
-  font-size: 14px;
   color: var(--text-muted);
 }
 
@@ -49,11 +156,14 @@
   padding: 6px 11px;
 }
 
-.admin-layout {
-  display: grid;
-  gap: 12px;
+.admin-block-title {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
 }
 
+/* ── 통계 카드 ───────────────────────────────────────────────── */
 .admin-stats-grid {
   display: grid;
   gap: 10px;
@@ -63,7 +173,7 @@
 .admin-stat-card {
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--bg-elevated);
+  background: var(--bg-surface);
   padding: 12px;
 }
 
@@ -90,71 +200,7 @@
   color: var(--text-muted);
 }
 
-.admin-columns {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1.2fr 1fr;
-}
-
-.admin-sections {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-elevated);
-  padding: 12px;
-  display: grid;
-  gap: 8px;
-  align-content: start;
-}
-
-.admin-block-title {
-  margin: 0 0 2px;
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--text);
-}
-
-.admin-section-row {
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background: var(--bg-surface);
-  padding: 11px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
-}
-
-.admin-section-row:hover {
-  transform: translateY(-1px);
-  border-color: var(--accent);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
-}
-
-.admin-section-info {
-  display: grid;
-  gap: 3px;
-}
-
-.admin-section-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.admin-section-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.admin-section-arrow {
-  font-size: 18px;
-  color: var(--text-faint);
-}
-
+/* ── 감사 로그 ───────────────────────────────────────────────── */
 .admin-audit-list {
   list-style: none;
   margin: 0;
@@ -194,137 +240,6 @@
   color: var(--text-faint);
 }
 
-.admin-lock-wrap {
-  border: 1px dashed var(--border);
-  border-radius: 13px;
-  background: var(--bg-surface);
-  padding: 28px 16px;
-  text-align: center;
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-}
-
-.admin-lock-icon {
-  font-size: 36px;
-  color: var(--text-faint);
-}
-
-.admin-lock-title {
-  margin: 0;
-  font-size: 19px;
-  color: var(--text);
-}
-
-.admin-lock-desc {
-  margin: 0;
-  max-width: 38ch;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-muted);
-}
-
-.admin-lock-button {
-  cursor: not-allowed;
-}
-
-/* ── Section row 활성 상태 ───────────────────────────────────── */
-.admin-section-row[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent-subtle);
-  box-shadow: none;
-  transform: none;
-}
-
-.admin-section-row[aria-pressed="true"] .admin-section-name {
-  color: var(--accent-hover);
-}
-
-.admin-section-row[aria-pressed="true"] .admin-section-arrow {
-  color: var(--accent);
-}
-
-/* ── 오른쪽 패널 ─────────────────────────────────────────────── */
-.admin-panel {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-elevated);
-  padding: 12px;
-  display: grid;
-  gap: 8px;
-  align-content: start;
-}
-
-.admin-panel-sub-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-
-.admin-panel-empty {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-faint);
-  padding: 12px 0;
-  text-align: center;
-}
-
-/* ── PIN 변경 폼 ─────────────────────────────────────────────── */
-.admin-pin-form {
-  display: grid;
-  gap: 12px;
-}
-
-.admin-pin-error {
-  margin: 0;
-  font-size: 12px;
-  color: var(--err);
-}
-
-.admin-pin-hint {
-  margin: 0;
-  font-size: 11px;
-  color: var(--text-faint);
-  text-align: center;
-}
-
-/* PIN 변경 성공 */
-.admin-pin-success {
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 10px;
-  background: rgba(16, 185, 129, 0.07);
-  padding: 20px 14px;
-  text-align: center;
-  display: grid;
-  gap: 6px;
-  justify-items: center;
-}
-
-.admin-pin-success-icon {
-  margin: 0;
-  font-size: 28px;
-  color: var(--ok);
-  font-weight: 800;
-}
-
-.admin-pin-success-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ok);
-}
-
-.admin-pin-success-desc {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-/* ── 감사 로그 필터 ──────────────────────────────────────────── */
 .admin-audit-filters {
   display: flex;
   flex-wrap: wrap;
@@ -369,7 +284,69 @@
   background: var(--bg-surface);
 }
 
-/* ── 미구현 플레이스홀더 ─────────────────────────────────────── */
+/* ── 모듈 목록 ───────────────────────────────────────────────── */
+.admin-module-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.admin-module-item {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.admin-module-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-module-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.admin-module-version {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+  background: var(--bg-hover);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.admin-module-path {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+/* ── 패널 보조 요소 ──────────────────────────────────────────── */
+.admin-panel-sub-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.admin-panel-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-faint);
+  padding: 12px 0;
+  text-align: center;
+}
+
 .admin-panel-placeholder {
   border: 1px dashed var(--border);
   border-radius: 10px;
@@ -396,6 +373,57 @@
   margin: 0;
   font-size: 12px;
   color: var(--text-faint);
+}
+
+/* ── PIN 변경 폼 ─────────────────────────────────────────────── */
+.admin-pin-form {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-pin-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--err);
+}
+
+.admin-pin-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.admin-pin-success {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.07);
+  padding: 20px 14px;
+  text-align: center;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.admin-pin-success-icon {
+  margin: 0;
+  font-size: 28px;
+  color: var(--ok);
+  font-weight: 800;
+}
+
+.admin-pin-success-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.admin-pin-success-desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 
 /* ── Admin PIN Modal ─────────────────────────────────────────── */
@@ -597,14 +625,44 @@
   line-height: 1.5;
 }
 
-@media (max-width: 980px) {
-  .admin-columns {
-    grid-template-columns: 1fr;
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .admin-tabs {
+    width: 150px;
+  }
+
+  .admin-content {
+    padding: 16px 18px;
   }
 }
 
-@media (max-width: 740px) {
-  .admin-title {
-    font-size: 24px;
+@media (max-width: 640px) {
+  .admin-page {
+    flex-direction: column;
+    min-height: unset;
+  }
+
+  .admin-tabs {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 8px;
+    gap: 4px;
+  }
+
+  .admin-tabs-label {
+    display: none;
+  }
+
+  .admin-tabs-item {
+    flex: none;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .admin-content {
+    padding: 14px 16px;
   }
 }
