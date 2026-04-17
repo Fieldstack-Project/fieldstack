@@ -582,6 +582,32 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [ ] 신규 유저 임시 비밀번호 자동 발송 (SMTP 설정 완료 시)
 - [ ] SMTP 미설정 시 관리자 수동 발급 안내 UX
 
+#### 2.4 i18n 국제화 시스템
+**예상 기간: 1주**
+
+> 초기 지원 언어: 한국어(ko) · 영어(en). 번역 파일 추가만으로 언어를 확장할 수 있는 구조로 설계.
+
+**아키텍처 결정:**
+- i18next + react-i18next 기반
+- 네임스페이스 분리: `common` (앱 공통 문자열) / 모듈별 네임스페이스 (`ledger`, `subscription` 등)
+- **번역 파일 소유권**: 각 모듈이 `modules/{name}/frontend/locales/{lang}.json`을 직접 소유 → 모듈 추가 시 앱 번역 파일 수정 불필요
+- 앱 초기화 시 각 모듈의 번역 파일을 i18next에 namespace로 자동 등록
+
+**module.json displayName i18n 연동:**
+- `displayName` 값을 i18n 키로 사용: `"ledger:displayName"`
+- i18next가 키를 찾지 못하면 `module.name`을 폴백으로 표시 (하위 호환 유지)
+- 언어 추가 시 `locales/{lang}.json` 파일만 추가하면 됨 — `module.json` 수정 불필요
+
+**주요 작업:**
+- [ ] i18next + react-i18next 도입 및 초기화 설정 (`apps/web/src/i18n/index.ts`)
+- [ ] `common` 네임스페이스 번역 파일 작성 — 공통 UI 문자열 (`ko.json` / `en.json`)
+- [ ] 모듈 번역 로더 구현 — 앱 초기화 시 각 모듈의 `locales/*.json`을 i18next에 namespace로 등록
+- [ ] `module.json` displayName → i18n 키 방식 전환 (`ModuleManifest` 타입 및 AppShell 연동)
+- [ ] Settings 화면 언어 선택 실제 연동 (현재 mock 상태 → `i18n.changeLanguage()` + API 저장)
+- [ ] 언어 설정 저장: `localStorage` + `PATCH /core/users/me/settings` 연동
+- [ ] Ledger 모듈 번역 파일 작성 (`modules/ledger/frontend/locales/ko.json` / `en.json`)
+- [ ] 모듈 템플릿에 `locales/` 디렉터리 및 샘플 번역 파일 추가
+
 #### 2.5 통합 및 테스트
 **예상 기간: 1주**
 
