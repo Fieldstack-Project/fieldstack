@@ -17,9 +17,7 @@ const MSG = {
 
 interface LoginViewProps {
   onLogin: (event: FormEvent<HTMLFormElement>) => void;
-  onQuickLogin: () => void;
   onForgotPassword: () => void;
-  showDevBypass: boolean;
   pendingEmail: string | null;
   onOtpVerified: (code: string) => void;
   onOtpCancel: () => void;
@@ -32,9 +30,7 @@ interface LoginViewProps {
 
 export function LoginView({
   onLogin,
-  onQuickLogin,
   onForgotPassword,
-  showDevBypass,
   pendingEmail,
   onOtpVerified,
   onOtpCancel,
@@ -117,10 +113,6 @@ export function LoginView({
           <p className="login-top-text">{step === 'otp' ? '2FA OTP' : 'Sign in'}</p>
         </div>
 
-        {showDevBypass ? (
-          <span className="login-dev-badge login-dev-badge-top">DEV BYPASS</span>
-        ) : null}
-
         {step === 'credentials' ? (
           <div className="login-panel-body">
             <div className="login-panel-head">
@@ -173,11 +165,6 @@ export function LoginView({
                 <Button variant="primary" block type="submit" disabled={isLocked}>
                   Sign in
                 </Button>
-                {showDevBypass ? (
-                  <Button block type="button" onClick={onQuickLogin}>
-                    Bypass login
-                  </Button>
-                ) : null}
                 {sessionExpired && (
                   <p className="login-inline-warn" role="status">{MSG.sessionExpired}</p>
                 )}

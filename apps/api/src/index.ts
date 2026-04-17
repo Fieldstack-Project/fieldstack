@@ -32,12 +32,6 @@ const BOOTSTRAP_MESSAGE = 'Fieldstack API bootstrap initialized';
 
 console.log(BOOTSTRAP_MESSAGE);
 console.log(`[fieldstack][api] env: ${env.NODE_ENV}`);
-console.log(`[fieldstack][api] install mode: ${env.INSTALL_MODE ?? 'normal'}`);
-
-if (env.INSTALL_MODE === 'bypass') {
-  console.warn('[fieldstack][api] DEV INSTALL BYPASS ACTIVE');
-}
-
 // modules/ 디렉터리는 프로젝트 루트 기준 (apps/api/src → ../../../modules)
 const MODULES_DIR = path.join(__dirname, '..', '..', '..', 'modules');
 
@@ -88,7 +82,7 @@ function printSetupBanner(apiPort: number, isDev: boolean) {
 }
 
 // ── Setup 모드 ─────────────────────────────────────────────────
-// installed.lock 없고 bypass 아닐 때 → Setup 마법사만 서빙
+// installed.lock 없을 때 → Setup 마법사만 서빙
 async function startSetup() {
   console.log('[fieldstack][api] *** SETUP MODE — installation wizard active ***');
   const app = createSetupApp();
@@ -120,7 +114,7 @@ async function startApp() {
     const { getSharedLinkRenderer } = await import('@fieldstack/core');
     app = createAppWithPublicRouter(services, getSharedLinkRenderer);
   } else {
-    // DB 없이 시작 (INSTALL_MODE=bypass, DB 미설정) — 헬스체크만 동작
+    // DB 미설정 — 헬스체크만 동작
     app = createApp();
   }
 
@@ -152,7 +146,7 @@ async function startApp() {
 }
 
 // ── 진입점 ──────────────────────────────────────────────────────
-const shouldSetup = !isInstalled() && env.INSTALL_MODE !== 'bypass';
+const shouldSetup = !isInstalled();
 
 const boot = shouldSetup ? startSetup : startApp;
 

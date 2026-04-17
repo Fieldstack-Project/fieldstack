@@ -17,29 +17,8 @@ import { ChangePasswordView } from "./views/ChangePasswordView";
 import { ForgotPasswordView } from "./views/ForgotPasswordView";
 import { SetupWizardView } from "./views/SetupWizardView";
 
-// ─── Types ────────────────────────────────────────────────────
-type InstallMode = "normal" | "bypass";
-
-interface WebRuntimeEnv {
-  MODE?: string;
-  DEV?: boolean;
-  VITE_INSTALL_MODE?: string;
-}
-
 // ─── Helpers ──────────────────────────────────────────────────
 const WEB_BOOTSTRAP_MESSAGE = "Fieldstack Web bootstrap initialized";
-
-function resolveInstallMode(runtimeEnv: WebRuntimeEnv): InstallMode {
-  const requestedMode = runtimeEnv.VITE_INSTALL_MODE;
-  const isDevelopment = runtimeEnv.DEV === true || runtimeEnv.MODE === "development";
-
-  if (requestedMode === "bypass") {
-    if (isDevelopment) return "bypass";
-    console.warn("[fieldstack][web] VITE_INSTALL_MODE=bypass ignored outside development");
-  }
-
-  return "normal";
-}
 
 function getRouteFromHash(rawHash: string): RouteKey {
   const hash = rawHash.replace("#", "");
@@ -71,13 +50,6 @@ function loadTheme(): ThemeSetting {
 
 // 초기 테마 적용 (React 렌더 전에 FOUC 방지)
 applyTheme(loadTheme());
-
-// ─── Mock Accounts ────────────────────────────────────────────
-// TODO(Phase 1.9 연결): 실제 API 호출로 교체
-const MOCK_ACCOUNTS: { email: string; password: string; isAdmin: boolean }[] = [
-  { email: "admin@fieldstack.dev", password: "Admin1234!", isAdmin: true  },
-  { email: "user@fieldstack.dev",  password: "User1234!",  isAdmin: false },
-];
 
 // ─── Storage Keys ─────────────────────────────────────────────
 const SS = {
@@ -115,7 +87,7 @@ function loadStartupRoute(): StartupRoute {
 }
 
 // ─── App Root ─────────────────────────────────────────────────
-function App({ installMode }: { installMode: InstallMode }) {
+function App() {
   const [theme, setTheme] = useState<ThemeSetting>(loadTheme);
 
   const handleThemeChange = (next: ThemeSetting) => {
@@ -177,11 +149,7 @@ function App({ installMode }: { installMode: InstallMode }) {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [notice, setNotice] = useState(
-    installMode === "bypass"
-      ? "DEV bypass active — install skipped, auth starts from login."
-      : "",
-  );
+  const [notice, setNotice] = useState("");
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
 
   useEffect(() => {
@@ -279,35 +247,6 @@ function App({ installMode }: { installMode: InstallMode }) {
     const email = (formData.get("email") as string | null) ?? "";
     const password = (formData.get("password") as string | null) ?? "";
 
-    // ── bypass 모드: mock 계정으로 검증 ──────────────────────
-    if (installMode === "bypass") {
-      if (password === "otp1234") {
-        setLoginError(null);
-        setLoginAttempts(0);
-        setPendingOtpEmail(email);
-        return;
-      }
-      if (password === "temp1234") {
-        handleLoginSuccess(email, false, true);
-        return;
-      }
-      const matched = MOCK_ACCOUNTS.find((a) => a.email === email && a.password === password);
-      if (!matched) {
-        const next = loginAttempts + 1;
-        setLoginAttempts(next);
-        if (next >= MAX_LOGIN_ATTEMPTS) {
-          setLoginLockedUntil(Date.now() + LOCKOUT_MS);
-          setLoginError(null);
-        } else {
-          setLoginError("이메일 또는 비밀번호가 올바르지 않습니다.");
-        }
-        return;
-      }
-      handleLoginSuccess(email, matched.isAdmin, false);
-      return;
-    }
-
-    // ── normal 모드: 실제 API 호출 ────────────────────────────
     try {
       type LoginResponse = {
         success: boolean;
@@ -363,16 +302,6 @@ function App({ installMode }: { installMode: InstallMode }) {
     }
   };
 
-  const onQuickLogin = () => {
-    const email = "dev@fieldstack.dev";
-    setIsAuthenticated(true);
-    setCurrentUser({ email });
-    sessionStorage.setItem(SS.auth, "true");
-    sessionStorage.setItem(SS.email, email);
-    setNotice("");
-    navigate("home");
-  };
-
   const onPasswordChanged = () => {
     setMustChangePassword(false);
     sessionStorage.removeItem(SS.mustChangePw);
@@ -384,21 +313,6 @@ function App({ installMode }: { installMode: InstallMode }) {
     if (!pendingOtpEmail) return;
     const email = pendingOtpEmail;
 
-    // ── bypass 모드: mock 코드 "123456" 검증 ─────────────────
-    if (installMode === "bypass") {
-      if (code !== "123456") {
-        setOtpApiError("인증 코드가 올바르지 않습니다.");
-        return;
-      }
-      setOtpApiError(null);
-      setPendingOtpEmail(null);
-      setPendingChallengeId(null);
-      handleLoginSuccess(email, false, false);
-      setNotice("2단계 인증 완료.");
-      return;
-    }
-
-    // ── normal 모드: 실제 API 호출 ────────────────────────────
     if (!pendingChallengeId) return;
     try {
       type TotpResponse = {
@@ -451,7 +365,7 @@ function App({ installMode }: { installMode: InstallMode }) {
   const onLogout = (expired = false) => {
     // 토큰이 있으면 서버 세션 폐기 (실패해도 로컬 상태는 초기화)
     const token = sessionStorage.getItem(SS.token);
-    if (token && installMode !== "bypass") {
+    if (token) {
       fetch("/auth/logout", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -484,9 +398,7 @@ function App({ installMode }: { installMode: InstallMode }) {
         <section className="auth-layout">
           <LoginView
             onLogin={onLogin}
-            onQuickLogin={onQuickLogin}
             onForgotPassword={() => navigate("forgot-password")}
-            showDevBypass={installMode === "bypass"}
             pendingEmail={pendingOtpEmail}
             onOtpVerified={onOtpVerified}
             onOtpCancel={onOtpCancel}
@@ -533,7 +445,6 @@ function App({ installMode }: { installMode: InstallMode }) {
         />
       )}
       <AppShell
-        installMode={installMode}
         route={effectiveRoute}
         isAdmin={isAdmin}
         currentUser={currentUser}
@@ -545,7 +456,6 @@ function App({ installMode }: { installMode: InstallMode }) {
         {effectiveRoute === "home" && (
           <HomeView
             isAdmin={isAdmin}
-            installMode={installMode}
             isFirstVisit={isFirstVisit}
             onDismissFirstVisit={onDismissFirstVisit}
             onOpenSettings={() => setIsSettingsOpen(true)}
@@ -557,31 +467,15 @@ function App({ installMode }: { installMode: InstallMode }) {
           <AdminView
             isPinVerified={isPinVerified}
             onRequestPin={() => setIsPinModalOpen(true)}
-            installMode={installMode}
           />
         )}
         {isSettingsOpen && (
           <SettingsView
-            isAdmin={isAdmin}
-            installMode={installMode}
             theme={theme}
             onThemeChange={handleThemeChange}
             initialStartupRoute={startupRoute}
             onStartupRouteChange={onStartupRouteChange}
             onClose={() => setIsSettingsOpen(false)}
-            onToggleAdmin={() => {
-              setIsAdmin((prev) => {
-                const next = !prev;
-                if (!next) {
-                  // 관리자 역할 해제 시 PIN 인증도 초기화
-                  setIsPinVerified(false);
-                  setPinVerifiedAt(null);
-                  sessionStorage.removeItem(SS.pinVerified);
-                }
-                setNotice(next ? "관리자 권한이 부여되었습니다." : "관리자 권한이 해제되었습니다.");
-                return next;
-              });
-            }}
             onSaved={() => setNotice("설정이 저장되었습니다.")}
           />
         )}
@@ -593,24 +487,33 @@ function App({ installMode }: { installMode: InstallMode }) {
 // ─── Setup Status Check ───────────────────────────────────────
 type SetupStatus = "checking" | "required" | "done";
 
-function AppRoot({ installMode }: { installMode: InstallMode }) {
+function AppRoot() {
   const [setupStatus, setSetupStatus] = useState<SetupStatus>("checking");
 
   useEffect(() => {
-    if (installMode === "bypass") {
-      setSetupStatus("done");
-      return;
-    }
-    fetch("/setup/status")
-      .then((res) => res.json() as Promise<{ success: boolean; data?: { installed?: boolean } }>)
-      .then((json) => {
-        setSetupStatus(json.data?.installed === false ? "required" : "done");
-      })
-      .catch(() => {
-        // API 연결 실패 시 정상 앱 모드로 진입 (설치 완료 후 서버 재시작 직후 등)
-        setSetupStatus("done");
-      });
-  }, [installMode]);
+    let cancelled = false;
+
+    const check = async (attempt = 0): Promise<void> => {
+      if (cancelled) return;
+      try {
+        const res = await fetch("/setup/status");
+        const json = await res.json() as { success: boolean; data?: { installed?: boolean } };
+        if (!cancelled) {
+          setSetupStatus(json.data?.installed === false ? "required" : "done");
+        }
+      } catch {
+        // API 아직 미준비(ECONNREFUSED) — 최대 5회까지 600ms 간격으로 재시도
+        if (attempt < 5 && !cancelled) {
+          await new Promise<void>((r) => setTimeout(r, 600));
+          return check(attempt + 1);
+        }
+        if (!cancelled) setSetupStatus("done");
+      }
+    };
+
+    void check();
+    return () => { cancelled = true; };
+  }, []);
 
   if (setupStatus === "checking") {
     return (
@@ -626,22 +529,15 @@ function AppRoot({ installMode }: { installMode: InstallMode }) {
     );
   }
 
-  return <App installMode={installMode} />;
+  return <App />;
 }
 
 // ─── Bootstrap ────────────────────────────────────────────────
-const runtimeEnv = (import.meta as ImportMeta & { env?: WebRuntimeEnv }).env ?? {};
-const installMode = resolveInstallMode(runtimeEnv);
-
 console.log(WEB_BOOTSTRAP_MESSAGE);
-console.log(`[fieldstack][web] install mode: ${installMode}`);
-if (installMode === "bypass") {
-  console.warn("[fieldstack][web] DEV INSTALL BYPASS ACTIVE");
-}
 
 const appRootElement = document.querySelector<HTMLDivElement>("#app");
 if (appRootElement === null) {
   throw new Error("App root element '#app' was not found.");
 }
 
-createRoot(appRootElement).render(<AppRoot installMode={installMode} />);
+createRoot(appRootElement).render(<AppRoot />);

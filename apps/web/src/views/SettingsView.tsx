@@ -8,13 +8,10 @@ type ThemeSetting = "light" | "dark" | "system";
 type StartupRoute = "home" | "marketplace";
 
 interface SettingsViewProps {
-  isAdmin: boolean;
-  installMode: "normal" | "bypass";
   theme: ThemeSetting;
   onThemeChange: (theme: ThemeSetting) => void;
   initialStartupRoute: StartupRoute;
   onStartupRouteChange: (route: StartupRoute) => void;
-  onToggleAdmin: () => void;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -30,13 +27,10 @@ const INIT_DISPLAY_NAME = "";
 const INIT_LANGUAGE = "ko";
 
 export function SettingsView({
-  isAdmin,
-  installMode,
   theme,
   onThemeChange,
   initialStartupRoute,
   onStartupRouteChange,
-  onToggleAdmin,
   onClose,
   onSaved,
 }: SettingsViewProps) {
@@ -48,7 +42,6 @@ export function SettingsView({
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
 
   const fetchModules = useCallback(() => {
-    if (installMode === "bypass") return;
     const token = sessionStorage.getItem("fs_token") ?? "";
     if (!token) return;
     fetch("/core/modules/me", { headers: { Authorization: `Bearer ${token}` } })
@@ -57,7 +50,7 @@ export function SettingsView({
         if (json.success) setModules(json.data?.modules ?? []);
       })
       .catch(() => { /* 무음 처리 */ });
-  }, [installMode]);
+  }, []);
 
   useEffect(() => { fetchModules(); }, [fetchModules]);
 
@@ -188,7 +181,7 @@ export function SettingsView({
         </FormField>
       </section>
 
-      {installMode !== "bypass" && modules.length > 0 && (
+      {modules.length > 0 && (
         <section className="settings-section" aria-labelledby="settings-modules">
           <p className="settings-section-label" id="settings-modules">모듈 활성화</p>
           <ul className="settings-module-list">
@@ -213,14 +206,6 @@ export function SettingsView({
         </section>
       )}
 
-      {installMode === "bypass" && (
-        <section className="settings-section" aria-labelledby="settings-dev">
-          <p className="settings-section-label" id="settings-dev">개발 (Phase 1.5 Mock)</p>
-          <Button type="button" onClick={onToggleAdmin}>
-            {isAdmin ? "관리자 권한 해제" : "관리자 권한 부여 (테스트용)"}
-          </Button>
-        </section>
-      )}
     </Modal>
   );
 }

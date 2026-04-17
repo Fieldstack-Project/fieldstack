@@ -5,7 +5,6 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "pnpm exec tsx watch src/index.ts",
-    "dev:bypass": "pnpm exec tsx watch src/index.ts",
     "build": "tsc && node scripts/copy-migrations.js",
     "start": "node dist/index.js",
     "test": "vitest run",

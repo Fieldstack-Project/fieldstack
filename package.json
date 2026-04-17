@@ -14,11 +14,8 @@
   },
   "scripts": {
     "dev": "pnpm --parallel dev",
-    "dev:bypass": "node scripts/dev-bypass.js all",
     "dev:api": "pnpm --filter api dev",
-    "dev:api:bypass": "node scripts/dev-bypass.js api",
     "dev:web": "pnpm --filter web dev",
-    "dev:web:bypass": "node scripts/dev-bypass.js web",
     "build": "pnpm build:web && pnpm build:api && pnpm postbuild",
     "build:web": "pnpm --filter web build",
     "build:api": "pnpm --filter api build",

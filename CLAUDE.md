@@ -15,7 +15,6 @@ Phase 1.95 진행 중 (2026-04-16 기준). Phase 1.9 (API 서버·DB·인증 백
 ```bash
 # 개발 서버
 pnpm dev              # web + api 병렬 실행 (설치 마법사 포함)
-pnpm dev:bypass       # 설치 마법사 스킵 (INSTALL_MODE=bypass)
 pnpm dev:web          # web만 (port 5173)
 pnpm dev:api          # api만 (port 3000)
 
@@ -60,8 +59,6 @@ pnpm workspace, `node-linker=hoisted`.
 - 모든 라우트 상태 머신은 `apps/web/src/main.tsx`의 `App` 컴포넌트에서 관리 (`effectiveRoute` useMemo).
 - 인증 상태는 `sessionStorage`에 `fs_` 접두사 키로 저장 (`fs_auth`, `fs_admin`, `fs_pin_verified` 등).
 - **AppShell** (`src/components/AppShell.tsx`): 220px 고정 사이드바 레이아웃. login/otp/forgot-password/change-password는 shell 없이 전체 화면.
-- **개발 mock 계정**: `admin@fieldstack.dev` / `Admin1234!` (관리자), `user@fieldstack.dev` / `User1234!` (일반)
-- **개발 mock 특수 비밀번호**: `otp1234` → OTP 플로우, `temp1234` → 강제 비밀번호 변경 플로우 (어떤 이메일이든 동작)
 - **`@fieldstack/core` import 규칙**: 웹 앱(`apps/web`)에서는 반드시 `@fieldstack/core/browser`로 import. `@fieldstack/core` 직접 import는 Node.js 전용 패키지(jsonwebtoken 등)를 끌어들여 Vite 번들링 오류 발생.
 
 ### apps/api — 모듈 로더
