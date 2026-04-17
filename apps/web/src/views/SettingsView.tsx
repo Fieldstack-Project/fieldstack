@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { Button, FormField, Input, Modal, Select } from "@fieldstack/controls";
 
@@ -19,6 +19,13 @@ interface SettingsViewProps {
   onSaved: () => void;
 }
 
+interface UserModule {
+  name: string;
+  basePath: string;
+  version: string;
+  enabled: boolean;
+}
+
 const INIT_DISPLAY_NAME = "";
 const INIT_LANGUAGE = "ko";
 
@@ -37,6 +44,44 @@ export function SettingsView({
   const [language, setLanguage] = useState(INIT_LANGUAGE);
   const [startupRoute, setStartupRoute] = useState<StartupRoute>(initialStartupRoute);
   const [isSaving, setIsSaving] = useState(false);
+  const [modules, setModules] = useState<UserModule[]>([]);
+  const [togglingModule, setTogglingModule] = useState<string | null>(null);
+
+  const fetchModules = useCallback(() => {
+    if (installMode === "bypass") return;
+    const token = sessionStorage.getItem("fs_token") ?? "";
+    if (!token) return;
+    fetch("/core/modules/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((json: { success: boolean; data?: { modules: UserModule[] } }) => {
+        if (json.success) setModules(json.data?.modules ?? []);
+      })
+      .catch(() => { /* 무음 처리 */ });
+  }, [installMode]);
+
+  useEffect(() => { fetchModules(); }, [fetchModules]);
+
+  const handleToggleModule = async (name: string) => {
+    const token = sessionStorage.getItem("fs_token") ?? "";
+    if (!token || togglingModule) return;
+    setTogglingModule(name);
+    try {
+      const res = await fetch(`/core/modules/${name}/toggle`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = (await res.json()) as { success: boolean; data?: { enabled: boolean } };
+      if (json.success && json.data !== undefined) {
+        setModules((prev) =>
+          prev.map((m) => (m.name === name ? { ...m, enabled: json.data!.enabled } : m)),
+        );
+      }
+    } catch {
+      /* 무음 처리 */
+    } finally {
+      setTogglingModule(null);
+    }
+  };
 
   // 테마는 변경 즉시 localStorage에 저장되므로 dirty 체크 제외
   const isDirty =
@@ -142,6 +187,31 @@ export function SettingsView({
           />
         </FormField>
       </section>
+
+      {installMode !== "bypass" && modules.length > 0 && (
+        <section className="settings-section" aria-labelledby="settings-modules">
+          <p className="settings-section-label" id="settings-modules">모듈 활성화</p>
+          <ul className="settings-module-list">
+            {modules.map((mod) => (
+              <li key={mod.name} className="settings-module-item">
+                <div className="settings-module-info">
+                  <span className="settings-module-name">{mod.name}</span>
+                  <span className="settings-module-version">v{mod.version}</span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={mod.enabled ? undefined : "primary"}
+                  disabled={togglingModule === mod.name}
+                  onClick={() => handleToggleModule(mod.name)}
+                >
+                  {togglingModule === mod.name ? "..." : mod.enabled ? "비활성화" : "활성화"}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {installMode === "bypass" && (
         <section className="settings-section" aria-labelledby="settings-dev">

@@ -545,6 +545,7 @@ function App({ installMode }: { installMode: InstallMode }) {
         {effectiveRoute === "home" && (
           <HomeView
             isAdmin={isAdmin}
+            installMode={installMode}
             isFirstVisit={isFirstVisit}
             onDismissFirstVisit={onDismissFirstVisit}
             onOpenSettings={() => setIsSettingsOpen(true)}

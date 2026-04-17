@@ -1,10 +1,7 @@
+import { useState, useEffect } from "react";
 import "../styles/home.css";
 
 import { Button, EmptyState } from "@fieldstack/controls";
-
-import type { NavigationItem } from "../loader";
-
-const MOCK_INSTALLED_MODULES: NavigationItem[] = [];
 
 const MODULE_ICONS: Record<string, string> = {
   ledger: "💰",
@@ -19,16 +16,41 @@ const MOCK_RECENT_ACTIVITY = [
   { id: 3, text: "관리자 권한 상태 확인", time: "7분 전", dot: "warn" as const },
 ];
 
+interface InstalledModule {
+  name: string;
+  basePath: string;
+  enabled: boolean;
+}
+
 interface HomeViewProps {
   isAdmin: boolean;
+  installMode: "normal" | "bypass";
   isFirstVisit: boolean;
   onDismissFirstVisit: () => void;
   onOpenSettings: () => void;
   onNavigateAdmin: () => void;
 }
 
-export function HomeView({ isAdmin, isFirstVisit, onDismissFirstVisit, onOpenSettings, onNavigateAdmin }: HomeViewProps) {
-  const hasModules = MOCK_INSTALLED_MODULES.length > 0;
+export function HomeView({ isAdmin, installMode, isFirstVisit, onDismissFirstVisit, onOpenSettings, onNavigateAdmin }: HomeViewProps) {
+  const [installedModules, setInstalledModules] = useState<InstalledModule[]>([]);
+
+  // 로그인 후 GET /core/modules/me 로 활성 모듈 목록 조회
+  useEffect(() => {
+    if (installMode === "bypass") return;
+    const token = sessionStorage.getItem("fs_token") ?? "";
+    if (!token) return;
+
+    fetch("/core/modules/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((json: { success: boolean; data?: { modules: InstalledModule[] } }) => {
+        if (json.success) {
+          setInstalledModules((json.data?.modules ?? []).filter((m) => m.enabled));
+        }
+      })
+      .catch(() => { /* 모듈 로드 실패는 무음 처리 */ });
+  }, [installMode]);
+
+  const hasModules = installedModules.length > 0;
 
   return (
     <section className="panel home-root" aria-labelledby="home-title">
@@ -88,7 +110,7 @@ export function HomeView({ isAdmin, isFirstVisit, onDismissFirstVisit, onOpenSet
             </div>
             <div className="home-admin-card">
               <p className="home-admin-card-label">설치된 모듈</p>
-              <p className="home-admin-card-value">{MOCK_INSTALLED_MODULES.length}</p>
+              <p className="home-admin-card-value">{installedModules.length}</p>
             </div>
             <div className="home-admin-card">
               <p className="home-admin-card-label">시스템 상태</p>
@@ -102,7 +124,7 @@ export function HomeView({ isAdmin, isFirstVisit, onDismissFirstVisit, onOpenSet
         <div className="home-stat-grid">
           <article className="home-stat-card">
             <p className="home-stat-label">Installed Modules</p>
-            <p className="home-stat-value">{MOCK_INSTALLED_MODULES.length}</p>
+            <p className="home-stat-value">{installedModules.length}</p>
           </article>
           <article className="home-stat-card">
             <p className="home-stat-label">Pending Alerts</p>
@@ -159,15 +181,15 @@ export function HomeView({ isAdmin, isFirstVisit, onDismissFirstVisit, onOpenSet
 
           {hasModules ? (
             <div className="home-modules-grid">
-              {MOCK_INSTALLED_MODULES.map((mod) => (
+              {installedModules.map((mod) => (
                 <button
-                  key={mod.id}
+                  key={mod.name}
                   className="module-card"
                   type="button"
-                  onClick={() => { window.location.hash = mod.path; }}
+                  onClick={() => { window.location.hash = mod.name; }}
                 >
-                  <p className="module-card-icon">{MODULE_ICONS[mod.id] ?? "🧩"}</p>
-                  <p className="module-card-name">{mod.label}</p>
+                  <p className="module-card-icon">{MODULE_ICONS[mod.name] ?? "🧩"}</p>
+                  <p className="module-card-name">{mod.name}</p>
                   <p className="module-card-desc">Open module workspace</p>
                 </button>
               ))}
