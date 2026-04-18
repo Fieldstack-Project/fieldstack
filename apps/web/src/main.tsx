@@ -173,6 +173,16 @@ function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  // 페이지 새로고침 후 세션 복원 시에도 만료 핸들러 등록
+  // (handleLoginSuccess를 거치지 않고 sessionStorage에서 바로 복원되는 경우 대응)
+  useEffect(() => {
+    if (isAuthenticated) {
+      setSessionExpiredHandler(() => onLogout(true));
+    }
+    return () => setSessionExpiredHandler(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
   // 관리자 PIN 세션 30분 만료
   useEffect(() => {
     if (!isPinVerified || pinVerifiedAt === null) return;
@@ -223,8 +233,6 @@ function App() {
     setLoginLockedUntil(null);
     setSessionExpired(false);
     setIsAuthenticated(true);
-    // 세션 만료 시 자동 로그아웃 콜백 등록
-    setSessionExpiredHandler(() => onLogout(true));
     setIsAdmin(isAdmin);
     if (isAdmin) sessionStorage.setItem(SS.admin, "true");
     setCurrentUser({ email });
@@ -372,8 +380,6 @@ function App() {
   };
 
   const onLogout = (expired = false) => {
-    // 세션 만료 핸들러 해제 (중복 호출 방지)
-    setSessionExpiredHandler(null);
     // 토큰이 있으면 서버 세션 폐기 (실패해도 로컬 상태는 초기화)
     const token = sessionStorage.getItem(SS.token);
     if (token) {
