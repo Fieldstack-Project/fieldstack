@@ -22,10 +22,16 @@
   justify-content: space-between;
 }
 
+.ledger-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .ledger-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--fs-text-primary);
+  color: var(--text);
   margin: 0;
 }
 
@@ -41,9 +47,9 @@
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  border: 1px solid var(--fs-border);
-  background: var(--fs-bg-card);
-  color: var(--fs-text-primary);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text);
   font-size: 1.1rem;
   cursor: pointer;
   display: flex;
@@ -53,7 +59,7 @@
 }
 
 .ledger-month-btn:hover:not(:disabled) {
-  background: var(--fs-bg-hover);
+  background: var(--bg-hover);
 }
 
 .ledger-month-btn:disabled {
@@ -64,7 +70,7 @@
 .ledger-month-label {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--fs-text-primary);
+  color: var(--text);
   min-width: 90px;
   text-align: center;
 }
@@ -78,8 +84,8 @@
 }
 
 .ledger-summary-card {
-  background: var(--fs-bg-card);
-  border: 1px solid var(--fs-border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px 20px;
   display: flex;
@@ -90,7 +96,7 @@
 .ledger-summary-label {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--fs-text-secondary);
+  color: var(--text-muted);
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -100,20 +106,20 @@
   font-size: 1.4rem;
   font-weight: 700;
   margin: 0;
-  color: var(--fs-text-primary);
+  color: var(--text);
 }
 
-.ledger-summary-card.income .ledger-summary-value  { color: var(--fs-success); }
-.ledger-summary-card.expense .ledger-summary-value { color: var(--fs-danger); }
-.ledger-summary-card.balance.positive .ledger-summary-value { color: var(--fs-success); }
-.ledger-summary-card.balance.negative .ledger-summary-value { color: var(--fs-danger); }
+.ledger-summary-card.income .ledger-summary-value  { color: var(--ok); }
+.ledger-summary-card.expense .ledger-summary-value { color: var(--err); }
+.ledger-summary-card.balance.positive .ledger-summary-value { color: var(--ok); }
+.ledger-summary-card.balance.negative .ledger-summary-value { color: var(--err); }
 
 /* ── 필터 탭 ─────────────────────────────────────────────────── */
 
 .ledger-filter-tabs {
   display: flex;
   gap: 4px;
-  background: var(--fs-bg-secondary);
+  background: var(--bg-elevated);
   border-radius: 8px;
   padding: 4px;
   width: fit-content;
@@ -124,7 +130,7 @@
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: var(--fs-text-secondary);
+  color: var(--text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -132,13 +138,13 @@
 }
 
 .ledger-filter-tab:hover {
-  color: var(--fs-text-primary);
-  background: var(--fs-bg-hover);
+  color: var(--text);
+  background: var(--bg-hover);
 }
 
 .ledger-filter-tab.active {
-  background: var(--fs-bg-card);
-  color: var(--fs-text-primary);
+  background: var(--bg-surface);
+  color: var(--text);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
@@ -146,18 +152,18 @@
 
 .ledger-cell-date {
   font-size: 0.85rem;
-  color: var(--fs-text-secondary);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .ledger-cell-muted {
   font-size: 0.875rem;
-  color: var(--fs-text-secondary);
+  color: var(--text-muted);
 }
 
 .ledger-cell-desc {
   font-size: 0.9rem;
-  color: var(--fs-text-primary);
+  color: var(--text);
 }
 
 .ledger-cell-amount {
@@ -166,8 +172,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.ledger-cell-amount.income  { color: var(--fs-success); }
-.ledger-cell-amount.expense { color: var(--fs-danger); }
+.ledger-cell-amount.income  { color: var(--ok); }
+.ledger-cell-amount.expense { color: var(--err); }
 
 .ledger-badge {
   display: inline-block;
@@ -178,13 +184,13 @@
 }
 
 .ledger-badge.income  {
-  background: color-mix(in srgb, var(--fs-success) 12%, transparent);
-  color: var(--fs-success);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  color: var(--ok);
 }
 
 .ledger-badge.expense {
-  background: color-mix(in srgb, var(--fs-danger) 12%, transparent);
-  color: var(--fs-danger);
+  background: color-mix(in srgb, var(--err) 12%, transparent);
+  color: var(--err);
 }
 
 .ledger-cell-actions {
@@ -196,22 +202,22 @@
 .ledger-action-btn {
   padding: 3px 10px;
   border-radius: 4px;
-  border: 1px solid var(--fs-border);
+  border: 1px solid var(--border);
   background: transparent;
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s;
-  color: var(--fs-text-secondary);
+  color: var(--text-muted);
 }
 
 .ledger-action-btn:hover {
-  background: var(--fs-bg-hover);
-  color: var(--fs-text-primary);
+  background: var(--bg-hover);
+  color: var(--text);
 }
 
 .ledger-action-btn.delete:hover {
-  border-color: var(--fs-danger);
-  color: var(--fs-danger);
+  border-color: var(--err);
+  color: var(--err);
 }
 
 .ledger-action-btn:disabled {
@@ -237,9 +243,9 @@
   flex: 1;
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid var(--fs-border);
-  background: var(--fs-bg-secondary);
-  color: var(--fs-text-secondary);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -247,19 +253,19 @@
 }
 
 .ledger-type-btn:hover {
-  background: var(--fs-bg-hover);
+  background: var(--bg-hover);
 }
 
 .ledger-type-btn.active.income {
-  background: color-mix(in srgb, var(--fs-success) 12%, transparent);
-  border-color: var(--fs-success);
-  color: var(--fs-success);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  border-color: var(--ok);
+  color: var(--ok);
 }
 
 .ledger-type-btn.active.expense {
-  background: color-mix(in srgb, var(--fs-danger) 12%, transparent);
-  border-color: var(--fs-danger);
-  color: var(--fs-danger);
+  background: color-mix(in srgb, var(--err) 12%, transparent);
+  border-color: var(--err);
+  color: var(--err);
 }
 
 .ledger-form-field {
@@ -271,7 +277,7 @@
 .ledger-form-label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--fs-text-secondary);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -280,9 +286,9 @@
   width: 100%;
   padding: 8px 12px;
   border-radius: 6px;
-  border: 1px solid var(--fs-border);
-  background: var(--fs-bg-secondary);
-  color: var(--fs-text-primary);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
   font-size: 0.9rem;
   outline: none;
   box-sizing: border-box;
@@ -290,7 +296,7 @@
 }
 
 .ledger-form-input:focus {
-  border-color: var(--fs-primary);
+  border-color: var(--primary);
 }
 
 .ledger-form-textarea {
@@ -304,7 +310,157 @@
   gap: 8px;
   margin-top: 4px;
   padding-top: 12px;
-  border-top: 1px solid var(--fs-border);
+  border-top: 1px solid var(--border);
+}
+
+/* ── 카테고리·결제수단 관리 모달 ─────────────────────────────── */
+
+.manage-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  gap: 0;
+}
+
+.manage-tab {
+  padding: 8px 20px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+
+.manage-tab:hover {
+  color: var(--text);
+}
+
+.manage-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+.manage-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manage-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.manage-name-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.manage-name-input:focus {
+  border-color: var(--primary);
+}
+
+.manage-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.manage-color-input {
+  width: 36px;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.manage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.manage-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+.manage-item-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.manage-item-name {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.manage-item-badge {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
+.manage-delete-btn {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.manage-delete-btn:hover {
+  border-color: var(--err);
+  color: var(--err);
+}
+
+.manage-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.manage-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 0.875rem;
 }
 
 /* ── 반응형 ──────────────────────────────────────────────────── */

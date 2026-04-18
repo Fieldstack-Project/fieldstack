@@ -10,14 +10,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // alias로 각 export 경로를 명시한다.
 // 주의: 서브패스(controls/styles)를 베이스(controls)보다 먼저 선언해야
 //       prefix 매칭 순서가 올바르게 동작한다.
-const WEB_NODE_MODULES = path.resolve(__dirname, "node_modules");
+// 모노레포 내부 패키지는 dist 대신 src를 직접 참조한다.
+// Vite는 TypeScript를 네이티브로 처리하므로 빌드 단계가 불필요하고,
+// 소스 변경이 즉시 HMR에 반영되며 dist 캐싱 문제가 발생하지 않는다.
+const PACKAGES = path.resolve(__dirname, "../../packages");
 
 export default defineConfig({
   resolve: {
     alias: {
-      "@fieldstack/controls/styles": path.join(WEB_NODE_MODULES, "@fieldstack/controls/src/styles/index.css"),
-      "@fieldstack/controls": path.join(WEB_NODE_MODULES, "@fieldstack/controls/dist/index.js"),
-      "@fieldstack/core/browser": path.join(WEB_NODE_MODULES, "@fieldstack/core/dist/browser.js"),
+      "@fieldstack/controls/styles": path.join(PACKAGES, "controls/src/styles/index.css"),
+      "@fieldstack/controls": path.join(PACKAGES, "controls/src/index.ts"),
+      "@fieldstack/core/browser": path.join(PACKAGES, "core/src/browser.ts"),
     },
   },
   server: {

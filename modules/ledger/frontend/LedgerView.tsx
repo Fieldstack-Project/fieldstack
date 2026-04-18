@@ -12,8 +12,8 @@ import {
   Spinner,
 } from "@fieldstack/controls";
 import type { TableColumn } from "@fieldstack/controls";
-// apiCall: @fieldstack/core/browser의 re-export (토큰 갱신·세션 만료·JSON 파싱 포함)
-import { apiCall } from "../../../apps/web/src/lib/apiFetch";
+// apiCall: JSON 파싱·토큰 갱신 포함. apiFetch: raw Response 반환 (파일 다운로드용)
+import { apiCall, apiFetch as apiFetchRaw } from "../../../apps/web/src/lib/apiFetch";
 
 // ── 공유 타입 (modules/ledger/types/index.ts와 동일하게 유지) ─
 
@@ -260,6 +260,258 @@ function EntryModal({ editing, categories, paymentMethods, onClose, onSaved }: E
   );
 }
 
+// ── 카테고리·결제수단 관리 모달 ──────────────────────────────────
+
+type ManageTab = "categories" | "paymentMethods";
+
+const CATEGORY_TYPE_LABELS: Record<string, string> = {
+  income: "수입",
+  expense: "지출",
+  both: "공통",
+};
+
+const PAYMENT_TYPE_LABELS: Record<string, string> = {
+  cash: "현금",
+  credit_card: "신용카드",
+  debit_card: "체크카드",
+  transfer: "계좌이체",
+  other: "기타",
+};
+
+interface ManageModalProps {
+  categories: LedgerCategory[];
+  paymentMethods: LedgerPaymentMethod[];
+  onClose: () => void;
+  onChanged: () => Promise<void>;
+}
+
+function ManageModal({ categories, paymentMethods, onClose, onChanged }: ManageModalProps) {
+  const [tab, setTab] = useState<ManageTab>("categories");
+
+  // ── 카테고리 폼 ──
+  const [catName, setCatName] = useState("");
+  const [catType, setCatType] = useState<"income" | "expense" | "both">("expense");
+  const [catColor, setCatColor] = useState("");
+  const [catSaving, setCatSaving] = useState(false);
+  const [catError, setCatError] = useState<string | null>(null);
+  const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catName.trim()) { setCatError("이름을 입력해 주세요."); return; }
+    setCatSaving(true);
+    setCatError(null);
+    try {
+      await apiCall("/api/ledger/categories", {
+        method: "POST",
+        body: JSON.stringify({ name: catName.trim(), type: catType, color: catColor || undefined }),
+      });
+      setCatName("");
+      setCatColor("");
+      await onChanged();
+    } catch (err) {
+      setCatError((err as Error).message);
+    } finally {
+      setCatSaving(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    setDeletingCatId(id);
+    try {
+      await apiCall(`/api/ledger/categories/${id}`, { method: "DELETE" });
+      await onChanged();
+    } catch (err) {
+      setCatError((err as Error).message);
+    } finally {
+      setDeletingCatId(null);
+    }
+  };
+
+  // ── 결제수단 폼 ──
+  const [pmName, setPmName] = useState("");
+  const [pmType, setPmType] = useState<"cash" | "credit_card" | "debit_card" | "transfer" | "other">("credit_card");
+  const [pmSaving, setPmSaving] = useState(false);
+  const [pmError, setPmError] = useState<string | null>(null);
+  const [deletingPmId, setDeletingPmId] = useState<string | null>(null);
+
+  const handleAddPaymentMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pmName.trim()) { setPmError("이름을 입력해 주세요."); return; }
+    setPmSaving(true);
+    setPmError(null);
+    try {
+      await apiCall("/api/ledger/payment-methods", {
+        method: "POST",
+        body: JSON.stringify({ name: pmName.trim(), type: pmType }),
+      });
+      setPmName("");
+      await onChanged();
+    } catch (err) {
+      setPmError((err as Error).message);
+    } finally {
+      setPmSaving(false);
+    }
+  };
+
+  const handleDeletePaymentMethod = async (id: string) => {
+    setDeletingPmId(id);
+    try {
+      await apiCall(`/api/ledger/payment-methods/${id}`, { method: "DELETE" });
+      await onChanged();
+    } catch (err) {
+      setPmError((err as Error).message);
+    } finally {
+      setDeletingPmId(null);
+    }
+  };
+
+  return (
+    <Modal open onClose={onClose} title="카테고리·결제수단 관리" size="md">
+      {/* 탭 */}
+      <div className="manage-tabs">
+        <button
+          type="button"
+          className={`manage-tab ${tab === "categories" ? "active" : ""}`}
+          onClick={() => setTab("categories")}
+        >
+          카테고리
+        </button>
+        <button
+          type="button"
+          className={`manage-tab ${tab === "paymentMethods" ? "active" : ""}`}
+          onClick={() => setTab("paymentMethods")}
+        >
+          결제수단
+        </button>
+      </div>
+
+      {/* 카테고리 탭 */}
+      {tab === "categories" && (
+        <div className="manage-section">
+          {/* 추가 폼 */}
+          <form className="manage-add-form" onSubmit={(e) => { void handleAddCategory(e); }}>
+            {catError && (
+              <Alert variant="error" onClose={() => setCatError(null)}>{catError}</Alert>
+            )}
+            <input
+              type="text"
+              className="manage-name-input"
+              placeholder="카테고리 이름"
+              maxLength={50}
+              value={catName}
+              onChange={(e) => setCatName(e.target.value)}
+            />
+            <div className="manage-add-row">
+              <Select
+                value={catType}
+                onChange={(e) => setCatType(e.target.value as typeof catType)}
+                options={[
+                  { value: "expense", label: "지출" },
+                  { value: "income", label: "수입" },
+                  { value: "both", label: "공통" },
+                ]}
+              />
+              <input
+                type="color"
+                className="manage-color-input"
+                title="색상 선택"
+                value={catColor || "#6b7280"}
+                onChange={(e) => setCatColor(e.target.value)}
+              />
+              <Button type="submit" variant="primary" size="sm" loading={catSaving} disabled={catSaving}>
+                추가
+              </Button>
+            </div>
+          </form>
+
+          {/* 목록 */}
+          <ul className="manage-list">
+            {categories.length === 0 && (
+              <li className="manage-empty">등록된 카테고리가 없습니다.</li>
+            )}
+            {categories.map((cat) => (
+              <li key={cat.id} className="manage-item">
+                <span
+                  className="manage-item-dot"
+                  style={{ background: cat.color ?? "var(--fs-text-tertiary)" }}
+                />
+                <span className="manage-item-name">{cat.name}</span>
+                <span className="manage-item-badge">{CATEGORY_TYPE_LABELS[cat.type]}</span>
+                <button
+                  type="button"
+                  className="manage-delete-btn"
+                  disabled={deletingCatId === cat.id}
+                  onClick={() => { void handleDeleteCategory(cat.id); }}
+                >
+                  {deletingCatId === cat.id ? "…" : "삭제"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 결제수단 탭 */}
+      {tab === "paymentMethods" && (
+        <div className="manage-section">
+          {/* 추가 폼 */}
+          <form className="manage-add-form" onSubmit={(e) => { void handleAddPaymentMethod(e); }}>
+            {pmError && (
+              <Alert variant="error" onClose={() => setPmError(null)}>{pmError}</Alert>
+            )}
+            <input
+              type="text"
+              className="manage-name-input"
+              placeholder="결제수단 이름"
+              maxLength={50}
+              value={pmName}
+              onChange={(e) => setPmName(e.target.value)}
+            />
+            <div className="manage-add-row">
+              <Select
+                value={pmType}
+                onChange={(e) => setPmType(e.target.value as typeof pmType)}
+                options={[
+                  { value: "credit_card", label: "신용카드" },
+                  { value: "debit_card", label: "체크카드" },
+                  { value: "cash", label: "현금" },
+                  { value: "transfer", label: "계좌이체" },
+                  { value: "other", label: "기타" },
+                ]}
+              />
+              <Button type="submit" variant="primary" size="sm" loading={pmSaving} disabled={pmSaving}>
+                추가
+              </Button>
+            </div>
+          </form>
+
+          {/* 목록 */}
+          <ul className="manage-list">
+            {paymentMethods.length === 0 && (
+              <li className="manage-empty">등록된 결제수단이 없습니다.</li>
+            )}
+            {paymentMethods.map((pm) => (
+              <li key={pm.id} className="manage-item">
+                <span className="manage-item-name">{pm.name}</span>
+                <span className="manage-item-badge">{PAYMENT_TYPE_LABELS[pm.type]}</span>
+                <button
+                  type="button"
+                  className="manage-delete-btn"
+                  disabled={deletingPmId === pm.id}
+                  onClick={() => { void handleDeletePaymentMethod(pm.id); }}
+                >
+                  {deletingPmId === pm.id ? "…" : "삭제"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 // ── 요약 카드 ─────────────────────────────────────────────────
 
 interface SummaryCardsProps {
@@ -322,22 +574,24 @@ export function LedgerView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
 
   const PAGE_SIZE = 20;
 
   // ── 메타데이터 로드 ─────────────────────────────────────────
 
-  useEffect(() => {
-    Promise.all([
+  const loadMeta = useCallback(async () => {
+    const [catData, pmData] = await Promise.all([
       apiFetch<{ categories: LedgerCategory[] }>("/api/ledger/categories"),
       apiFetch<{ methods: LedgerPaymentMethod[] }>("/api/ledger/payment-methods"),
-    ])
-      .then(([catData, pmData]) => {
-        setCategories(catData.categories);
-        setPaymentMethods(pmData.methods);
-      })
-      .catch(() => { /* 카테고리/결제 수단 실패 시 빈 목록 유지 */ });
+    ]);
+    setCategories(catData.categories);
+    setPaymentMethods(pmData.methods);
   }, []);
+
+  useEffect(() => {
+    loadMeta().catch(() => { /* 실패 시 빈 목록 유지 */ });
+  }, [loadMeta]);
 
   // ── 항목 목록 로드 ───────────────────────────────────────────
 
@@ -415,6 +669,33 @@ export function LedgerView() {
     const now = getCurrentYearMonth();
     return now.year === year && now.month === month;
   }, [year, month]);
+
+  // ── CSV 내보내기 ─────────────────────────────────────────────
+
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ year: String(year), month: String(month) });
+      if (filterType !== "all") params.set("type", filterType);
+      const res = await apiFetchRaw(`/api/ledger/entries/export?${params}`);
+      if (!res.ok) throw new Error("내보내기 실패");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ledger-${year}${String(month).padStart(2, "0")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setViewError((err as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // ── 모달 열기 ────────────────────────────────────────────────
 
@@ -508,7 +789,15 @@ export function LedgerView() {
       <div className="ledger-header">
         <div className="ledger-title-row">
           <h1 className="ledger-title">가계부</h1>
-          <Button variant="primary" size="sm" onClick={openCreate}>+ 추가</Button>
+          <div className="ledger-header-actions">
+            <Button variant="ghost" size="sm" onClick={() => setManageOpen(true)}>
+              카테고리·결제수단
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => { void handleExport(); }} loading={exporting} disabled={exporting}>
+              CSV 내보내기
+            </Button>
+            <Button variant="primary" size="sm" onClick={openCreate}>+ 추가</Button>
+          </div>
         </div>
         {/* 월 네비게이션 */}
         <div className="ledger-month-nav">
@@ -567,6 +856,16 @@ export function LedgerView() {
           paymentMethods={paymentMethods}
           onClose={closeModal}
           onSaved={handleSaved}
+        />
+      )}
+
+      {/* 카테고리·결제수단 관리 모달 */}
+      {manageOpen && (
+        <ManageModal
+          categories={categories}
+          paymentMethods={paymentMethods}
+          onClose={() => setManageOpen(false)}
+          onChanged={loadMeta}
         />
       )}
     </div>

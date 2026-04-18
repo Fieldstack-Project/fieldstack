@@ -7,6 +7,7 @@ import {
   CreateEntrySchema,
   CreatePaymentMethodSchema,
   EntryListQuerySchema,
+  ExportQuerySchema,
   SummaryQuerySchema,
   UpdateEntrySchema,
   validateBody,
@@ -158,6 +159,31 @@ export function createLedgerRouter(
     try {
       const entry = await service.createEntry(req.auth!.userId, req.body);
       res.status(201).json({ success: true, data: { entry } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** GET /api/ledger/entries/export?year=2026&month=4&type=expense */
+  router.get('/entries/export', auth, validateQuery(ExportQuerySchema), async (req, res) => {
+    try {
+      type Q = {
+        year?: number;
+        month?: number;
+        type?: 'income' | 'expense';
+        categoryId?: string;
+      };
+      const query = (req as Request & { validatedQuery: Q }).validatedQuery;
+      const csv = await service.exportEntriesCsv(req.auth!.userId, query);
+
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const filename = `ledger-${dateStr}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      // UTF-8 BOM — Excel에서 한글 깨짐 방지
+      res.send('\uFEFF' + csv);
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
     }

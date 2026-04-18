@@ -80,9 +80,28 @@ TypeScript 계약(`ControlDescriptor`, `CONTROL_DESCRIPTORS`)만 선언되어 �
 
 ### 스타일
 
-- CSS 커스텀 프로퍼티 기반 다크 모드 디자인 토큰 (`apps/web/src/styles/`).
-- Primary `#3B82F6`, success `#10B981`, warning `#F59E0B`, danger `#EF4444`.
+- CSS 커스텀 프로퍼티 기반 다크 모드 디자인 토큰 (`apps/web/src/styles/global.css`).
 - 현재 Tailwind 미적용 (계획 중). 현재는 각 View별 CSS 파일 직접 작성.
+
+**CSS 변수명 — 반드시 `global.css` 기준을 사용할 것. `--fs-*` 접두사는 존재하지 않음.**
+
+| 용도 | 변수명 |
+|------|--------|
+| 배경 (기본) | `--bg` |
+| 배경 (카드/서피스) | `--bg-surface` |
+| 배경 (보조/elevated) | `--bg-elevated` |
+| 배경 (호버) | `--bg-hover` |
+| 테두리 | `--border` |
+| 테두리 (subtle) | `--border-subtle` |
+| 텍스트 (기본) | `--text` |
+| 텍스트 (보조) | `--text-muted` |
+| 텍스트 (희미) | `--text-faint` |
+| 강조색 | `--primary` / `--accent` |
+| 성공 | `--ok` |
+| 경고 | `--warn` |
+| 오류/위험 | `--err` |
+
+> ⚠️ `--fs-border`, `--fs-text-primary`, `--fs-bg-secondary` 등 `--fs-` 접두사 변수는 정의되어 있지 않아 항상 빈 값으로 처리됨. 절대 사용 금지.
 
 ---
 

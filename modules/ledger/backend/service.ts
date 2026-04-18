@@ -349,6 +349,88 @@ export class LedgerService {
     return rows.length > 0;
   }
 
+  async exportEntriesCsv(
+    userId: string,
+    opts: {
+      year?: number;
+      month?: number;
+      type?: 'income' | 'expense';
+      categoryId?: string;
+    },
+  ): Promise<string> {
+    const conditions: string[] = ['e.user_id = $1'];
+    const params: unknown[] = [userId];
+    let idx = 2;
+
+    if (opts.year !== undefined && opts.month !== undefined) {
+      const from = `${opts.year}-${String(opts.month).padStart(2, '0')}-01`;
+      const toYear = opts.month === 12 ? opts.year + 1 : opts.year;
+      const toMonth = opts.month === 12 ? 1 : opts.month + 1;
+      const to = `${toYear}-${String(toMonth).padStart(2, '0')}-01`;
+      conditions.push(`e.date >= $${idx} AND e.date < $${idx + 1}`);
+      params.push(from, to);
+      idx += 2;
+    } else if (opts.year !== undefined) {
+      const from = `${opts.year}-01-01`;
+      const to = `${opts.year + 1}-01-01`;
+      conditions.push(`e.date >= $${idx} AND e.date < $${idx + 1}`);
+      params.push(from, to);
+      idx += 2;
+    }
+
+    if (opts.type) {
+      conditions.push(`e.type = $${idx}`);
+      params.push(opts.type);
+      idx++;
+    }
+
+    if (opts.categoryId) {
+      conditions.push(`e.category_id = $${idx}`);
+      params.push(opts.categoryId);
+    }
+
+    const where = conditions.join(' AND ');
+    const rows = await this.db.query<EntryRow>(
+      `SELECT
+         e.*,
+         c.name  AS category_name,
+         pm.name AS payment_method_name
+       FROM ledger_entries e
+       LEFT JOIN ledger_categories      c  ON c.id  = e.category_id
+       LEFT JOIN ledger_payment_methods pm ON pm.id = e.payment_method_id
+       WHERE ${where}
+       ORDER BY e.date DESC, e.created_at DESC`,
+      params,
+    );
+
+    const entries = rows.map(rowToEntry);
+
+    // CSV 헤더
+    const header = ['날짜', '유형', '금액', '카테고리', '내용', '결제수단', '메모', '태그'].join(',');
+
+    const escapeCell = (val: string | null | undefined): string => {
+      if (val == null) return '';
+      // 쉼표·큰따옴표·줄바꿈이 있으면 큰따옴표로 감싸기
+      if (/[",\n\r]/.test(val)) return `"${val.replace(/"/g, '""')}"`;
+      return val;
+    };
+
+    const lines = entries.map((e) =>
+      [
+        escapeCell(e.date),
+        escapeCell(e.type === 'income' ? '수입' : '지출'),
+        String(e.amount),
+        escapeCell(e.categoryName),
+        escapeCell(e.description),
+        escapeCell(e.paymentMethodName),
+        escapeCell(e.notes),
+        escapeCell(e.tags.join('|')),
+      ].join(','),
+    );
+
+    return [header, ...lines].join('\r\n');
+  }
+
   // ── 통계 ──────────────────────────────────────────────────────
 
   async getSummary(userId: string, year: number, month: number): Promise<LedgerSummary> {
