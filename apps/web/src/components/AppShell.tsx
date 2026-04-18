@@ -1,6 +1,8 @@
 import { type ReactNode, useState, useEffect } from "react";
 import "../styles/shell.css";
 
+import { apiFetch } from "../lib/apiFetch";
+
 // 코어 라우트 + 설치된 모듈 이름도 RouteKey에 포함 (가계부: "ledger" 등)
 export type CoreRouteKey = "login" | "forgot-password" | "home" | "marketplace" | "admin" | "change-password";
 export type RouteKey = CoreRouteKey | string;
@@ -69,10 +71,8 @@ export function AppShell({
       setSidebarModules([]);
       return;
     }
-    const token = sessionStorage.getItem("fs_token") ?? "";
-    if (!token) return;
 
-    fetch("/core/modules/me", { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch("/core/modules/me")
       .then((r) => r.json())
       .then((json: { success: boolean; data?: { modules: SidebarModule[] } }) => {
         if (json.success) {

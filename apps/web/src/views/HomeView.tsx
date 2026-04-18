@@ -3,6 +3,8 @@ import "../styles/home.css";
 
 import { Button, EmptyState } from "@fieldstack/controls";
 
+import { apiFetch } from "../lib/apiFetch";
+
 const MODULE_ICONS: Record<string, string> = {
   ledger: "💰",
   subscription: "📅",
@@ -40,10 +42,7 @@ export function HomeView({
   const [installedModules, setInstalledModules] = useState<InstalledModule[]>([]);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("fs_token") ?? "";
-    if (!token) return;
-
-    fetch("/core/modules/me", { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch("/core/modules/me")
       .then((r) => r.json())
       .then((json: { success: boolean; data?: { modules: InstalledModule[] } }) => {
         if (json.success) {

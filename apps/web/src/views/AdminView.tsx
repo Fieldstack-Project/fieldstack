@@ -4,6 +4,8 @@ import { Button, FormField, PinInput } from "@fieldstack/controls";
 
 import "../styles/admin.css";
 
+import { apiFetch } from "../lib/apiFetch";
+
 
 // 초기화 플로우 단계
 type ResetPhase =
@@ -100,10 +102,7 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
     setModulesLoading(true);
     setModulesError(null);
     try {
-      const token = sessionStorage.getItem("fs_token") ?? "";
-      const res = await fetch("/core/modules", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/core/modules");
       type Resp = { success: boolean; error?: string; data?: { modules: ModuleInfo[] } };
       const json = await res.json() as Resp;
       if (!res.ok || !json.success) {
@@ -129,11 +128,7 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
     setReloading(true);
     setReloadMessage(null);
     try {
-      const token = sessionStorage.getItem("fs_token") ?? "";
-      const res = await fetch("/core/modules/reload", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/core/modules/reload", { method: "POST" });
       type Resp = { success: boolean; error?: string; data?: { message: string } };
       const json = await res.json() as Resp;
       if (!res.ok || !json.success) {
@@ -177,10 +172,9 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
     setIsResetting(true);
     setResetPinError("");
     try {
-      const token = sessionStorage.getItem("fs_token") ?? "";
-      const res = await fetch("/admin/partial-reset", {
+      const res = await apiFetch("/admin/partial-reset", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin: resetPin }),
       });
       const json = await res.json() as { success: boolean; error?: string };
@@ -203,10 +197,9 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
     setIsResetting(true);
     setResetPinError("");
     try {
-      const token = sessionStorage.getItem("fs_token") ?? "";
-      const res = await fetch("/admin/factory-reset", {
+      const res = await apiFetch("/admin/factory-reset", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin: resetPin }),
       });
       const json = await res.json() as { success: boolean; error?: string };
@@ -231,10 +224,9 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
     setIsPinChanging(true);
     setPinError("");
     try {
-      const token = sessionStorage.getItem("fs_token") ?? "";
-      const res = await fetch("/admin/change-pin", {
+      const res = await apiFetch("/admin/change-pin", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPin, newPin }),
       });
       const json = await res.json() as { success: boolean; error?: string };

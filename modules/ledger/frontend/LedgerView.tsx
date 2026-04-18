@@ -12,6 +12,8 @@ import {
   Spinner,
 } from "@fieldstack/controls";
 import type { TableColumn } from "@fieldstack/controls";
+// apiFetch: @fieldstack/core/browser의 re-export (토큰 갱신·세션 만료 처리 포함)
+import { apiFetch as coreFetch } from "../../../apps/web/src/lib/apiFetch";
 
 // ── 공유 타입 (modules/ledger/types/index.ts와 동일하게 유지) ─
 
@@ -69,19 +71,12 @@ interface LedgerSummary {
 type EntryRow = LedgerEntry & Record<string, unknown>;
 
 // ── API 헬퍼 ─────────────────────────────────────────────────
-
-function getToken(): string {
-  return sessionStorage.getItem("fs_token") ?? "";
-}
+// 토큰 갱신·세션 만료 처리는 @fieldstack/core/browser의 apiFetch가 담당한다.
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+  const res = await coreFetch(path, {
     ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-      ...(opts?.headers ?? {}),
-    },
+    headers: { "Content-Type": "application/json", ...(opts?.headers ?? {}) },
   });
   const text = await res.text();
   if (!text) return undefined as T;

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 
 import { Button, FormField, Input, Modal, Select } from "@fieldstack/controls";
 
+import { apiFetch } from "../lib/apiFetch";
+
 import "../styles/settings.css";
 
 type ThemeSetting = "light" | "dark" | "system";
@@ -42,9 +44,7 @@ export function SettingsView({
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
 
   const fetchModules = useCallback(() => {
-    const token = sessionStorage.getItem("fs_token") ?? "";
-    if (!token) return;
-    fetch("/core/modules/me", { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch("/core/modules/me")
       .then((r) => r.json())
       .then((json: { success: boolean; data?: { modules: UserModule[] } }) => {
         if (json.success) setModules(json.data?.modules ?? []);
@@ -55,13 +55,11 @@ export function SettingsView({
   useEffect(() => { fetchModules(); }, [fetchModules]);
 
   const handleToggleModule = async (name: string) => {
-    const token = sessionStorage.getItem("fs_token") ?? "";
-    if (!token || togglingModule) return;
+    if (togglingModule) return;
     setTogglingModule(name);
     try {
-      const res = await fetch(`/core/modules/${name}/toggle`, {
+      const res = await apiFetch(`/core/modules/${name}/toggle`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const json = (await res.json()) as { success: boolean; data?: { enabled: boolean } };
       if (json.success && json.data !== undefined) {
