@@ -12,8 +12,8 @@ import {
   Spinner,
 } from "@fieldstack/controls";
 import type { TableColumn } from "@fieldstack/controls";
-// apiFetch: @fieldstack/core/browser의 re-export (토큰 갱신·세션 만료 처리 포함)
-import { apiFetch as coreFetch } from "../../../apps/web/src/lib/apiFetch";
+// apiCall: @fieldstack/core/browser의 re-export (토큰 갱신·세션 만료·JSON 파싱 포함)
+import { apiCall } from "../../../apps/web/src/lib/apiFetch";
 
 // ── 공유 타입 (modules/ledger/types/index.ts와 동일하게 유지) ─
 
@@ -71,19 +71,10 @@ interface LedgerSummary {
 type EntryRow = LedgerEntry & Record<string, unknown>;
 
 // ── API 헬퍼 ─────────────────────────────────────────────────
-// 토큰 갱신·세션 만료 처리는 @fieldstack/core/browser의 apiFetch가 담당한다.
+// apiCall: 토큰 갱신·세션 만료·JSON 파싱을 @fieldstack/core/browser에서 처리
 
-async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
-  const res = await coreFetch(path, {
-    ...opts,
-    headers: { "Content-Type": "application/json", ...(opts?.headers ?? {}) },
-  });
-  const text = await res.text();
-  if (!text) return undefined as T;
-  const json = JSON.parse(text) as { success: boolean; data?: T; error?: unknown };
-  if (!json.success) throw new Error(String(json.error ?? "API 오류"));
-  return json.data as T;
-}
+// LedgerView 전용 별칭 — 내부에서 apiFetch<T> 로 호출하던 패턴 유지
+const apiFetch = apiCall;
 
 // ── 금액 포맷 ─────────────────────────────────────────────────
 

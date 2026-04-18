@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 
 import { PASSWORD_POLICY, validatePassword } from "@fieldstack/core/browser";
 
+import { apiCall } from "../lib/apiFetch";
+
 import { Alert, Button, FormField, Input } from "@fieldstack/controls";
 
 import "../styles/change-password.css";
@@ -37,17 +39,10 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
     if (!canSubmit) return;
     setApiError("");
     try {
-      const token = sessionStorage.getItem("fs_token") ?? "";
-      const res = await fetch("/auth/password/change", {
+      await apiCall("/auth/password/change", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ newPassword: next.value }),
       });
-      const json = await res.json() as { success: boolean; error?: string };
-      if (!res.ok || !json.success) {
-        setApiError(json.error ?? "비밀번호 변경에 실패했습니다.");
-        return;
-      }
       onChanged();
     } catch {
       setApiError("서버 연결 오류. 다시 시도해주세요.");

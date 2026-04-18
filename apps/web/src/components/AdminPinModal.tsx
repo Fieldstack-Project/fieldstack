@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { Button, Modal, PinInput } from "@fieldstack/controls";
 
+import { apiFetch } from "../lib/apiFetch";
+
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 300; // 5분
 
@@ -45,13 +47,9 @@ export function AdminPinModal({ onVerified, onClose }: AdminPinModalProps) {
 
     setIsVerifying(true);
     try {
-      const token = sessionStorage.getItem("fs_token") ?? "";
-      const res = await fetch("/admin/verify-pin", {
+      const res = await apiFetch("/admin/verify-pin", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin }),
       });
 

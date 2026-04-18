@@ -1,16 +1,21 @@
 /**
- * apiFetch — 인증 토큰 자동 첨부 + 만료 시 자동 갱신
+ * Fieldstack 브라우저 인증 유틸리티
  *
- * Fieldstack 플랫폼의 모든 모듈이 공유하는 인증 fetch 래퍼.
- * Vite 번들 내에서 모듈 싱글턴을 공유하므로 main.tsx에서 등록한
- * setSessionExpiredHandler가 모든 모듈의 apiFetch 호출에 적용된다.
+ * apiFetch  — 인증 토큰 자동 첨부 + 만료 시 자동 갱신 (raw Response 반환)
+ * apiCall   — apiFetch + Fieldstack JSON 응답({ success, data, error }) 파싱
+ * FS_TOKEN, FS_REFRESH — sessionStorage 키 상수
  *
  * 사용법:
- *   import { apiFetch, setSessionExpiredHandler } from '@fieldstack/core/browser';
+ *   import { apiFetch, apiCall, setSessionExpiredHandler } from '@fieldstack/core/browser';
  */
 
-const SS_TOKEN = 'fs_token';
-const SS_REFRESH = 'fs_refresh';
+/** sessionStorage 인증 토큰 키 */
+export const FS_TOKEN = 'fs_token';
+/** sessionStorage 리프레시 토큰 키 */
+export const FS_REFRESH = 'fs_refresh';
+
+const SS_TOKEN = FS_TOKEN;
+const SS_REFRESH = FS_REFRESH;
 
 type SessionExpiredHandler = () => void;
 let sessionExpiredHandler: SessionExpiredHandler | null = null;
@@ -86,4 +91,30 @@ export async function apiFetch(input: string, init: RequestInit = {}): Promise<R
   }
 
   return fetch(input, attachAuth(init, newToken));
+}
+
+/**
+ * Fieldstack JSON API 호출 유틸리티.
+ *
+ * apiFetch 위에서 동작하며 Fieldstack 표준 응답 형식을 자동으로 파싱한다:
+ *   { success: boolean; data?: T; error?: string }
+ *
+ * - Content-Type: application/json 헤더 자동 첨부
+ * - 빈 응답(204 No Content 등)은 undefined로 반환
+ * - success: false 시 error 메시지로 Error를 throw
+ *
+ * 모듈 api.ts에서 사용하는 표준 패턴:
+ *   import { apiCall } from '@fieldstack/core/browser';
+ *   const data = await apiCall<MyType>('/api/my-module/items');
+ */
+export async function apiCall<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await apiFetch(path, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+  });
+  const text = await res.text();
+  if (!text) return undefined as T;
+  const json = JSON.parse(text) as { success: boolean; data?: T; error?: unknown };
+  if (!json.success) throw new Error(String(json.error ?? 'API error'));
+  return json.data as T;
 }
