@@ -2,180 +2,88 @@
 
 ## 개요
 Fieldstack는 **셀프호스트 가능한 SaaS형 플랫폼**을 목표로 한다.
-홈서버, 클라우드, 서버(VPS/NAS) 등 **어디서 실행되든 동일한 사용자 경험(GUI 중심)**을 제공하며,
+홈서버, 클라우드, NAS 등 **어디서 실행되든 동일한 사용자 경험(GUI 중심)**을 제공하며,
 실행 환경 차이는 *배포/운영 방식*으로만 흡수한다.
-
-본 문서는 Fieldstack의 **공식 실행 모델(배포 버전)**과 각 버전의 역할, 공통 원칙을 정리한다.
 
 ---
 
 ## 핵심 설계 원칙
 
-1. **Core 단일화**
-   - 모든 버전은 동일한 Fieldstack Core를 사용한다.
-   - 기능 분기 없음, 코드베이스 1개 유지.
-
-2. **GUI(Web) 우선 정책**
-   - 모든 버전은 웹 GUI를 통한 설정 및 사용을 기본으로 한다.
-   - 사용자는 CLI 없이도 모든 일반 기능을 사용할 수 있어야 한다.
-
-3. **CLI는 예외적 도구**
-   - CLI는 운영/복구/자동화를 위한 도구이며, 필수 사용 요소가 아니다.
-   - OS 버전에서만 추가적으로 강화 제공한다.
-
-4. **배포 방식 분리, 경험 통일**
-   - Docker / Cloudflare / OS 환경은 다르지만,
-   - 사용자 경험과 기능 접근 방식은 동일하게 유지한다.
+1. **Core 단일화** — 모든 버전은 동일한 Fieldstack Core를 사용한다. 기능 분기 없음.
+2. **GUI(Web) 우선** — 모든 설정과 사용은 웹 GUI를 기본으로 한다. CLI는 예외적 복구 도구.
+3. **배포 방식 분리, 경험 통일** — 환경이 달라도 사용자 경험은 동일하게 유지한다.
 
 ---
 
-## 실행 / 배포 버전 구성
+## 공식 지원 실행 모델
 
-Fieldstack는 **4가지 공식 실행 모델**을 제공합니다.
+### ⭐ 1순위 — Docker AIO (All-In-One)
+**표준 권장 실행 모델**
 
-### 0. Native(CLI) 버전
-**Docker 미사용 환경 모델**
+Nextcloud AIO와 동일한 방식. 단일 Docker 이미지로 앱·DB를 모두 포함하여 제공한다.
+홈서버, NAS(TrueNAS SCALE, Synology), VPS, Railway 등 Docker가 지원되는 모든 환경에서 동작한다.
 
-- PM2와 같은 프로그램을 두고 24/7로 상시 구동할 수 있도록 제공
-   - Docker 미설치 환경 → PM2 상시 구동 가능
-- systemd로도 24/7 상시 구동 가능 (단일 프로세스 기준)
-- 단, OS Native 버전 사용을 권장
+```bash
+docker-compose up -d
+# → http://localhost:3000 접속 → 설치 마법사 시작
+```
 
----
+- SQLite: 컨테이너 하나로 완결 (별도 DB 불필요)
+- PostgreSQL: docker-compose에 postgres 서비스가 자동으로 함께 구성됨
 
-### 1. Docker 버전
-**Fieldstack의 표준 실행 모델**
-
-- Docker / Docker Compose 기반
-- 홈서버, NAS, VPS, 개발 환경 공용
-
-**특징**
-- 표준 포트 구성 (3000)
-- All-in-one 이미지
-- 모든 문서의 기준점
+Cloudflare Tunnel 연동은 Docker 버전의 확장 옵션으로 제공한다 (`cloudflared` 서비스 추가).
 
 ---
 
-### 2. Cloudflare 버전
-**외부 접속 프리셋**
+### 2순위 — PM2
+**Docker 불가 환경용**
 
-- Docker 기반 + Cloudflare 설정
-- Tunnel / HTTPS 자동화
-- 네트워크 지식 불필요
+Docker를 설치할 수 없거나 사용하지 않는 환경(공유 호스팅, 저사양 기기 등)을 위한 옵션.
+AIO 이미지 대신 소스 빌드 후 PM2로 실행한다.
 
-**특징**
-- 포트포워딩 불필요
-- IP 노출 없음
-- 무료 SSL/TLS
+```bash
+pnpm build
+pm2 start apps/api/dist/index.js --name fieldstack
+```
 
----
-
-### 3. OS Native 버전
-**서버 운영자용**
-
-- Ubuntu / Debian 커널 기반
-- systemd 서비스
-- Docker 없이 실행
-
-**특징**
-- 네이티브 성능
-- 서버 소프트웨어 수준 통합
-- 강화된 CLI 제공
-
-**제공 방식 예시**
-- TrueNAS
-- Proxmox
+DB는 SQLite(기본) 또는 사용자가 직접 설치한 PostgreSQL에 연결한다.
 
 ---
 
-## 관리 구조
+### 참고 — Native / systemd (비공식)
+**공식 지원 아님 — 고급 사용자용**
 
-| 구분 | Native/CLI | Docker | Cloudflare | OS Native |
-|------|-----------|--------|------------|-----------|
-| Core | ✅ 공통 | ✅ 공통 | ✅ 공통 | ✅ 공통 |
-| GUI | ✅ 웹 | ✅ 웹 | ✅ 웹 | ✅ 웹 |
-| Runtime | PM2 | Docker | Docker + Tunnel | systemd |
-| CLI | 기본 | 기본 | 기본 | 강화 |
-| 권장도 | ⚠️ 임시 | ⭐⭐⭐ | ⭐⭐ | ⭐ |
+`git clone` 후 직접 빌드하여 사용할 수 있으나 공식적으로 지원하지 않는다.
+Docker AIO 이미지를 제공받지 못하며, 업데이트 편의성이 낮다.
+systemd 서비스 등록은 문서에 힌트만 제공하며, 안정성은 보장하지 않는다.
 
----
-
-## 사실상 관리되는 4가지 축
-
-| 구분 | 설명 |
-|--------|---------|
-| Core | Fieldstack 핵심 로직 (공통) |
-| Web GUI | 설정/사용 인터페이스 (공통, 기본) |
-| Runtime | Docker / PM2 / systemd |
-| Control | CLI 제공 여부 및 역할 |
-
-> 참고: systemd는 단일 프로세스 상시 구동에 적합하며,
-> 멀티코어 활용이 필요하면 PM2(클러스터)나 Node.js 클러스터 방식 고려.
+> Proxmox, TrueNAS CORE 등 Docker를 지원하지 않는 환경이라면 PM2 방식을 권장한다.
 
 ---
 
-## GUI(Web) 정책
+## 지원 수준 요약
 
-모든 버전 공통:
-- 초기 설정
-- 서비스 설정
-- 사용자 관리
-- 데이터 관리
-- 외부 접속 설정
-
-👉 **전부 웹 GUI에서 처리 가능해야 한다.**
-
-웹 GUI는 Fieldstack의 **주 인터페이스**이며,
-CLI는 이를 대체하지 않는다.
+| 구분 | Docker AIO | PM2 | Cloudflare | Native/systemd |
+|------|:---:|:---:|:---:|:---:|
+| 공식 지원 | ✅ | ✅ | ✅ | ❌ (참고 문서만) |
+| AIO 이미지 제공 | ✅ | ❌ | ❌ | ❌ |
+| DB 자동 구성 | ✅ | ❌ (수동) | ✅ (D1) | ❌ (수동) |
+| Cloudflare Tunnel | ✅ (확장 옵션) | 별도 설치 | 해당 없음 | 별도 설치 |
+| 업데이트 편의 | ✅ 이미지 pull | 보통 | 느림 (별도 배포) | 낮음 |
+| 권장도 | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⚠️ |
 
 ---
 
-## CLI 정책 (OS 버전 중심)
+## 개발 우선순위
 
-### CLI 제공 목적
-- 웹 GUI 장애 시 복구
-- 초기 설치/재설정
-- 상태 점검
-- 백업/복구
-- Mode 1 계정 복구 (Local CLI reset)
-- 무인 환경 자동화
-
-### CLI 역할 제한
-- 일반 사용자 기능 제공 ❌
-- 일상적 설정 변경 ❌
-- 웹 GUI 대체 ❌
-
-### CLI 성격 정의
-> CLI는 **운영자의 안전장치**이며,
-> 웹 GUI는 **사용자의 기본 인터페이스**다.
-
----
-
-## 권장 개발 우선순위
-
-1. **Docker (일반 + 비도커 포함)**
-   - Core 개발 기준
-   - 문서 및 테스트 기준
-
-2. **Cloudflare 버전**
-   - Docker 기반 확장
-   - 외부 접속 프리셋 제공
-
-3. **OS 버전 (Linux)**
-   - Docker 구조를 네이티브로 이식
-   - systemd + CLI 추가
+1. **Docker AIO** — 메인 타깃. 모든 문서·테스트의 기준.
+2. **PM2** — 보조. Docker AIO와 빌드 결과물 공유.
+3. **Cloudflare Workers/Pages** — Docker/PM2 이후. Workers 런타임 별도 대응 필요, 업데이트 배포 주기가 PM2보다 느림. 공식 지원으로 분류되지만 Docker AIO 기준 릴리즈보다 한두 버전 뒤처질 수 있으며, 사실상 준(準)지원에 가깝다.
+4. **Native/systemd** — 별도 구현 없음. 참고 문서만 유지.
 
 ---
 
 ## 한 문장 정의
 
-> **Fieldstack는 Docker, Cloudflare, Linux 환경 어디서든 실행 가능한
-> 셀프호스트 SaaS형 플랫폼이며,
+> **Fieldstack는 Docker AIO 이미지를 기본으로 제공하는 셀프호스트 플랫폼이며,
 > 모든 설정과 사용은 웹 GUI를 기본으로 한다.**
-
----
-
-## 비고
-- 기능 분기는 존재하지 않는다.
-- 차이는 오직 **배포 방식과 운영 도구**에만 존재한다.
-- 사용자는 환경을 선택할 뿐, 제품을 다시 배울 필요가 없다.

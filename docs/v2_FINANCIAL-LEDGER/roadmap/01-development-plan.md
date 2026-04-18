@@ -535,17 +535,20 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [ ] 상세 페이지
 - [x] 생성/수정 폼 (모달)
 - [x] 통계 대시보드 (월별 수입·지출·잔액 카드)
+- [x] 카테고리·결제수단 관리 UI (탭 모달 — 추가/삭제)
 - [ ] 차트 시각화 (recharts)
 - [ ] 테스트
 
 **기능:**
 - [x] 수입/지출 기록
-- [x] 카테고리 관리 (CRUD API)
-- [x] 결제 수단 관리 (CRUD API)
+- [x] 카테고리 관리 (CRUD API + 관리 UI)
+- [x] 결제 수단 관리 (CRUD API + 관리 UI)
 - [x] 월별/연도별 통계
-- [ ] CSV 내보내기
+- [x] CSV 내보내기 (`GET /api/ledger/entries/export`, BOM 포함 UTF-8, 프론트 다운로드 버튼 포함)
+- [ ] 카테고리별 예산 설정 (`ledger_categories.budget_limit` 컬럼 추가 — `002_budget.sql`)
+- [ ] CSV 가져오기 (은행·카드사 CSV 포맷 자동 감지·매핑·중복 검증 — `docs/modules/91-ledger-csv-import.md` 설계 완료)
 - [ ] 영수증 첨부 (선택)
-- [ ] 사업자 관련
+- [ ] 사업자 관련 (세무 메타데이터 — `docs/modules/04-tax-management.md` 초안 완료, 세무사 검증 후 착수)
 
 #### 2.2 Subscription Module (구독 관리)
 **예상 기간: 4주**

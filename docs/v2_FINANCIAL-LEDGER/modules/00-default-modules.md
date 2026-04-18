@@ -8,8 +8,8 @@
 ### 데이터 구조
 
 LedgerEntry는 가계부 항목 하나의 구조입니다.<br>
-id는 고유 식별자, userId는 해당 사용자 ID, date는 날짜, amount는 금액으로 양수이면 수입이고 음수이면 지출입니다.<br>
-category는 식비·교통비·월급 등의 카테고리, description은 내용 메모, paymentMethod는 현금·카드·계좌이체 등의 결제 수단, tags는 사용자 정의 태그 목록이며, createdAt과 updatedAt은 생성·수정 시간입니다.
+id는 고유 식별자, userId는 해당 사용자 ID, date는 날짜(YYYY-MM-DD), amount는 금액으로 항상 양수이며 수입/지출 구분은 type 필드로 처리합니다(`'income' | 'expense'`).<br>
+categoryId/categoryName은 식비·교통비·월급 등의 카테고리, description은 내용 메모, paymentMethodId/paymentMethodName은 현금·카드·계좌이체 등의 결제 수단, notes는 상세 메모, tags는 사용자 정의 태그 목록이며, createdAt과 updatedAt은 생성·수정 시간입니다.
 
 ### 주요 기능
 
@@ -21,7 +21,7 @@ category는 식비·교통비·월급 등의 카테고리, description은 내용
 #### 2. 카테고리 관리
 - 기본 카테고리: 식비, 교통비, 쇼핑, 의료, 문화생활 등
 - 사용자 정의 카테고리 추가/수정
-- 카테고리별 예산 설정
+- 카테고리별 예산 설정 (월 예산 한도 — `budget_limit` 컬럼 예정, 초과 시 UI 경고)
 
 #### 3. 결제 수단
 - 현금
@@ -39,13 +39,26 @@ category는 식비·교통비·월급 등의 카테고리, description은 내용
 ### API 엔드포인트
 
 ```
-GET    /api/ledger/entries         # 목록 조회
-GET    /api/ledger/entries/:id     # 상세 조회
-POST   /api/ledger/entries         # 신규 생성
-PUT    /api/ledger/entries/:id     # 수정
-DELETE /api/ledger/entries/:id     # 삭제
-GET    /api/ledger/summary          # 요약 통계
-GET    /api/ledger/categories       # 카테고리 목록
+# 가계부 항목
+GET    /api/ledger/entries              # 목록 조회 (연·월·type·카테고리·페이지네이션 필터)
+GET    /api/ledger/entries/:id          # 상세 조회
+POST   /api/ledger/entries             # 신규 생성
+PUT    /api/ledger/entries/:id          # 수정
+DELETE /api/ledger/entries/:id          # 삭제
+GET    /api/ledger/entries/export       # CSV 내보내기 (UTF-8 BOM, Excel 호환)
+
+# 통계
+GET    /api/ledger/summary              # 월별 수입·지출·잔액·카테고리별 통계
+
+# 카테고리
+GET    /api/ledger/categories           # 목록 조회
+POST   /api/ledger/categories           # 생성
+DELETE /api/ledger/categories/:id       # 삭제
+
+# 결제 수단
+GET    /api/ledger/payment-methods      # 목록 조회
+POST   /api/ledger/payment-methods      # 생성
+DELETE /api/ledger/payment-methods/:id  # 삭제
 ```
 
 ---
