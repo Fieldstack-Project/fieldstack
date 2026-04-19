@@ -19,6 +19,7 @@ import { ChangePasswordView } from "./views/ChangePasswordView";
 import { ForgotPasswordView } from "./views/ForgotPasswordView";
 import { SetupWizardView } from "./views/SetupWizardView";
 import { LedgerView } from "../../../modules/ledger/frontend/LedgerView";
+import { MODULE_SUB_NAV } from "./moduleConfig";
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -27,12 +28,21 @@ const CORE_ROUTES = ["login", "forgot-password", "home", "marketplace", "admin",
 // 모듈 라우트 — module.json name 기준 (서버 레지스트리와 일치)
 const MODULE_ROUTES: string[] = ["ledger"];
 
+/** 해시에서 베이스 라우트만 추출 ("ledger/import" → "ledger") */
 function getRouteFromHash(rawHash: string): RouteKey {
   const hash = rawHash.replace("#", "");
-  if (hash === "settings") return "home";
-  if ((CORE_ROUTES as readonly string[]).includes(hash)) return hash as RouteKey;
-  if (MODULE_ROUTES.includes(hash)) return hash as RouteKey;
+  const base = hash.split("/")[0] ?? hash;
+  if (base === "settings") return "home";
+  if ((CORE_ROUTES as readonly string[]).includes(base)) return base as RouteKey;
+  if (MODULE_ROUTES.includes(base)) return base as RouteKey;
   return "login";
+}
+
+/** 해시에서 서브 라우트만 추출 ("ledger/import" → "import", "ledger" → "") */
+function getSubRouteFromHash(rawHash: string): string {
+  const hash = rawHash.replace("#", "");
+  const parts = hash.split("/");
+  return parts.length > 1 ? parts.slice(1).join("/") : "";
 }
 
 // ─── Theme ────────────────────────────────────────────────────
@@ -158,11 +168,14 @@ function App() {
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
+  const [subRoute, setSubRoute] = useState<string>(() => getSubRouteFromHash(window.location.hash));
 
   useEffect(() => {
     const handleHashChange = () => {
       const next = getRouteFromHash(window.location.hash);
+      const nextSub = getSubRouteFromHash(window.location.hash);
       setRoute(next);
+      setSubRoute(nextSub);
       // 비인증 상태에서 app route로 hash 변경 시 redirect 대상 갱신
       const appRoutes: RouteKey[] = ["home", "marketplace", "admin"];
       if (sessionStorage.getItem(SS.auth) !== "true" && (appRoutes as string[]).includes(next)) {
@@ -463,6 +476,8 @@ function App() {
       )}
       <AppShell
         route={effectiveRoute}
+        subRoute={subRoute}
+        moduleSubNav={MODULE_SUB_NAV}
         isAdmin={isAdmin}
         currentUser={currentUser}
         notice={notice}
@@ -487,7 +502,7 @@ function App() {
           />
         )}
         {/* ── 모듈 뷰 ────────────────────────────────────── */}
-        {effectiveRoute === "ledger" && <LedgerView />}
+        {effectiveRoute === "ledger" && <LedgerView subRoute={subRoute} />}
         {isSettingsOpen && (
           <SettingsView
             theme={theme}

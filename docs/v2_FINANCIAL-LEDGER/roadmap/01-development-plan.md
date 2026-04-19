@@ -1,11 +1,12 @@
 # 단계별 개발 계획
 
-> 📌 **프로젝트 상태:** 2026-04-16 기준 **Phase 1.95 진행 중** (1.95.3 Setup UI 구현 완료, 1.95.4 대기).
+> 📌 **프로젝트 상태:** 2026-04-19 기준 **Phase 2.1 Ledger 기능 완료 (테스트 제외)**.
 > - Phase 1.5 전 항목 완료 (Core UI Shell / 로그인 / 홈 / 설정 / 관리자).
 > - Phase 1.9 완료 (API 서버 + DB + 인증 백엔드 + 공유 링크).
-> - Phase 1.95.1 모드 전환 시스템 완료 (`installed.lock` / `fieldstack.config.json` 기반).
-> - Phase 1.95.2 Setup 백엔드 API 완료 (Docker/systemd/native 런타임 감지·프로비저닝, SSE 스트리밍, IP 배너 출력).
-> - Phase 1.95.3 Setup UI 완료 (4단계 설치 마법사 — Welcome / Config / Progress / Complete).
+> - Phase 1.95 전 항목 완료 (모드 전환·Setup 백엔드 API·Setup UI·초기화 UI).
+> - Phase 2 사전 작업 완료 (ModuleRegistry·모듈 관리 API·Admin UI 연동·유저별 모듈 활성화).
+> - Phase 2.1 Ledger 백엔드 완료 (CRUD·통계·CSV export/import·카테고리·결제수단·예산·영수증 첨부 API).
+> - Phase 2.1 Ledger 프론트엔드 완료 (목록·폼·요약 카드·카테고리·결제수단 관리·상세 패널·SVG 차트·예산 현황·CSV import 2단계 모달·영수증 첨부). 미완료: 테스트.
 
 ## 개요
 
@@ -532,11 +533,11 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 
 **Frontend:**
 - [x] 목록 페이지 (DataTable, 월 네비게이션, 필터 탭)
-- [ ] 상세 페이지
+- [x] 상세 패널 (우측 슬라이드 드로어 — 금액·카테고리·메모·태그·등록일·수정·삭제 액션)
 - [x] 생성/수정 폼 (모달)
 - [x] 통계 대시보드 (월별 수입·지출·잔액 카드)
 - [x] 카테고리·결제수단 관리 UI (탭 모달 — 추가/삭제)
-- [ ] 차트 시각화 (recharts)
+- [x] 차트 시각화 (SVG 도넛 차트 — 수입·지출 비교 바 + 카테고리별 도넛, 라이브러리 불필요)
 - [ ] 테스트
 
 **기능:**
@@ -545,9 +546,9 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [x] 결제 수단 관리 (CRUD API + 관리 UI)
 - [x] 월별/연도별 통계
 - [x] CSV 내보내기 (`GET /api/ledger/entries/export`, BOM 포함 UTF-8, 프론트 다운로드 버튼 포함)
-- [ ] 카테고리별 예산 설정 (`ledger_categories.budget_limit` 컬럼 추가 — `002_budget.sql`)
-- [ ] CSV 가져오기 (은행·카드사 CSV 포맷 자동 감지·매핑·중복 검증 — `docs/modules/91-ledger-csv-import.md` 설계 완료)
-- [ ] 영수증 첨부 (선택)
+- [x] 카테고리별 예산 설정 (`ledger_categories.budget_limit` 컬럼 — `002_budget.sql`, 관리 UI·차트 뷰 예산 바)
+- [x] CSV 가져오기 (은행·카드사 포맷 자동 감지·열 매핑·중복 감지·2단계 모달 — `csv-import.ts`)
+- [x] 영수증 첨부 (`ledger_entries.receipt_path` — `003_receipt.sql`, 상세 패널 업로드/삭제)
 - [ ] 사업자 관련 (세무 메타데이터 — `docs/modules/04-tax-management.md` 초안 완료, 세무사 검증 후 착수)
 
 #### 2.2 Subscription Module (구독 관리)

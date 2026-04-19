@@ -14,6 +14,7 @@ export interface LedgerCategory {
   color: string | null;
   icon: string | null;
   isDefault: boolean;
+  budgetLimit: number | null;
   createdAt: string;
 }
 
@@ -22,6 +23,7 @@ export interface CreateCategoryDto {
   type: CategoryType;
   color?: string;
   icon?: string;
+  budgetLimit?: number | null;
 }
 
 // ── 결제 수단 ─────────────────────────────────────────────────
@@ -55,6 +57,7 @@ export interface LedgerEntry {
   paymentMethodName: string | null;
   notes: string | null;
   tags: string[];
+  receiptPath: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -90,6 +93,56 @@ export interface CategoryStat {
   type: EntryType;
   total: number;
   count: number;
+}
+
+// ── CSV 가져오기 ──────────────────────────────────────────────
+
+export interface ImportPreviewRow {
+  rowIndex: number;
+  raw: Record<string, string>;
+  mapped: {
+    date?: string;
+    amount?: number;
+    type?: EntryType;
+    description?: string;
+    categoryName?: string;
+    paymentMethodName?: string;
+    notes?: string;
+  };
+  duplicate: boolean;
+  parseError?: string;
+}
+
+export interface ImportMapping {
+  dateCol: string;
+  amountCol: string;
+  /** 수입/지출 구분 열. 없으면 fixedType 사용 */
+  typeCol?: string;
+  /** typeCol의 값 중 수입으로 판정할 값들 */
+  incomeValues?: string[];
+  /** typeCol 없을 때 전체 고정 타입 */
+  fixedType?: EntryType;
+  descriptionCol?: string;
+  categoryCol?: string;
+  paymentMethodCol?: string;
+  notesCol?: string;
+  /** 금액 부호로 수입/지출 구분 (양수=수입, 음수=지출) */
+  amountSignDeterminesType?: boolean;
+}
+
+export interface ImportPreviewResult {
+  headers: string[];
+  rows: ImportPreviewRow[];
+  detectedMapping: ImportMapping;
+  totalRows: number;
+  duplicateCount: number;
+  errorCount: number;
+}
+
+export interface ImportCommitResult {
+  inserted: number;
+  skippedDuplicates: number;
+  errors: number;
 }
 
 // ── API 공통 응답 ─────────────────────────────────────────────

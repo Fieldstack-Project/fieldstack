@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { Router } from 'express';
+import express, { Router } from 'express';
 
 import { LedgerService } from './service.js';
 import {
@@ -8,8 +8,12 @@ import {
   CreatePaymentMethodSchema,
   EntryListQuerySchema,
   ExportQuerySchema,
+  ImportCommitSchema,
+  ImportMappingSchema,
   SummaryQuerySchema,
+  UpdateCategorySchema,
   UpdateEntrySchema,
+  UpdatePaymentMethodSchema,
   validateBody,
   validateQuery,
 } from './validation.js';
@@ -47,6 +51,9 @@ export function createLedgerRouter(
   const router = Router();
   const auth = createAuth(jwtManager);
 
+  // raw body (CSV / 이진 파일) — 영수증 업로드 및 CSV 가져오기 엔드포인트에만 적용
+  const rawBody = express.raw({ type: '*/*', limit: '10mb' });
+
   // ── 카테고리 ────────────────────────────────────────────────
 
   /** GET /api/ledger/categories */
@@ -64,6 +71,20 @@ export function createLedgerRouter(
     try {
       const category = await service.createCategory(req.auth!.userId, req.body);
       res.status(201).json({ success: true, data: { category } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** PATCH /api/ledger/categories/:id */
+  router.patch('/categories/:id', auth, validateBody(UpdateCategorySchema), async (req, res) => {
+    try {
+      const category = await service.updateCategory(req.auth!.userId, req.params['id']!, req.body);
+      if (!category) {
+        res.status(404).json({ success: false, error: '카테고리를 찾을 수 없습니다.' });
+        return;
+      }
+      res.json({ success: true, data: { category } });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
     }
@@ -100,6 +121,20 @@ export function createLedgerRouter(
     try {
       const method = await service.createPaymentMethod(req.auth!.userId, req.body);
       res.status(201).json({ success: true, data: { method } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** PATCH /api/ledger/payment-methods/:id */
+  router.patch('/payment-methods/:id', auth, validateBody(UpdatePaymentMethodSchema), async (req, res) => {
+    try {
+      const method = await service.updatePaymentMethod(req.auth!.userId, req.params['id']!, req.body);
+      if (!method) {
+        res.status(404).json({ success: false, error: '수단을 찾을 수 없습니다.' });
+        return;
+      }
+      res.json({ success: true, data: { method } });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
     }
@@ -226,6 +261,139 @@ export function createLedgerRouter(
         return;
       }
       res.status(204).end();
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  // ── 영수증 ───────────────────────────────────────────────────
+
+  /** POST /api/ledger/entries/:id/receipt  (Content-Type: application/octet-stream) */
+  router.post('/entries/:id/receipt', auth, rawBody, async (req, res) => {
+    try {
+      const filename = decodeURIComponent(
+        (req.headers['x-filename'] as string | undefined) ?? 'receipt.jpg',
+      );
+      const buf = req.body as Buffer;
+      if (!Buffer.isBuffer(buf) || buf.length === 0) {
+        res.status(400).json({ success: false, error: '파일 데이터가 없습니다.' });
+        return;
+      }
+      const entry = await service.uploadReceipt(req.auth!.userId, req.params['id']!, buf, filename);
+      if (!entry) {
+        res.status(404).json({ success: false, error: '항목을 찾을 수 없습니다.' });
+        return;
+      }
+      res.json({ success: true, data: { entry } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** GET /api/ledger/entries/:id/receipt */
+  router.get('/entries/:id/receipt', auth, async (req, res) => {
+    try {
+      const filePath = await service.getReceiptFilePath(req.auth!.userId, req.params['id']!);
+      if (!filePath) {
+        res.status(404).json({ success: false, error: '영수증이 없습니다.' });
+        return;
+      }
+      res.sendFile(filePath);
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** DELETE /api/ledger/entries/:id/receipt */
+  router.delete('/entries/:id/receipt', auth, async (req, res) => {
+    try {
+      const entry = await service.deleteReceipt(req.auth!.userId, req.params['id']!);
+      if (!entry) {
+        res.status(404).json({ success: false, error: '항목을 찾을 수 없습니다.' });
+        return;
+      }
+      res.json({ success: true, data: { entry } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  // ── CSV 가져오기 ─────────────────────────────────────────────
+
+  /**
+   * POST /api/ledger/import/preview
+   * Body: raw CSV bytes (application/octet-stream)
+   * Header: X-Override-Mapping (optional JSON ImportMapping)
+   */
+  router.post('/import/preview', auth, rawBody, async (req, res) => {
+    try {
+      const buf = req.body as Buffer;
+      if (!Buffer.isBuffer(buf) || buf.length === 0) {
+        res.status(400).json({ success: false, error: 'CSV 파일 데이터가 없습니다.' });
+        return;
+      }
+
+      let overrideMapping = undefined;
+      const mappingHeader = req.headers['x-override-mapping'];
+      if (mappingHeader) {
+        try {
+          const parsed = JSON.parse(mappingHeader as string);
+          const result = ImportMappingSchema.safeParse(parsed);
+          if (result.success) overrideMapping = result.data;
+        } catch {
+          // 잘못된 JSON 무시
+        }
+      }
+
+      const preview = await service.importPreview(req.auth!.userId, buf, overrideMapping);
+      res.json({ success: true, data: preview });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /**
+   * POST /api/ledger/import/commit
+   * Body: multipart 아닌 JSON { mapping, skipDuplicates } + raw CSV in header X-Csv-Data (base64)
+   * — 단순화를 위해 preview와 동일하게 raw bytes body + JSON header로 처리
+   *
+   * 실제 구현: body = CSV bytes, X-Import-Mapping = JSON string
+   */
+  router.post('/import/commit', auth, rawBody, async (req, res) => {
+    try {
+      const buf = req.body as Buffer;
+      if (!Buffer.isBuffer(buf) || buf.length === 0) {
+        res.status(400).json({ success: false, error: 'CSV 파일 데이터가 없습니다.' });
+        return;
+      }
+
+      const mappingHeader = req.headers['x-import-mapping'];
+      if (!mappingHeader) {
+        res.status(400).json({ success: false, error: 'X-Import-Mapping 헤더가 필요합니다.' });
+        return;
+      }
+
+      let body: { mapping: unknown; skipDuplicates: boolean };
+      try {
+        body = JSON.parse(mappingHeader as string);
+      } catch {
+        res.status(400).json({ success: false, error: 'X-Import-Mapping JSON 파싱 오류' });
+        return;
+      }
+
+      const parsed = ImportCommitSchema.safeParse(body);
+      if (!parsed.success) {
+        res.status(400).json({ success: false, error: parsed.error.flatten() });
+        return;
+      }
+
+      const result = await service.importCommit(
+        req.auth!.userId,
+        buf,
+        parsed.data.mapping,
+        parsed.data.skipDuplicates,
+      );
+      res.json({ success: true, data: result });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
     }

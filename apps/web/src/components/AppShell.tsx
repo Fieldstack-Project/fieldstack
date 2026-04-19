@@ -2,6 +2,7 @@ import { type ReactNode, useState, useEffect } from "react";
 import "../styles/shell.css";
 
 import { apiFetch } from "../lib/apiFetch";
+import type { ModuleSubRoute } from "../moduleConfig";
 
 // 코어 라우트 + 설치된 모듈 이름도 RouteKey에 포함 (가계부: "ledger" 등)
 export type CoreRouteKey = "login" | "forgot-password" | "home" | "marketplace" | "admin" | "change-password";
@@ -9,6 +10,10 @@ export type RouteKey = CoreRouteKey | string;
 
 interface AppShellProps {
   route: RouteKey;
+  /** 현재 모듈 내 서브 라우트 ("" = 기본, "import" 등) */
+  subRoute?: string;
+  /** 모듈명 → 서브 라우트 목록 매핑 */
+  moduleSubNav?: Record<string, ModuleSubRoute[]>;
   isAdmin: boolean;
   currentUser: { email: string } | null;
   notice: string;
@@ -42,6 +47,8 @@ function handleNavKeyDown(e: React.KeyboardEvent<HTMLUListElement>) {
 
 export function AppShell({
   route,
+  subRoute = "",
+  moduleSubNav = {},
   isAdmin,
   currentUser,
   notice,
@@ -161,20 +168,50 @@ export function AppShell({
           <p className="shell-nav-label" aria-hidden="true">Modules</p>
           <ul className="shell-nav-list" aria-label="설치된 모듈" onKeyDown={handleNavKeyDown}>
             {sidebarModules.length > 0 ? (
-              sidebarModules.map((mod) => (
-                <li key={mod.name}>
-                  <button
-                    type="button"
-                    className="shell-nav-item"
-                    data-label={mod.displayName || mod.name}
-                    aria-current={route === mod.name ? "page" : undefined}
-                    onClick={() => { window.location.hash = mod.name; closeMobileMenu(); }}
-                  >
-                    <span className="shell-nav-icon" aria-hidden="true">📦</span>
-                    <span className="shell-nav-text">{mod.displayName || mod.name}</span>
-                  </button>
-                </li>
-              ))
+              sidebarModules.map((mod) => {
+                const isActive = route === mod.name;
+                const subItems = moduleSubNav[mod.name];
+                return (
+                  <li key={mod.name}>
+                    {/* 모듈 루트 버튼 */}
+                    <button
+                      type="button"
+                      className="shell-nav-item"
+                      data-label={mod.displayName || mod.name}
+                      aria-current={isActive && !subRoute ? "page" : undefined}
+                      onClick={() => { window.location.hash = mod.name; closeMobileMenu(); }}
+                    >
+                      <span className="shell-nav-icon" aria-hidden="true">📦</span>
+                      <span className="shell-nav-text">{mod.displayName || mod.name}</span>
+                    </button>
+
+                    {/* 서브 네비게이션 — 해당 모듈이 활성화됐을 때만 표시 */}
+                    {isActive && subItems && subItems.length > 0 && (
+                      <ul className="shell-subnav-list" aria-label={`${mod.displayName} 하위 메뉴`}>
+                        {subItems.map((sub) => {
+                          const hash = sub.key ? `${mod.name}/${sub.key}` : mod.name;
+                          const isSubActive = subRoute === sub.key;
+                          return (
+                            <li key={sub.key}>
+                              <button
+                                type="button"
+                                className="shell-subnav-item"
+                                aria-current={isSubActive ? "page" : undefined}
+                                onClick={() => { window.location.hash = hash; closeMobileMenu(); }}
+                              >
+                                {sub.icon && (
+                                  <span className="shell-subnav-icon" aria-hidden="true">{sub.icon}</span>
+                                )}
+                                <span className="shell-subnav-text">{sub.label}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })
             ) : (
               <li className="shell-nav-empty">모듈 없음</li>
             )}

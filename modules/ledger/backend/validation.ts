@@ -8,7 +8,10 @@ export const CreateCategorySchema = z.object({
   type: z.enum(['income', 'expense', 'both']),
   color: z.string().max(20).optional(),
   icon: z.string().max(10).optional(),
+  budgetLimit: z.number().positive().nullable().optional(),
 });
+
+export const UpdateCategorySchema = CreateCategorySchema.partial();
 
 // ── 결제 수단 ─────────────────────────────────────────────────
 
@@ -16,6 +19,8 @@ export const CreatePaymentMethodSchema = z.object({
   name: z.string().min(1).max(50),
   type: z.enum(['cash', 'credit_card', 'debit_card', 'transfer', 'other']),
 });
+
+export const UpdatePaymentMethodSchema = CreatePaymentMethodSchema.partial();
 
 // ── 가계부 항목 ───────────────────────────────────────────────
 
@@ -53,6 +58,26 @@ export const ExportQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
   type: z.enum(['income', 'expense']).optional(),
   categoryId: z.string().uuid().optional(),
+});
+
+// ── CSV 가져오기 ──────────────────────────────────────────────
+
+export const ImportMappingSchema = z.object({
+  dateCol: z.string().min(1),
+  amountCol: z.string().min(1),
+  typeCol: z.string().optional(),
+  incomeValues: z.array(z.string()).optional(),
+  fixedType: z.enum(['income', 'expense']).optional(),
+  descriptionCol: z.string().optional(),
+  categoryCol: z.string().optional(),
+  paymentMethodCol: z.string().optional(),
+  notesCol: z.string().optional(),
+  amountSignDeterminesType: z.boolean().optional(),
+});
+
+export const ImportCommitSchema = z.object({
+  mapping: ImportMappingSchema,
+  skipDuplicates: z.boolean().default(true),
 });
 
 // ── 미들웨어 헬퍼 ─────────────────────────────────────────────
