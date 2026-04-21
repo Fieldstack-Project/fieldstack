@@ -84,6 +84,7 @@ export function createCoreRouter(services: AppServices): Router {
       const result = registryModules.map((mod) => ({
         name: mod.name,
         displayName: mod.manifest.displayName,
+        description: mod.manifest.description,
         basePath: mod.basePath,
         version: mod.manifest.version,
         // user_modules 레코드 없으면 기본 활성
@@ -174,6 +175,68 @@ export function createCoreRouter(services: AppServices): Router {
       );
 
       res.json({ success: true, data: { name, installed: true } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  // ── 유저 설정 API ──────────────────────────────────────────────
+
+  /**
+   * GET /core/users/me/settings — 현재 유저의 앱 설정 반환
+   *
+   * 현재 지원 항목: language (언어 코드, 예: 'ko' | 'en')
+   */
+  router.get('/users/me/settings', auth, async (req, res) => {
+    try {
+      const { getDb } = await import('@fieldstack/core');
+      const database = await getDb();
+
+      type Row = { language: string };
+      const [row] = await database.query<Row>(
+        'SELECT language FROM users WHERE id = $1',
+        [req.auth!.userId],
+      );
+
+      res.json({ success: true, data: { language: row?.language ?? 'ko' } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /**
+   * PATCH /core/users/me/settings — 현재 유저의 앱 설정 저장
+   *
+   * Body: { language?: string }
+   * 지원 언어 코드: 'ko', 'en'
+   */
+  router.patch('/users/me/settings', auth, async (req, res) => {
+    const schema = z.object({
+      language: z.enum(['ko', 'en']).optional(),
+    });
+
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.message });
+      return;
+    }
+
+    const { language } = parsed.data;
+    if (!language) {
+      res.status(400).json({ success: false, error: '변경할 설정이 없습니다.' });
+      return;
+    }
+
+    try {
+      const { getDb } = await import('@fieldstack/core');
+      const database = await getDb();
+
+      await database.query(
+        'UPDATE users SET language = $1, updated_at = $2 WHERE id = $3',
+        [language, new Date().toISOString(), req.auth!.userId],
+      );
+
+      res.json({ success: true, data: { language } });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
     }

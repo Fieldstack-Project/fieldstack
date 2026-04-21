@@ -179,17 +179,17 @@ export function AppShell({
                     <button
                       type="button"
                       className="shell-nav-item"
-                      data-label={mod.displayName || mod.name}
+                      data-label={t(mod.displayName, { defaultValue: mod.name })}
                       aria-current={isActive && !subRoute ? "page" : undefined}
                       onClick={() => { window.location.hash = mod.name; closeMobileMenu(); }}
                     >
                       <span className="shell-nav-icon" aria-hidden="true">📦</span>
-                      <span className="shell-nav-text">{mod.displayName || mod.name}</span>
+                      <span className="shell-nav-text">{t(mod.displayName, { defaultValue: mod.name })}</span>
                     </button>
 
                     {/* 서브 네비게이션 — 해당 모듈이 활성화됐을 때만 표시 */}
                     {isActive && subItems && subItems.length > 0 && (
-                      <ul className="shell-subnav-list" aria-label={t('sidebar.subMenu', { name: mod.displayName })}>
+                      <ul className="shell-subnav-list" aria-label={t('sidebar.subMenu', { name: t(mod.displayName, { defaultValue: mod.name }) })}>
                         {subItems.map((sub) => {
                           const hash = sub.key ? `${mod.name}/${sub.key}` : mod.name;
                           const isSubActive = subRoute === sub.key;

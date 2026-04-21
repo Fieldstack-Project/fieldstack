@@ -11,8 +11,8 @@ const savedLang = (() => {
 i18n
   .use(initReactI18next)
   .init({
-    lng: savedLang ?? 'ko',
-    fallbackLng: 'ko',
+    lng: savedLang ?? 'en',
+    fallbackLng: 'en',
     resources: {
       ko: { common: ko },
       en: { common: en },

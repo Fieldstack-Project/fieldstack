@@ -1,8 +1,8 @@
 {
   "name": "ledger",
   "version": "1.0.0",
-  "displayName": "가계부",
-  "description": "수입과 지출을 기록하고 관리하는 가계부 모듈",
+  "displayName": "ledger:displayName",
+  "description": "ledger:description",
   "enabled": true,
   "dependencies": [],
   "routes": {

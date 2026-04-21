@@ -1,4 +1,6 @@
 {
+  "displayName": "가계부",
+  "description": "수입과 지출을 기록하고 관리하는 가계부 모듈",
   "title": "가계부",
   "tabs": {
     "list": "내역",

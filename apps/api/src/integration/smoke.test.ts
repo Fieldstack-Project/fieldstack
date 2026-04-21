@@ -8,6 +8,7 @@ describe("api integration smoke", () => {
       {
         name: "ledger",
         displayName: "가계부",
+        description: "수입과 지출을 기록하고 관리하는 가계부 모듈",
         version: "1.0.0",
         enabled: true,
         dependencies: [],

@@ -2,10 +2,11 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useTranslation } from "react-i18next";
 
-import { setSessionExpiredHandler } from "./lib/apiFetch";
+import { setSessionExpiredHandler, apiFetch } from "./lib/apiFetch";
 
 // i18n 초기화 — 다른 import보다 먼저 로드되어야 함
 import './i18n/index';
+import { changeLanguage } from './i18n/index';
 
 import "./styles/global.css";
 import "./styles/login.css";
@@ -268,6 +269,17 @@ function App() {
     try {
       if (localStorage.getItem(LS.firstVisitShown) !== "true") setIsFirstVisit(true);
     } catch { /* ignore */ }
+
+    // 서버에 저장된 언어 설정 로드 (실패해도 무음 처리)
+    apiFetch("/core/users/me/settings")
+      .then((r) => r.json())
+      .then((json: { success: boolean; data?: { language: string } }) => {
+        if (json.success && json.data?.language) {
+          void changeLanguage(json.data.language);
+        }
+      })
+      .catch(() => { /* 언어 설정 로드 실패는 무음 처리 */ });
+
     const target = redirectAfterLogin ?? startupRoute;
     setRedirectAfterLogin(null);
     navigate(target);

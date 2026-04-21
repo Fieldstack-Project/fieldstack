@@ -22,6 +22,8 @@ interface SettingsViewProps {
 
 interface UserModule {
   name: string;
+  displayName: string;
+  description: string;
   basePath: string;
   version: string;
   enabled: boolean;
@@ -91,18 +93,24 @@ export function SettingsView({
     onClose();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    // 언어가 변경된 경우 즉시 적용
+
+    // 언어가 변경된 경우 즉시 적용 + 서버 저장
     if (language !== initLanguage) {
       void changeLanguage(language);
+      apiFetch('/core/users/me/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language }),
+      }).catch(() => { /* 서버 저장 실패는 무음 처리 — localStorage에는 이미 저장됨 */ });
     }
-    setTimeout(() => {
-      onStartupRouteChange(startupRoute);
-      setIsSaving(false);
-      onSaved();
-      onClose();
-    }, 500);
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 500));
+    onStartupRouteChange(startupRoute);
+    setIsSaving(false);
+    onSaved();
+    onClose();
   };
 
   return (
@@ -194,8 +202,11 @@ export function SettingsView({
             {modules.map((mod) => (
               <li key={mod.name} className="settings-module-item">
                 <div className="settings-module-info">
-                  <span className="settings-module-name">{mod.name}</span>
+                  <span className="settings-module-name">{t(mod.displayName, { defaultValue: mod.name })}</span>
                   <span className="settings-module-version">v{mod.version}</span>
+                  {mod.description && (
+                    <span className="settings-module-desc">{t(mod.description, { defaultValue: mod.description })}</span>
+                  )}
                 </div>
                 <Button
                   type="button"

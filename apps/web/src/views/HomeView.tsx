@@ -21,6 +21,8 @@ const MOCK_RECENT_ACTIVITY = [
 
 interface InstalledModule {
   name: string;
+  displayName: string;
+  description: string;
   basePath: string;
   enabled: boolean;
 }
@@ -117,8 +119,8 @@ export function HomeView({
                     onClick={() => { window.location.hash = mod.name; }}
                   >
                     <p className="module-card-icon">{MODULE_ICONS[mod.name] ?? "🧩"}</p>
-                    <p className="module-card-name">{mod.name}</p>
-                    <p className="module-card-desc">{t('home.openModule')}</p>
+                    <p className="module-card-name">{t(mod.displayName, { defaultValue: mod.name })}</p>
+                    <p className="module-card-desc">{t(mod.description, { defaultValue: mod.description })}</p>
                   </button>
                 ))}
               </div>

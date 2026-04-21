@@ -58,6 +58,7 @@ describe("api module loader", () => {
       {
         name: "subscription",
         displayName: "구독 관리",
+        description: "",
         version: "1.0.0",
         enabled: true,
         dependencies: [],

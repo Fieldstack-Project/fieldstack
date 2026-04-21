@@ -1,4 +1,6 @@
 {
+  "displayName": "Ledger",
+  "description": "Record and manage your income and expenses",
   "title": "Ledger",
   "tabs": {
     "list": "Entries",
