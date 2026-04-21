@@ -4,6 +4,19 @@ import type { DbConnectionConfig, DbProvider, DbRow } from '../index.js';
 
 const { Pool } = pg;
 
+const _isProd = process.env['NODE_ENV'] === 'production';
+const _gray   = _isProd ? '' : '\x1b[90m';
+const _green  = _isProd ? '' : '\x1b[32m';
+const _red    = _isProd ? '' : '\x1b[31m';
+const _reset  = _isProd ? '' : '\x1b[0m';
+function ts(): string { return new Date().toISOString().replace('T', ' ').slice(0, 23); }
+function dbLog(msg: string): void {
+  console.log(`${_gray}${ts()}${_reset} ${_green}[db]${_reset} ${_green}${msg}${_reset}`);
+}
+function dbError(msg: string): void {
+  console.error(`${_gray}${ts()}${_reset} ${_red}[db]${_reset} ${_red}${msg}${_reset}`);
+}
+
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 2000;
 
@@ -22,14 +35,11 @@ export class PostgresProvider implements DbProvider {
       try {
         const client = await this.pool.connect();
         client.release();
-        console.log('[fieldstack][db] PostgreSQL connected');
+        dbLog(`PostgreSQL connected`);
         return;
       } catch (err) {
         const isLast = attempt === MAX_RETRIES;
-        console.error(
-          `[fieldstack][db] PostgreSQL connection failed (attempt ${attempt}/${MAX_RETRIES}):`,
-          (err as Error).message,
-        );
+        dbError(`PostgreSQL connection failed (attempt ${attempt}/${MAX_RETRIES}): ${(err as Error).message}`);
         if (isLast) {
           await this.pool.end().catch(() => undefined);
           throw new Error('[fieldstack][db] Could not connect to PostgreSQL after max retries');
@@ -42,7 +52,7 @@ export class PostgresProvider implements DbProvider {
   public async disconnect(): Promise<void> {
     await this.pool?.end();
     this.pool = null;
-    console.log('[fieldstack][db] PostgreSQL disconnected');
+    dbLog(`PostgreSQL disconnected`);
   }
 
   public async query<T extends DbRow = DbRow>(sql: string, params?: unknown[]): Promise<T[]> {

@@ -5,6 +5,7 @@ import type express from 'express';
 
 import type { AppServices } from './app';
 import type { BackendRouteRegistration, ModuleManifest } from './loader';
+import { log } from './middleware/logger';
 
 // ── ModuleRecord ──────────────────────────────────────────────
 
@@ -51,14 +52,14 @@ export class ModuleRegistry {
 
   public register(record: ModuleRecord): void {
     this.modules.set(record.basePath, record);
-    console.log(`[fieldstack][registry] registered module "${record.name}" at ${record.basePath}`);
+    log.success('registry', `module "${record.name}" mounted at ${record.basePath}`);
   }
 
   public unregister(basePath: string): boolean {
     const record = this.modules.get(basePath);
     if (!record) return false;
     this.modules.delete(basePath);
-    console.log(`[fieldstack][registry] unregistered module "${record.name}" (${basePath})`);
+    log.info('registry', `module "${record.name}" unregistered (${basePath})`);
     return true;
   }
 
@@ -121,13 +122,13 @@ export async function loadModulesIntoRegistry(
   const manifestMap = new Map(manifests.map((m) => [m.name, m]));
 
   if (registrations.length === 0) {
-    console.log('[fieldstack][registry] no enabled modules found');
+    log.warn('registry', `no enabled modules found`);
     return;
   }
 
   for (const reg of registrations) {
     if (!reg.apiBasePath) {
-      console.warn(`[fieldstack][registry] module "${reg.moduleName}" has no apiBasePath, skipping`);
+      log.warn('registry', `module "${reg.moduleName}" has no apiBasePath, skipping`);
       continue;
     }
 
@@ -140,9 +141,7 @@ export async function loadModulesIntoRegistry(
 
     const routerFile = candidatePaths.find((p) => fs.existsSync(p));
     if (!routerFile) {
-      console.warn(
-        `[fieldstack][registry] module "${reg.moduleName}" has no backend router at ${baseDir}/index.{ts,js}`,
-      );
+      log.warn('registry', `module "${reg.moduleName}" has no backend router at ${baseDir}/index.{ts,js}`);
       continue;
     }
 
@@ -153,7 +152,7 @@ export async function loadModulesIntoRegistry(
         const { FileMigrationRunner } = await import('@fieldstack/core');
         const runner = new FileMigrationRunner(services.db, reg.moduleName, migrationsDir);
         await runner.run();
-        console.log(`[fieldstack][registry] migrations applied for module "${reg.moduleName}"`);
+        log.info('registry', `migrations applied for module "${reg.moduleName}"`);
       }
 
       const mod = (await import(routerFile)) as ModuleRouterModule;
@@ -167,9 +166,7 @@ export async function loadModulesIntoRegistry(
       }
 
       if (!router) {
-        console.warn(
-          `[fieldstack][registry] module "${reg.moduleName}" has no default export or createRouter`,
-        );
+        log.warn('registry', `module "${reg.moduleName}" has no default export or createRouter`);
         continue;
       }
 
@@ -178,7 +175,7 @@ export async function loadModulesIntoRegistry(
 
       registry.register({ name: reg.moduleName, basePath: reg.apiBasePath, manifest, router });
     } catch (err) {
-      console.error(`[fieldstack][registry] failed to load module "${reg.moduleName}":`, err);
+      log.error('registry', `failed to load module "${reg.moduleName}"`, err);
     }
   }
 }

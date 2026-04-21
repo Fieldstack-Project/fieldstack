@@ -19,6 +19,7 @@ import type { SharedLinkRenderer } from '@fieldstack/core' with { "resolution-mo
 
 import { validateEnv } from './config/env';
 import { errorHandler } from './middleware/error';
+import { requestLogger } from './middleware/logger';
 import { ModuleRegistry } from './module-registry';
 import { createAdminRouter } from './routes/admin';
 import { createAuthRouter } from './routes/auth';
@@ -52,6 +53,7 @@ export function createApp(services?: AppServices) {
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(requestLogger);
 
   // ── Core routes ───────────────────────────────────────────────
   app.use('/health', healthRouter);
@@ -87,6 +89,7 @@ export function createAppWithPublicRouter(
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(requestLogger);
 
   app.use('/health', healthRouter);
 
@@ -114,6 +117,7 @@ export function createSetupApp(): express.Application {
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(requestLogger);
 
   app.use('/health', healthRouter);
   app.use('/setup', createSetupRouter());

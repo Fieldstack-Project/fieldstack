@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -13,6 +14,7 @@ import {
   initServices,
   runMigrations,
 } from './app';
+import { log } from './middleware/logger';
 import {
   buildBackendRouteRegistrations,
   loadModulesFromDisk,
@@ -28,10 +30,7 @@ applyConfigToEnv();
 // ── 환경변수 검증 (누락·오류 시 즉시 종료) ────────────────────
 const env = validateEnv(process.env);
 
-const BOOTSTRAP_MESSAGE = 'Fieldstack API bootstrap initialized';
-
-console.log(BOOTSTRAP_MESSAGE);
-console.log(`[fieldstack][api] env: ${env.NODE_ENV}`);
+log.info('api', `bootstrap initialized — env: ${env.NODE_ENV}`);
 // modules/ 디렉터리는 프로젝트 루트 기준 (apps/api/src → ../../../modules)
 const MODULES_DIR = path.join(__dirname, '..', '..', '..', 'modules');
 
@@ -84,29 +83,36 @@ function printSetupBanner(apiPort: number, isDev: boolean) {
 // ── Setup 모드 ─────────────────────────────────────────────────
 // installed.lock 없을 때 → Setup 마법사만 서빙
 async function startSetup() {
-  console.log('[fieldstack][api] *** SETUP MODE — installation wizard active ***');
+  log.warn('api', `SETUP MODE — installation wizard active`);
   const app = createSetupApp();
   finalizeApp(app);
-  app.listen(env.PORT, () => {
+  const server = http.createServer(app);
+  server.listen(env.PORT, () => {
     printSetupBanner(env.PORT, env.NODE_ENV !== 'production');
   });
+  process.once('SIGINT', () => { server.close(() => process.exit(0)); });
+  process.once('SIGTERM', () => { server.close(() => process.exit(0)); });
 }
 
 // ── 앱 모드 ────────────────────────────────────────────────────
 // DB 초기화 → 마이그레이션 → 서비스 초기화 → 모듈 로드 → 서버 시작
 async function startApp() {
-  let services;
+  let services: Awaited<ReturnType<typeof initServices>> | undefined;
 
   if (env.DB_PROVIDER === 'postgres' && env.DATABASE_URL) {
+    log.info('db', `connecting (postgres)…`);
     const db = await initDb();
+    log.info('db', `running migrations…`);
     await runMigrations(db);
     services = await initServices(db);
-    console.log('[fieldstack][api] DB initialized and migrations applied');
+    log.success('db', `postgres ready`);
   } else if (env.DB_PROVIDER === 'sqlite') {
+    log.info('db', `connecting (sqlite)…`);
     const db = await initDb();
+    log.info('db', `running migrations…`);
     await runMigrations(db);
     services = await initServices(db);
-    console.log('[fieldstack][api] SQLite DB initialized and migrations applied');
+    log.success('db', `sqlite ready`);
   }
 
   let app;
@@ -125,24 +131,42 @@ async function startApp() {
 
     const depIssues = validateModuleDependencies(manifests);
     if (depIssues.length > 0) {
-      console.warn('[fieldstack][loader] dependency issues detected:');
+      log.warn('loader', `dependency issues detected`);
       for (const issue of depIssues) {
-        console.warn(
-          `  - "${issue.moduleName}" missing: ${issue.missingDependencies.join(', ')}`,
-        );
+        log.warn('loader', `  "${issue.moduleName}" missing: ${issue.missingDependencies.join(', ')}`);
       }
     }
 
     const registrations = buildBackendRouteRegistrations(manifests);
+    const enabledCount = manifests.filter((m) => m.enabled).length;
+    log.info('loader', `loading ${enabledCount} module(s)…`);
     await loadModulesIntoRegistry(registrations, manifests, MODULES_DIR, services);
+    log.success('loader', `${enabledCount} module(s) mounted`);
   }
 
   // ── Error handler (반드시 모든 라우트 등록 후 마지막) ────────
   finalizeApp(app);
 
-  app.listen(env.PORT, () => {
-    console.log(`[fieldstack][api] server listening on http://localhost:${env.PORT}`);
+  const server = http.createServer(app);
+
+  server.listen(env.PORT, () => {
+    log.success('api', `server ready → http://localhost:${env.PORT}`);
   });
+
+  // ── Graceful shutdown ─────────────────────────────────────────
+  const shutdown = () => {
+    log.info('api', `shutting down…`);
+    server.close(() => {
+      if (services) {
+        services.db.disconnect().finally(() => process.exit(0));
+      } else {
+        process.exit(0);
+      }
+    });
+  };
+
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
 }
 
 // ── 진입점 ──────────────────────────────────────────────────────
@@ -151,6 +175,6 @@ const shouldSetup = !isInstalled();
 const boot = shouldSetup ? startSetup : startApp;
 
 boot().catch((err) => {
-  console.error('[fieldstack][api] startup failed:', err);
+  log.error('api', `startup failed`, err);
   process.exit(1);
 });

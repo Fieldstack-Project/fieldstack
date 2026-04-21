@@ -9,6 +9,7 @@ import type {
   WhitelistServiceImpl,
 } from '@fieldstack/core' with { "resolution-mode": "import" };
 
+import { log } from '../middleware/logger';
 import { requireAuth } from '../middleware/require-auth';
 
 // ── Zod 입력 스키마 ────────────────────────────────────────────
@@ -73,8 +74,14 @@ export function createAuthRouter(deps: AuthRouterDeps): Router {
 
     try {
       const result = await userAuth.login(parsed.data.email, parsed.data.password);
+      if (result.type === 'session') {
+        log.success('auth', `login success`, { email: parsed.data.email });
+      } else {
+        log.info('auth', `login → TOTP required`, { email: parsed.data.email });
+      }
       res.json({ success: true, data: result });
     } catch (err) {
+      log.warn('auth', `login failed`, { email: parsed.data.email, reason: (err as Error).message });
       res.status(401).json({ success: false, error: (err as Error).message });
     }
   });
@@ -89,8 +96,10 @@ export function createAuthRouter(deps: AuthRouterDeps): Router {
 
     try {
       const result = await userAuth.completeTotpLogin(parsed.data.challengeId, parsed.data.code);
+      log.success('auth', `TOTP verified — session issued`, { challengeId: parsed.data.challengeId });
       res.json({ success: true, data: result });
     } catch (err) {
+      log.warn('auth', `TOTP verify failed`, { challengeId: parsed.data.challengeId, reason: (err as Error).message });
       res.status(401).json({ success: false, error: (err as Error).message });
     }
   });
@@ -178,8 +187,10 @@ export function createAuthRouter(deps: AuthRouterDeps): Router {
 
     try {
       const tokens = await jwtManager.rotateRefreshToken(parsed.data.refreshToken);
+      log.info('auth', `token refreshed`);
       res.json({ success: true, data: tokens });
     } catch (err) {
+      log.warn('auth', `token refresh failed`, { reason: (err as Error).message });
       res.status(401).json({ success: false, error: (err as Error).message });
     }
   });
@@ -188,8 +199,10 @@ export function createAuthRouter(deps: AuthRouterDeps): Router {
   router.post('/logout', auth, async (req, res) => {
     try {
       await jwtManager.revokeSession(req.auth!.sessionId);
+      log.info('auth', `logout`, { userId: req.auth!.userId });
       res.json({ success: true, data: { loggedOut: true } });
     } catch (err) {
+      log.error('auth', `logout failed`, err);
       res.status(500).json({ success: false, error: (err as Error).message });
     }
   });

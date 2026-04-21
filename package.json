@@ -13,7 +13,7 @@
     "vitest": "^2.1.9"
   },
   "scripts": {
-    "dev": "pnpm --parallel dev",
+    "dev": "trap 'kill 0' INT TERM; pnpm --filter api dev & pnpm --filter web dev & wait",
     "dev:api": "pnpm --filter api dev",
     "dev:web": "pnpm --filter web dev",
     "build": "pnpm build:web && pnpm build:api && pnpm postbuild",
