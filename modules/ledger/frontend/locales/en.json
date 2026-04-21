@@ -1,0 +1,64 @@
+{
+  "title": "Ledger",
+  "tabs": {
+    "list": "Entries",
+    "budget": "Budget",
+    "categories": "Categories",
+    "paymentMethods": "Payment Methods",
+    "import": "Import",
+    "export": "Export"
+  },
+  "entry": {
+    "add": "Add entry",
+    "edit": "Edit entry",
+    "delete": "Delete entry",
+    "income": "Income",
+    "expense": "Expense",
+    "date": "Date",
+    "amount": "Amount",
+    "type": "Type",
+    "category": "Category",
+    "paymentMethod": "Payment method",
+    "description": "Description",
+    "notes": "Notes",
+    "tags": "Tags",
+    "receipt": "Receipt",
+    "noCategory": "No category",
+    "noPaymentMethod": "No payment method"
+  },
+  "budget": {
+    "title": "Budget settings",
+    "monthly": "Monthly budget",
+    "set": "Set budget",
+    "noLimit": "No limit"
+  },
+  "empty": {
+    "title": "No entries yet",
+    "desc": "Add your first income or expense entry.",
+    "addFirst": "Add first entry"
+  },
+  "import": {
+    "title": "Import CSV",
+    "select": "Select file",
+    "importing": "Importing…",
+    "success": "{{count}} entries imported",
+    "error": "Import failed"
+  },
+  "export": {
+    "title": "Export CSV",
+    "button": "Export",
+    "exporting": "Exporting…"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "edit": "Edit"
+  },
+  "errors": {
+    "loadFailed": "Failed to load data.",
+    "saveFailed": "Failed to save.",
+    "deleteFailed": "Failed to delete."
+  }
+}

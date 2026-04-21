@@ -1,4 +1,5 @@
 import { type ReactNode, useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import "../styles/shell.css";
 
 import { apiFetch } from "../lib/apiFetch";
@@ -57,6 +58,7 @@ export function AppShell({
   onOpenSettings,
   children,
 }: AppShellProps) {
+  const { t } = useTranslation();
   const userInitial = currentUser?.email.charAt(0).toUpperCase() ?? "?";
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [sidebarModules, setSidebarModules] = useState<SidebarModule[]>([]);
@@ -108,7 +110,7 @@ export function AppShell({
       <aside
         className="shell-sidebar"
         data-mobile-open={isMobileOpen ? "" : undefined}
-        aria-label="사이드바 네비게이션"
+        aria-label={t('sidebar.ariaLabel')}
       >
         <div className="shell-brand">
           <div className="shell-brand-logo" aria-hidden="true">FS</div>
@@ -118,7 +120,7 @@ export function AppShell({
             type="button"
             className="shell-collapse-btn"
             onClick={toggleCollapsed}
-            aria-label={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+            aria-label={isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
             aria-expanded={!isCollapsed}
           >
             <span aria-hidden="true">{isCollapsed ? "›" : "‹"}</span>
@@ -128,7 +130,7 @@ export function AppShell({
             type="button"
             className="shell-drawer-close"
             onClick={closeMobileMenu}
-            aria-label="메뉴 닫기"
+            aria-label={t('sidebar.closeMenu')}
           >
             ✕
           </button>
@@ -136,37 +138,37 @@ export function AppShell({
 
         <nav className="shell-nav" aria-label="주 메뉴">
           {/* Workspace */}
-          <p className="shell-nav-label" aria-hidden="true">Workspace</p>
+          <p className="shell-nav-label" aria-hidden="true">{t('nav.workspace')}</p>
           <ul className="shell-nav-list" onKeyDown={handleNavKeyDown}>
             <li>
               <button
                 type="button"
                 className="shell-nav-item"
-                data-label="Home"
+                data-label={t('nav.home')}
                 aria-current={route === "home" ? "page" : undefined}
                 onClick={() => navAndClose("home")}
               >
                 <span className="shell-nav-icon" aria-hidden="true">⊞</span>
-                <span className="shell-nav-text">Home</span>
+                <span className="shell-nav-text">{t('nav.home')}</span>
               </button>
             </li>
             <li>
               <button
                 type="button"
                 className="shell-nav-item"
-                data-label="Marketplace"
+                data-label={t('nav.marketplace')}
                 aria-current={route === "marketplace" ? "page" : undefined}
                 onClick={() => navAndClose("marketplace")}
               >
                 <span className="shell-nav-icon" aria-hidden="true">⬡</span>
-                <span className="shell-nav-text">Marketplace</span>
+                <span className="shell-nav-text">{t('nav.marketplace')}</span>
               </button>
             </li>
           </ul>
 
           {/* Modules */}
-          <p className="shell-nav-label" aria-hidden="true">Modules</p>
-          <ul className="shell-nav-list" aria-label="설치된 모듈" onKeyDown={handleNavKeyDown}>
+          <p className="shell-nav-label" aria-hidden="true">{t('nav.modules')}</p>
+          <ul className="shell-nav-list" aria-label={t('sidebar.moduleMenu')} onKeyDown={handleNavKeyDown}>
             {sidebarModules.length > 0 ? (
               sidebarModules.map((mod) => {
                 const isActive = route === mod.name;
@@ -187,7 +189,7 @@ export function AppShell({
 
                     {/* 서브 네비게이션 — 해당 모듈이 활성화됐을 때만 표시 */}
                     {isActive && subItems && subItems.length > 0 && (
-                      <ul className="shell-subnav-list" aria-label={`${mod.displayName} 하위 메뉴`}>
+                      <ul className="shell-subnav-list" aria-label={t('sidebar.subMenu', { name: mod.displayName })}>
                         {subItems.map((sub) => {
                           const hash = sub.key ? `${mod.name}/${sub.key}` : mod.name;
                           const isSubActive = subRoute === sub.key;
@@ -213,7 +215,7 @@ export function AppShell({
                 );
               })
             ) : (
-              <li className="shell-nav-empty">모듈 없음</li>
+              <li className="shell-nav-empty">{t('nav.noModules')}</li>
             )}
           </ul>
         </nav>
@@ -225,39 +227,39 @@ export function AppShell({
               <div className="shell-user-avatar" aria-hidden="true">{userInitial}</div>
               <div className="shell-user-info">
                 <p className="shell-user-email">{currentUser.email}</p>
-                <p className="shell-user-role">{isAdmin ? "Administrator" : "User"}</p>
+                <p className="shell-user-role">{isAdmin ? t('sidebar.role.admin') : t('sidebar.role.user')}</p>
               </div>
             </div>
           )}
           <button
             type="button"
             className="shell-nav-item"
-            data-label="Settings"
+            data-label={t('nav.settings')}
             onClick={() => { onOpenSettings(); closeMobileMenu(); }}
           >
             <span className="shell-nav-icon" aria-hidden="true">⚙</span>
-            <span className="shell-nav-text">Settings</span>
+            <span className="shell-nav-text">{t('nav.settings')}</span>
           </button>
           {isAdmin && (
             <button
               type="button"
               className="shell-nav-item"
-              data-label="Admin"
+              data-label={t('nav.admin')}
               aria-current={route === "admin" ? "page" : undefined}
               onClick={() => navAndClose("admin")}
             >
               <span className="shell-nav-icon" aria-hidden="true">⚡</span>
-              <span className="shell-nav-text">Admin</span>
+              <span className="shell-nav-text">{t('nav.admin')}</span>
             </button>
           )}
           <button
             type="button"
             className="shell-nav-item shell-nav-item-danger"
-            data-label="Sign Out"
+            data-label={t('nav.signOut')}
             onClick={() => { onLogout(); closeMobileMenu(); }}
           >
             <span className="shell-nav-icon" aria-hidden="true">→</span>
-            <span className="shell-nav-text">Sign Out</span>
+            <span className="shell-nav-text">{t('nav.signOut')}</span>
           </button>
         </div>
       </aside>
@@ -270,7 +272,7 @@ export function AppShell({
             type="button"
             className="shell-hamburger"
             onClick={() => setIsMobileOpen(true)}
-            aria-label="메뉴 열기"
+            aria-label={t('sidebar.openMenu')}
             aria-expanded={isMobileOpen}
           >
             <span aria-hidden="true">☰</span>

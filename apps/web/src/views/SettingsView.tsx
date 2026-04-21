@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button, FormField, Input, Modal, Select } from "@fieldstack/controls";
 
 import { apiFetch } from "../lib/apiFetch";
+import { changeLanguage } from "../i18n/index";
 
 import "../styles/settings.css";
 
@@ -26,7 +28,6 @@ interface UserModule {
 }
 
 const INIT_DISPLAY_NAME = "";
-const INIT_LANGUAGE = "ko";
 
 export function SettingsView({
   theme,
@@ -36,8 +37,11 @@ export function SettingsView({
   onClose,
   onSaved,
 }: SettingsViewProps) {
+  const { t, i18n } = useTranslation();
   const [displayName, setDisplayName] = useState(INIT_DISPLAY_NAME);
-  const [language, setLanguage] = useState(INIT_LANGUAGE);
+  const [language, setLanguage] = useState(() => {
+    try { return localStorage.getItem('fs_language') ?? 'ko'; } catch { return 'ko'; }
+  });
   const [startupRoute, setStartupRoute] = useState<StartupRoute>(initialStartupRoute);
   const [isSaving, setIsSaving] = useState(false);
   const [modules, setModules] = useState<UserModule[]>([]);
@@ -74,19 +78,25 @@ export function SettingsView({
     }
   };
 
+  const initLanguage = i18n.language;
+
   // 테마는 변경 즉시 localStorage에 저장되므로 dirty 체크 제외
   const isDirty =
     displayName !== INIT_DISPLAY_NAME ||
-    language !== INIT_LANGUAGE ||
+    language !== initLanguage ||
     startupRoute !== initialStartupRoute;
 
   const handleClose = () => {
-    if (isDirty && !window.confirm("저장하지 않은 변경사항이 있습니다. 닫으시겠습니까?")) return;
+    if (isDirty && !window.confirm(t('settings.unsavedChanges'))) return;
     onClose();
   };
 
   const handleSave = () => {
     setIsSaving(true);
+    // 언어가 변경된 경우 즉시 적용
+    if (language !== initLanguage) {
+      void changeLanguage(language);
+    }
     setTimeout(() => {
       onStartupRouteChange(startupRoute);
       setIsSaving(false);
@@ -99,12 +109,12 @@ export function SettingsView({
     <Modal
       open
       onClose={handleClose}
-      title="General Settings"
+      title={t('settings.title')}
       size="md"
       footer={
         <>
           <Button type="button" onClick={handleClose} disabled={isSaving}>
-            취소
+            {t('settings.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -113,24 +123,22 @@ export function SettingsView({
             disabled={!isDirty || isSaving}
             loading={isSaving}
           >
-            저장
+            {t('settings.save')}
           </Button>
         </>
       }
     >
-      <p className="settings-dialog-subtitle">
-        프로필, 환경설정, 권한 테스트 상태를 관리합니다.
-      </p>
+      <p className="settings-dialog-subtitle">{t('settings.subtitle')}</p>
 
       <div className="settings-dialog-tabs">
-        <span className="settings-tab">Profile</span>
-        <span className="settings-tab">Preference</span>
-        <span className="settings-tab">Security</span>
+        <span className="settings-tab">{t('settings.tabs.profile')}</span>
+        <span className="settings-tab">{t('settings.tabs.preference')}</span>
+        <span className="settings-tab">{t('settings.tabs.security')}</span>
       </div>
 
       <section className="settings-section" aria-labelledby="settings-profile">
-        <p className="settings-section-label" id="settings-profile">프로필</p>
-        <FormField label="표시 이름" htmlFor="settings-display-name">
+        <p className="settings-section-label" id="settings-profile">{t('settings.profile.label')}</p>
+        <FormField label={t('settings.profile.displayName')} htmlFor="settings-display-name">
           <Input
             id="settings-display-name"
             type="text"
@@ -142,8 +150,8 @@ export function SettingsView({
       </section>
 
       <section className="settings-section" aria-labelledby="settings-prefs">
-        <p className="settings-section-label" id="settings-prefs">환경설정</p>
-        <FormField label="언어" htmlFor="settings-language">
+        <p className="settings-section-label" id="settings-prefs">{t('settings.preference.label')}</p>
+        <FormField label={t('settings.preference.language')} htmlFor="settings-language">
           <Select
             id="settings-language"
             value={language}
@@ -154,26 +162,26 @@ export function SettingsView({
             ]}
           />
         </FormField>
-        <FormField label="테마" htmlFor="settings-theme">
+        <FormField label={t('settings.preference.theme')} htmlFor="settings-theme">
           <Select
             id="settings-theme"
             value={theme}
             onChange={(e) => onThemeChange(e.target.value as ThemeSetting)}
             options={[
-              { label: "라이트", value: "light" },
-              { label: "다크", value: "dark" },
-              { label: "시스템 따르기", value: "system" },
+              { label: t('settings.preference.themeLight'), value: "light" },
+              { label: t('settings.preference.themeDark'), value: "dark" },
+              { label: t('settings.preference.themeSystem'), value: "system" },
             ]}
           />
         </FormField>
-        <FormField label="로그인 후 첫 화면" htmlFor="settings-startup-route">
+        <FormField label={t('settings.preference.startupRoute')} htmlFor="settings-startup-route">
           <Select
             id="settings-startup-route"
             value={startupRoute}
             onChange={(e) => setStartupRoute(e.target.value as StartupRoute)}
             options={[
-              { label: "홈 화면", value: "home" },
-              { label: "마켓플레이스", value: "marketplace" },
+              { label: t('settings.preference.startupHome'), value: "home" },
+              { label: t('settings.preference.startupMarketplace'), value: "marketplace" },
             ]}
           />
         </FormField>
@@ -181,7 +189,7 @@ export function SettingsView({
 
       {modules.length > 0 && (
         <section className="settings-section" aria-labelledby="settings-modules">
-          <p className="settings-section-label" id="settings-modules">모듈 활성화</p>
+          <p className="settings-section-label" id="settings-modules">{t('settings.modules.label')}</p>
           <ul className="settings-module-list">
             {modules.map((mod) => (
               <li key={mod.name} className="settings-module-item">
@@ -196,7 +204,11 @@ export function SettingsView({
                   disabled={togglingModule === mod.name}
                   onClick={() => handleToggleModule(mod.name)}
                 >
-                  {togglingModule === mod.name ? "..." : mod.enabled ? "비활성화" : "활성화"}
+                  {togglingModule === mod.name
+                    ? "..."
+                    : mod.enabled
+                      ? t('settings.modules.disable')
+                      : t('settings.modules.enable')}
                 </Button>
               </li>
             ))}

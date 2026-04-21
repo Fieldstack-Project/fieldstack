@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import "../styles/home.css";
 
 import { Button, EmptyState } from "@fieldstack/controls";
@@ -39,6 +40,7 @@ export function HomeView({
   onOpenSettings,
   onNavigateAdmin,
 }: HomeViewProps) {
+  const { t } = useTranslation();
   const [installedModules, setInstalledModules] = useState<InstalledModule[]>([]);
 
   useEffect(() => {
@@ -58,19 +60,16 @@ export function HomeView({
     <div className="home-page">
       {/* ── 환영 배너 ─────────────────────────────────────────── */}
       {isFirstVisit && (
-        <div className="home-welcome-banner" role="region" aria-label="환영 메시지">
+        <div className="home-welcome-banner" role="region" aria-label={t('home.welcomeTitle')}>
           <div className="home-welcome-body">
-            <p className="home-welcome-title">Fieldstack에 오신 것을 환영합니다!</p>
-            <p className="home-welcome-desc">
-              마켓플레이스에서 첫 번째 모듈을 설치하고 워크스페이스를 구성해 보세요.
-              Settings에서 테마·언어 등 기본 환경도 설정할 수 있습니다.
-            </p>
+            <p className="home-welcome-title">{t('home.welcomeTitle')}</p>
+            <p className="home-welcome-desc">{t('home.welcomeDesc')}</p>
           </div>
           <button
             type="button"
             className="home-welcome-dismiss"
             onClick={onDismissFirstVisit}
-            aria-label="환영 메시지 닫기"
+            aria-label={t('home.dismissWelcome')}
           >
             ✕
           </button>
@@ -80,15 +79,15 @@ export function HomeView({
       {/* ── 페이지 헤더 ───────────────────────────────────────── */}
       <div className="home-header">
         <div>
-          <p className="home-kicker">Workspace Overview</p>
-          <h1 className="home-title" id="home-title">Main Hub</h1>
+          <p className="home-kicker">{t('home.kicker')}</p>
+          <h1 className="home-title" id="home-title">{t('home.title')}</h1>
         </div>
         <div className="home-header-actions">
           <Button type="button" onClick={onOpenSettings}>
-            Settings
+            {t('home.settingsButton')}
           </Button>
           <Button variant="primary" type="button" onClick={() => { window.location.hash = "marketplace"; }}>
-            Marketplace
+            {t('home.marketplaceButton')}
           </Button>
         </div>
       </div>
@@ -100,9 +99,11 @@ export function HomeView({
         <div className="home-main">
           <section className="home-card" aria-labelledby="home-modules-title">
             <div className="home-card-header">
-              <h2 className="home-card-title" id="home-modules-title">Installed Modules</h2>
+              <h2 className="home-card-title" id="home-modules-title">{t('home.installedModules')}</h2>
               <span className="home-card-meta">
-                {hasModules ? `${installedModules.length}개 활성` : "설치된 모듈 없음"}
+                {hasModules
+                  ? t('home.modulesActive_one', { count: installedModules.length })
+                  : t('home.noModulesInstalled')}
               </span>
             </div>
 
@@ -117,50 +118,44 @@ export function HomeView({
                   >
                     <p className="module-card-icon">{MODULE_ICONS[mod.name] ?? "🧩"}</p>
                     <p className="module-card-name">{mod.name}</p>
-                    <p className="module-card-desc">Open module workspace</p>
+                    <p className="module-card-desc">{t('home.openModule')}</p>
                   </button>
                 ))}
               </div>
             ) : (
               <EmptyState
                 icon="⬡"
-                title="No modules installed yet"
-                description="첫 모듈을 설치하면 메인 허브에 즉시 표시됩니다."
-                action={{ label: "Browse Marketplace", onClick: () => { window.location.hash = "marketplace"; } }}
+                title={t('home.noModulesTitle')}
+                description={t('home.noModulesDesc')}
+                action={{ label: t('home.browseMarketplace'), onClick: () => { window.location.hash = "marketplace"; } }}
               />
             )}
           </section>
 
           {/* 온보딩 가이드 (모듈 없을 때) */}
           {!hasModules && (
-            <section className="home-card home-onboarding" aria-label="시작 가이드">
-              <p className="home-onboarding-label">Getting Started — 3 steps</p>
+            <section className="home-card home-onboarding" aria-label={t('home.gettingStarted')}>
+              <p className="home-onboarding-label">{t('home.gettingStarted')}</p>
               <ol className="home-onboarding-steps">
                 <li className="home-onboarding-step">
                   <span className="home-onboarding-step-num">01</span>
                   <div>
-                    <p className="home-onboarding-step-title">마켓플레이스에서 모듈 탐색</p>
-                    <p className="home-onboarding-step-desc">
-                      Ledger(가계부), Subscription(구독 관리) 등 원하는 모듈을 찾습니다.
-                    </p>
+                    <p className="home-onboarding-step-title">{t('home.step1Title')}</p>
+                    <p className="home-onboarding-step-desc">{t('home.step1Desc')}</p>
                   </div>
                 </li>
                 <li className="home-onboarding-step">
                   <span className="home-onboarding-step-num">02</span>
                   <div>
-                    <p className="home-onboarding-step-title">원클릭 설치 & 활성화</p>
-                    <p className="home-onboarding-step-desc">
-                      설치 즉시 사이드바에 추가됩니다. 서버 재시작 불필요.
-                    </p>
+                    <p className="home-onboarding-step-title">{t('home.step2Title')}</p>
+                    <p className="home-onboarding-step-desc">{t('home.step2Desc')}</p>
                   </div>
                 </li>
                 <li className="home-onboarding-step">
                   <span className="home-onboarding-step-num">03</span>
                   <div>
-                    <p className="home-onboarding-step-title">바로 사용 시작</p>
-                    <p className="home-onboarding-step-desc">
-                      모듈 화면으로 이동해 데이터를 입력하거나 연동을 설정합니다.
-                    </p>
+                    <p className="home-onboarding-step-title">{t('home.step3Title')}</p>
+                    <p className="home-onboarding-step-desc">{t('home.step3Desc')}</p>
                   </div>
                 </li>
               </ol>
@@ -174,20 +169,20 @@ export function HomeView({
           {/* 시스템 상태 */}
           <section className="home-card" aria-labelledby="home-status-title">
             <div className="home-card-header">
-              <h2 className="home-card-title" id="home-status-title">System Status</h2>
+              <h2 className="home-card-title" id="home-status-title">{t('home.systemStatus')}</h2>
             </div>
             <div className="home-status-list">
               <div className="home-status-row">
-                <span className="home-status-label">모듈</span>
+                <span className="home-status-label">{t('home.systemStatusModules')}</span>
                 <span className="home-status-value">{installedModules.length}</span>
               </div>
               <div className="home-status-row">
-                <span className="home-status-label">Pending Alerts</span>
+                <span className="home-status-label">{t('home.systemStatusAlerts')}</span>
                 <span className="home-status-value">3</span>
               </div>
               <div className="home-status-row">
-                <span className="home-status-label">Health</span>
-                <span className="home-status-value home-status-ok">Good</span>
+                <span className="home-status-label">{t('home.systemStatusHealth')}</span>
+                <span className="home-status-value home-status-ok">{t('home.systemStatusHealthGood')}</span>
               </div>
             </div>
           </section>
@@ -197,24 +192,24 @@ export function HomeView({
             <section className="home-card home-card-accent" aria-labelledby="home-admin-title">
               <div className="home-card-header">
                 <h2 className="home-card-title" id="home-admin-title">
-                  <span aria-hidden="true">⚡ </span>Admin
+                  <span aria-hidden="true">⚡ </span>{t('home.adminTitle')}
                 </h2>
                 <Button size="sm" type="button" onClick={onNavigateAdmin}>
-                  콘솔 →
+                  {t('home.adminConsole')}
                 </Button>
               </div>
               <div className="home-admin-stats">
                 <div className="home-admin-stat">
-                  <p className="home-admin-stat-label">활성 사용자</p>
+                  <p className="home-admin-stat-label">{t('home.adminActiveUsers')}</p>
                   <p className="home-admin-stat-value">1</p>
                 </div>
                 <div className="home-admin-stat">
-                  <p className="home-admin-stat-label">설치 모듈</p>
+                  <p className="home-admin-stat-label">{t('home.adminInstalledModules')}</p>
                   <p className="home-admin-stat-value">{installedModules.length}</p>
                 </div>
                 <div className="home-admin-stat">
-                  <p className="home-admin-stat-label">시스템</p>
-                  <p className="home-admin-stat-value home-status-ok">정상</p>
+                  <p className="home-admin-stat-label">{t('home.adminSystem')}</p>
+                  <p className="home-admin-stat-value home-status-ok">{t('home.adminSystemOk')}</p>
                 </div>
               </div>
             </section>
@@ -223,7 +218,7 @@ export function HomeView({
           {/* Quick Actions */}
           <section className="home-card" aria-labelledby="home-actions-title">
             <div className="home-card-header">
-              <h2 className="home-card-title" id="home-actions-title">Quick Actions</h2>
+              <h2 className="home-card-title" id="home-actions-title">{t('home.quickActions')}</h2>
             </div>
             <div className="home-quick-actions">
               <button
@@ -232,7 +227,7 @@ export function HomeView({
                 onClick={() => { window.location.hash = "marketplace"; }}
               >
                 <span className="home-action-icon" aria-hidden="true">⬡</span>
-                <span>Add module</span>
+                <span>{t('home.addModule')}</span>
               </button>
               <button
                 type="button"
@@ -240,14 +235,14 @@ export function HomeView({
                 onClick={onOpenSettings}
               >
                 <span className="home-action-icon" aria-hidden="true">⚙</span>
-                <span>Open settings</span>
+                <span>{t('home.openSettings')}</span>
               </button>
               <button
                 type="button"
                 className="home-action-item"
               >
                 <span className="home-action-icon" aria-hidden="true">📋</span>
-                <span>View logs</span>
+                <span>{t('home.viewLogs')}</span>
               </button>
             </div>
           </section>
@@ -255,9 +250,9 @@ export function HomeView({
           {/* Recent Activity */}
           <section className="home-card" aria-labelledby="home-activity-title">
             <div className="home-card-header">
-              <h2 className="home-card-title" id="home-activity-title">Recent Activity</h2>
+              <h2 className="home-card-title" id="home-activity-title">{t('home.recentActivity')}</h2>
             </div>
-            <ul className="home-activity-list" aria-label="최근 활동 목록">
+            <ul className="home-activity-list" aria-label={t('home.recentActivity')}>
               {MOCK_RECENT_ACTIVITY.map((item) => (
                 <li key={item.id} className="home-activity-item">
                   <span className={`home-activity-dot home-activity-dot-${item.dot}`} aria-hidden="true" />

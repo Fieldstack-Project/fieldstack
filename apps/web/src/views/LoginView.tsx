@@ -1,19 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 
 import { Alert, Button, Checkbox, FormField, Input, OtpInput } from '@fieldstack/controls';
 
 const MAX_OTP_ATTEMPTS = 5;
 const RESEND_COOLDOWN_SEC = 30;
 const MAX_LOGIN_ATTEMPTS = 5;
-
-// ── 인증 실패 메시지 규칙 ─────────────────────────────────────
-// 계정 존재 여부를 노출하지 않는다. 이메일/비밀번호 구분 없이 동일 메시지.
-const MSG = {
-  invalidCredentials: '이메일 또는 비밀번호가 올바르지 않습니다.',
-  tooManyAttempts: '로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도하세요.',
-  sessionExpired: '세션이 만료되었습니다. 다시 로그인해 주세요.',
-  attemptsWarning: (n: number) => `로그인 시도 ${n}/${MAX_LOGIN_ATTEMPTS} — 초과 시 일시 잠금됩니다.`,
-} as const;
 
 interface LoginViewProps {
   onLogin: (event: FormEvent<HTMLFormElement>) => void;
@@ -40,6 +32,7 @@ export function LoginView({
   isLocked,
   sessionExpired,
 }: LoginViewProps) {
+  const { t } = useTranslation();
   const [remember, setRemember] = useState(false);
 
   const [otpCode, setOtpCode] = useState('');
@@ -95,40 +88,38 @@ export function LoginView({
   return (
     <>
       <section className="login-showcase" aria-hidden="true">
-        <div className="showcase-kicker">Fieldstack Control</div>
-        <h1 className="showcase-title">Organize your workspace with confidence.</h1>
-        <p className="showcase-copy">
-          Secure access for local-first productivity modules with one consistent sign-in experience.
-        </p>
+        <div className="showcase-kicker">{t('login.showcaseKicker')}</div>
+        <h1 className="showcase-title">{t('login.showcaseTitle')}</h1>
+        <p className="showcase-copy">{t('login.showcaseCopy')}</p>
         <ul className="showcase-points">
-          <li>Session-aware routing and fast state recovery</li>
-          <li>Role-aware access control for admin views</li>
-          <li>Built for self-hosted, privacy-first operations</li>
+          <li>{t('login.showcasePoint1')}</li>
+          <li>{t('login.showcasePoint2')}</li>
+          <li>{t('login.showcasePoint3')}</li>
         </ul>
       </section>
 
-      <section className="panel login-panel" aria-label={step === 'otp' ? '2단계 인증' : '로그인'}>
+      <section className="panel login-panel" aria-label={step === 'otp' ? t('login.panelLabel2fa') : t('login.panelLabelSignIn')}>
         <div className="login-top-label" aria-hidden="true">
           <div className="login-top-line" />
-          <p className="login-top-text">{step === 'otp' ? '2FA OTP' : 'Sign in'}</p>
+          <p className="login-top-text">{step === 'otp' ? t('login.step2fa') : t('login.stepSignIn')}</p>
         </div>
 
         {step === 'credentials' ? (
           <div className="login-panel-body">
             <div className="login-panel-head">
-              <h2 className="title">Welcome back</h2>
-              <p className="subtitle">Use your workspace account to continue to the control plane.</p>
+              <h2 className="title">{t('login.welcomeBack')}</h2>
+              <p className="subtitle">{t('login.subtitle')}</p>
             </div>
 
             {/* 잠금 알림 */}
             {isLocked && (
               <Alert variant="error" className="login-alert">
-                {MSG.tooManyAttempts}
+                {t('login.errors.tooManyAttempts')}
               </Alert>
             )}
 
             <form className="stack login-form" onSubmit={onLogin} noValidate>
-              <FormField label="Email address" htmlFor="login-email">
+              <FormField label={t('login.emailLabel')} htmlFor="login-email">
                 <Input
                   id="login-email"
                   type="email"
@@ -139,12 +130,12 @@ export function LoginView({
                   disabled={isLocked}
                 />
               </FormField>
-              <FormField label="Password" htmlFor="login-password">
+              <FormField label={t('login.passwordLabel')} htmlFor="login-password">
                 <Input
                   id="login-password"
                   type="password"
                   name="password"
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   autoComplete="current-password"
                   required
                   disabled={isLocked}
@@ -154,25 +145,27 @@ export function LoginView({
                 <Checkbox
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  label="Remember me"
+                  label={t('login.rememberMe')}
                   disabled={isLocked}
                 />
                 <Button variant="ghost" type="button" onClick={onForgotPassword}>
-                  Forgot password?
+                  {t('login.forgotPassword')}
                 </Button>
               </div>
               <div className="actions login-actions">
                 <Button variant="primary" block type="submit" disabled={isLocked}>
-                  Sign in
+                  {t('login.signInButton')}
                 </Button>
                 {sessionExpired && (
-                  <p className="login-inline-warn" role="status">{MSG.sessionExpired}</p>
+                  <p className="login-inline-warn" role="status">{t('login.errors.sessionExpired')}</p>
                 )}
                 {!isLocked && loginError && (
                   <p className="login-inline-error" role="alert">{loginError}</p>
                 )}
                 {showAttemptsWarning && (
-                  <p className="login-inline-warn">{MSG.attemptsWarning(loginAttempts)}</p>
+                  <p className="login-inline-warn">
+                    {t('login.errors.attemptsWarning', { n: loginAttempts, max: MAX_LOGIN_ATTEMPTS })}
+                  </p>
                 )}
               </div>
             </form>
@@ -184,11 +177,13 @@ export function LoginView({
           <div className="login-panel-body">
             <div className="login-otp-head">
               <span className="login-otp-icon" aria-hidden="true">🔐</span>
-              <h2 className="title">2단계 인증</h2>
+              <h2 className="title">{t('login.otpTitle')}</h2>
               <p className="subtitle">
-                <strong>{pendingEmail}</strong> 계정에 연결된
-                <br />
-                인증 앱의 6자리 코드를 입력하세요.
+                <Trans
+                  i18nKey="login.otpSubtitle"
+                  values={{ email: pendingEmail }}
+                  components={{ strong: <strong /> }}
+                />
               </p>
             </div>
             <form className="stack login-otp-form" onSubmit={handleOtpSubmit} noValidate>
@@ -201,7 +196,7 @@ export function LoginView({
               />
               {!otpLocked && (
                 <Button variant="primary" block type="submit" disabled={otpCode.length < 6}>
-                  인증 확인
+                  {t('login.otpVerify')}
                 </Button>
               )}
               <div className="login-otp-footer">
@@ -212,11 +207,13 @@ export function LoginView({
                     onClick={handleResend}
                     disabled={resendCooldown > 0}
                   >
-                    {resendCooldown > 0 ? `재전송 (${resendCooldown}s)` : '코드 재전송'}
+                    {resendCooldown > 0
+                      ? t('login.otpResendCooldown', { sec: resendCooldown })
+                      : t('login.otpResend')}
                   </Button>
                 )}
                 <Button variant="ghost" type="button" onClick={onOtpCancel}>
-                  로그인으로 돌아가기
+                  {t('login.otpBackToLogin')}
                 </Button>
               </div>
             </form>

@@ -1,12 +1,13 @@
 # 단계별 개발 계획
 
-> 📌 **프로젝트 상태:** 2026-04-19 기준 **Phase 2.1 Ledger 기능 완료 (테스트 제외)**.
+> 📌 **프로젝트 상태:** 2026-04-21 기준 **Phase 2.1 Ledger 완료 (테스트 제외) + Phase 2.x.2 i18n 핵심 구현 완료**.
 > - Phase 1.5 전 항목 완료 (Core UI Shell / 로그인 / 홈 / 설정 / 관리자).
 > - Phase 1.9 완료 (API 서버 + DB + 인증 백엔드 + 공유 링크).
 > - Phase 1.95 전 항목 완료 (모드 전환·Setup 백엔드 API·Setup UI·초기화 UI).
 > - Phase 2 사전 작업 완료 (ModuleRegistry·모듈 관리 API·Admin UI 연동·유저별 모듈 활성화).
 > - Phase 2.1 Ledger 백엔드 완료 (CRUD·통계·CSV export/import·카테고리·결제수단·예산·영수증 첨부 API).
 > - Phase 2.1 Ledger 프론트엔드 완료 (목록·폼·요약 카드·카테고리·결제수단 관리·상세 패널·SVG 차트·예산 현황·CSV import 2단계 모달·영수증 첨부). 미완료: 테스트.
+> - Phase 2.x.2 i18n 핵심 구현 완료 (i18next + react-i18next 초기화·ko/en 번역 파일·Settings 언어 전환·Ledger 모듈 번역·모듈 로케일 자동 등록). 미완료: displayName i18n 키 전환·API 저장·Setup 언어 선택.
 
 ## 개요
 
@@ -410,6 +411,7 @@ POST /setup/db/provision { runtime: "docker"|"systemd"|"native" }
 - [x] Configuration 화면
   - [x] 관리자 계정 설정 (이메일, 비밀번호, PIN)
   - [x] DB 설정 — PostgreSQL 기본값, 런타임별 자동 설치 버튼 / URL 직접 입력
+  - [ ] 언어 선택 — Configuration 단계에서 표시 언어를 선택하고 설치 완료 후에도 유지
   - [ ] 선택 옵션 (SMTP, 텔레메트리 동의 등) — Phase 2.3 / 3.5 이후 확장
 - [x] Progress 화면 (실시간 설치 로그, 단계 표시)
 - [x] Complete 화면 (로그인 진입 안내)
@@ -630,13 +632,13 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - 언어 추가 시 `locales/{lang}.json` 파일만 추가하면 됨 — `module.json` 수정 불필요
 
 **주요 작업:**
-- [ ] i18next + react-i18next 도입 및 초기화 설정 (`apps/web/src/i18n/index.ts`)
-- [ ] `common` 네임스페이스 번역 파일 작성 — 공통 UI 문자열 (`ko.json` / `en.json`)
-- [ ] 모듈 번역 로더 구현 — 앱 초기화 시 각 모듈의 `locales/*.json`을 i18next에 namespace로 등록
+- [x] i18next + react-i18next 도입 및 초기화 설정 (`apps/web/src/i18n/index.ts`)
+- [x] `common` 네임스페이스 번역 파일 작성 — 공통 UI 문자열 (`ko.json` / `en.json`)
+- [x] 모듈 번역 로더 구현 — `registerModuleLocale()` 헬퍼, 모듈 진입 시 namespace 자동 등록
+- [x] Settings 화면 언어 선택 실제 연동 (`i18n.changeLanguage()` + `localStorage` 저장)
+- [x] Ledger 모듈 번역 파일 작성 (`modules/ledger/frontend/locales/ko.json` / `en.json`)
 - [ ] `module.json` displayName → i18n 키 방식 전환 (`ModuleManifest` 타입 및 AppShell 연동)
-- [ ] Settings 화면 언어 선택 실제 연동 (현재 mock 상태 → `i18n.changeLanguage()` + API 저장)
-- [ ] 언어 설정 저장: `localStorage` + `PATCH /core/users/me/settings` 연동
-- [ ] Ledger 모듈 번역 파일 작성 (`modules/ledger/frontend/locales/ko.json` / `en.json`)
+- [ ] 언어 설정 서버 저장: `PATCH /core/users/me/settings` 연동 (현재 localStorage만)
 - [ ] 모듈 템플릿에 `locales/` 디렉터리 및 샘플 번역 파일 추가
 
 #### 2.x.3 마켓플레이스 Module Registry 구축

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import { PASSWORD_POLICY, validatePassword } from "@fieldstack/core/browser";
 
@@ -19,6 +20,7 @@ interface FieldState {
 }
 
 export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordViewProps) {
+  const { t } = useTranslation();
   const [current, setCurrent] = useState<FieldState>({ value: "", touched: false });
   const [next, setNext] = useState<FieldState>({ value: "", touched: false });
   const [confirm, setConfirm] = useState<FieldState>({ value: "", touched: false });
@@ -45,7 +47,7 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
       });
       onChanged();
     } catch {
-      setApiError("서버 연결 오류. 다시 시도해주세요.");
+      setApiError(t('changePassword.serverError'));
     }
   };
 
@@ -55,12 +57,10 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
         <div className="cpw-header">
           <span className="cpw-icon" aria-hidden="true">🔑</span>
           <h1 className="cpw-title" id="cpw-title">
-            {isFirstLogin ? "비밀번호를 설정해주세요" : "비밀번호 변경"}
+            {isFirstLogin ? t('changePassword.titleFirst') : t('changePassword.titleChange')}
           </h1>
           <p className="cpw-desc">
-            {isFirstLogin
-              ? "임시 비밀번호로 로그인하셨습니다. 사용 전 새 비밀번호를 설정해야 합니다."
-              : "현재 비밀번호를 확인한 후 새 비밀번호를 입력하세요."}
+            {isFirstLogin ? t('changePassword.descFirst') : t('changePassword.descChange')}
           </p>
         </div>
 
@@ -68,9 +68,9 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
 
         <form className="stack cpw-form" onSubmit={handleSubmit} noValidate>
           <FormField
-            label={isFirstLogin ? "임시 비밀번호" : "현재 비밀번호"}
+            label={isFirstLogin ? t('changePassword.tempPassword') : t('changePassword.currentPassword')}
             htmlFor="cpw-current"
-            error={showCurrentError ? "필수 입력 항목입니다." : undefined}
+            error={showCurrentError ? t('changePassword.required') : undefined}
           >
             <Input
               id="cpw-current"
@@ -82,7 +82,7 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
             />
           </FormField>
 
-          <FormField label="새 비밀번호" htmlFor="cpw-next">
+          <FormField label={t('changePassword.newPassword')} htmlFor="cpw-next">
             <Input
               id="cpw-next"
               type="password"
@@ -94,26 +94,26 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
             />
           </FormField>
 
-          <ul className="cpw-policy" id="cpw-policy" aria-label="비밀번호 조건">
+          <ul className="cpw-policy" id="cpw-policy" aria-label={t('changePassword.policy.label')}>
             <PolicyItem
               met={next.value.length >= PASSWORD_POLICY.minLength && next.value.length <= PASSWORD_POLICY.maxLength}
               active={next.touched || submitted}
-              label={`${PASSWORD_POLICY.minLength}~${PASSWORD_POLICY.maxLength}자`}
+              label={t('changePassword.policy.length', { min: PASSWORD_POLICY.minLength, max: PASSWORD_POLICY.maxLength })}
             />
-            <PolicyItem met={/[A-Z]/.test(next.value)} active={next.touched || submitted} label="영어 대문자 포함" />
-            <PolicyItem met={/[a-z]/.test(next.value)} active={next.touched || submitted} label="영어 소문자 포함" />
-            <PolicyItem met={/\d/.test(next.value)} active={next.touched || submitted} label="숫자 포함" />
+            <PolicyItem met={/[A-Z]/.test(next.value)} active={next.touched || submitted} label={t('changePassword.policy.uppercase')} />
+            <PolicyItem met={/[a-z]/.test(next.value)} active={next.touched || submitted} label={t('changePassword.policy.lowercase')} />
+            <PolicyItem met={/\d/.test(next.value)} active={next.touched || submitted} label={t('changePassword.policy.number')} />
             <PolicyItem
               met={/[^a-zA-Z0-9]/.test(next.value)}
               active={next.touched || submitted}
-              label="특수문자 포함"
+              label={t('changePassword.policy.special')}
             />
           </ul>
 
           <FormField
-            label="새 비밀번호 확인"
+            label={t('changePassword.confirmPassword')}
             htmlFor="cpw-confirm"
-            error={showConfirmError ? "비밀번호가 일치하지 않습니다." : undefined}
+            error={showConfirmError ? t('changePassword.mismatch') : undefined}
           >
             <Input
               id="cpw-confirm"
@@ -126,7 +126,7 @@ export function ChangePasswordView({ isFirstLogin, onChanged }: ChangePasswordVi
           </FormField>
 
           <Button variant="primary" block type="submit">
-            비밀번호 변경
+            {t('changePassword.changeButton')}
           </Button>
         </form>
       </section>

@@ -14,6 +14,13 @@ import {
 import type { TableColumn } from "@fieldstack/controls";
 // apiCall: JSON 파싱·토큰 갱신 포함. apiFetch: raw Response 반환 (파일 다운로드용)
 import { apiCall, apiFetch as apiFetchRaw } from "../../../apps/web/src/lib/apiFetch";
+import { registerModuleLocale } from "../../../apps/web/src/i18n/registerModuleLocale";
+
+import koLocale from "./locales/ko.json";
+import enLocale from "./locales/en.json";
+
+// 모듈 로케일을 i18next에 등록 (중복 등록 방지는 registerModuleLocale 내부에서 처리)
+registerModuleLocale("ledger", koLocale, enLocale);
 
 // ── 공유 타입 ─────────────────────────────────────────────────
 

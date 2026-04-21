@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-
+import { useTranslation } from 'react-i18next';
 
 import { Alert, Button, FormField, Input } from '@fieldstack/controls';
 
@@ -13,6 +13,7 @@ interface ForgotPasswordViewProps {
 }
 
 export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('choice');
 
   // ── 이메일 경로 상태 ──────────────────────────────────────────
@@ -55,8 +56,8 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
 
   const handleNewPwSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (newPw.length < 8) { setPwError('비밀번호는 8자 이상이어야 합니다.'); return; }
-    if (newPw !== confirmPw) { setPwError('비밀번호가 일치하지 않습니다.'); return; }
+    if (newPw.length < 8) { setPwError(t('forgotPassword.errors.passwordTooShort')); return; }
+    if (newPw !== confirmPw) { setPwError(t('forgotPassword.errors.passwordMismatch')); return; }
     setIsSubmitting(true);
     setPwError('');
     try {
@@ -67,12 +68,12 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
       });
       const json = await res.json() as { success: boolean; error?: string };
       if (!res.ok || !json.success) {
-        setPwError(json.error ?? '토큰이 유효하지 않거나 만료되었습니다.');
+        setPwError(json.error ?? t('forgotPassword.errors.invalidToken'));
         return;
       }
       setStep('token-done');
     } catch {
-      setPwError('서버 연결 오류. 다시 시도해주세요.');
+      setPwError(t('forgotPassword.errors.serverError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -85,18 +86,16 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
         <section className="panel fpw-panel" aria-labelledby="fpw-title">
           <div className="fpw-header">
             <span className="fpw-icon" aria-hidden="true">🔑</span>
-            <h1 className="fpw-title" id="fpw-title">비밀번호 찾기</h1>
-            <p className="fpw-desc">계정을 복구할 방법을 선택하세요.</p>
+            <h1 className="fpw-title" id="fpw-title">{t('forgotPassword.title')}</h1>
+            <p className="fpw-desc">{t('forgotPassword.desc')}</p>
           </div>
 
           <div className="fpw-choice-list">
             <button className="fpw-choice-card" type="button" onClick={() => setStep('email')}>
               <span className="fpw-choice-icon" aria-hidden="true">📧</span>
               <span className="fpw-choice-body">
-                <span className="fpw-choice-label">이메일로 재설정</span>
-                <span className="fpw-choice-desc">
-                  가입 시 등록한 이메일로 재설정 링크를 받습니다.
-                </span>
+                <span className="fpw-choice-label">{t('forgotPassword.emailChoice')}</span>
+                <span className="fpw-choice-desc">{t('forgotPassword.emailChoiceDesc')}</span>
               </span>
               <span className="fpw-choice-arrow" aria-hidden="true">›</span>
             </button>
@@ -104,17 +103,15 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
             <button className="fpw-choice-card" type="button" onClick={() => setStep('token')}>
               <span className="fpw-choice-icon" aria-hidden="true">🛡️</span>
               <span className="fpw-choice-body">
-                <span className="fpw-choice-label">관리자 복구 토큰 사용</span>
-                <span className="fpw-choice-desc">
-                  이메일 접근이 불가한 경우, 관리자로부터 토큰을 발급받아 복구합니다.
-                </span>
+                <span className="fpw-choice-label">{t('forgotPassword.tokenChoice')}</span>
+                <span className="fpw-choice-desc">{t('forgotPassword.tokenChoiceDesc')}</span>
               </span>
               <span className="fpw-choice-arrow" aria-hidden="true">›</span>
             </button>
           </div>
 
           <Button variant="ghost" type="button" className="fpw-back-btn" onClick={onBack}>
-            로그인으로 돌아가기
+            {t('forgotPassword.backToLogin')}
           </Button>
         </section>
       </main>
@@ -128,18 +125,15 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
         <section className="panel fpw-panel" aria-labelledby="fpw-title">
           <div className="fpw-header">
             <span className="fpw-icon" aria-hidden="true">📧</span>
-            <h1 className="fpw-title" id="fpw-title">이메일로 재설정</h1>
-            <p className="fpw-desc">
-              가입 시 사용한 이메일 주소를 입력하면<br />
-              비밀번호 재설정 링크를 보내드립니다.
-            </p>
+            <h1 className="fpw-title" id="fpw-title">{t('forgotPassword.emailTitle')}</h1>
+            <p className="fpw-desc">{t('forgotPassword.emailDesc')}</p>
           </div>
 
           <form className="stack fpw-form" onSubmit={handleEmailSubmit} noValidate>
             <FormField
-              label="이메일 주소"
+              label={t('forgotPassword.emailAddressLabel')}
               htmlFor="fpw-email"
-              error={showEmailError ? '올바른 이메일 주소를 입력하세요.' : undefined}
+              error={showEmailError ? t('forgotPassword.invalidEmail') : undefined}
             >
               <Input
                 id="fpw-email"
@@ -154,7 +148,7 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
               />
             </FormField>
             <Button variant="primary" block type="submit">
-              재설정 링크 전송
+              {t('forgotPassword.sendResetLink')}
             </Button>
           </form>
 
@@ -164,7 +158,7 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
             className="fpw-back-btn"
             onClick={() => setStep('choice')}
           >
-            이전으로
+            {t('forgotPassword.back')}
           </Button>
         </section>
       </main>
@@ -178,21 +172,15 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
         <section className="panel fpw-panel" aria-labelledby="fpw-title">
           <div className="fpw-header">
             <span className="fpw-icon" aria-hidden="true">📬</span>
-            <h1 className="fpw-title" id="fpw-title">이메일을 확인하세요</h1>
-            <p className="fpw-desc">
-              <strong>{email}</strong> 주소로<br />
-              비밀번호 재설정 링크를 전송했습니다.<br />
-              이메일이 도착하지 않으면 스팸함을 확인해 주세요.
-            </p>
+            <h1 className="fpw-title" id="fpw-title">{t('forgotPassword.emailSentTitle')}</h1>
+            <p className="fpw-desc">{t('forgotPassword.emailSentDesc', { email })}</p>
           </div>
           <div className="fpw-notice">
-            <p className="fpw-notice-label">이메일을 받지 못하셨나요?</p>
-            <p className="fpw-notice-text">
-              이메일 접근이 불가한 경우 관리자에게 문의하면 복구 토큰을 발급받을 수 있습니다.
-            </p>
+            <p className="fpw-notice-label">{t('forgotPassword.emailNotReceived')}</p>
+            <p className="fpw-notice-text">{t('forgotPassword.emailNotReceivedText')}</p>
           </div>
           <Button block type="button" onClick={onBack}>
-            로그인으로 돌아가기
+            {t('forgotPassword.backToLogin')}
           </Button>
         </section>
       </main>
@@ -206,11 +194,8 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
         <section className="panel fpw-panel" aria-labelledby="fpw-title">
           <div className="fpw-header">
             <span className="fpw-icon" aria-hidden="true">🛡️</span>
-            <h1 className="fpw-title" id="fpw-title">관리자 복구 토큰</h1>
-            <p className="fpw-desc">
-              관리자로부터 발급받은 복구 토큰을 입력하세요.<br />
-              토큰은 일회성이며 발급 후 24시간 유효합니다.
-            </p>
+            <h1 className="fpw-title" id="fpw-title">{t('forgotPassword.tokenTitle')}</h1>
+            <p className="fpw-desc">{t('forgotPassword.tokenDesc')}</p>
           </div>
 
           {tokenError && (
@@ -219,9 +204,9 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
 
           <form className="stack fpw-form" onSubmit={handleTokenSubmit} noValidate>
             <FormField
-              label="계정 이메일"
+              label={t('forgotPassword.accountEmail')}
               htmlFor="fpw-token-email"
-              error={showTokenEmailError ? '올바른 이메일 주소를 입력하세요.' : undefined}
+              error={showTokenEmailError ? t('forgotPassword.invalidEmail') : undefined}
             >
               <Input
                 id="fpw-token-email"
@@ -235,7 +220,7 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
                 }}
               />
             </FormField>
-            <FormField label="복구 토큰" htmlFor="fpw-token">
+            <FormField label={t('forgotPassword.recoveryToken')} htmlFor="fpw-token">
               <Input
                 id="fpw-token"
                 type="text"
@@ -254,17 +239,15 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
               type="submit"
               disabled={tokenEmail.trim().length === 0 || token.trim().length === 0}
             >
-              토큰 확인
+              {t('forgotPassword.verifyToken')}
             </Button>
           </form>
 
           <div className="fpw-divider" aria-hidden="true" />
 
           <div className="fpw-notice">
-            <p className="fpw-notice-label">복구 토큰이 없으신가요?</p>
-            <p className="fpw-notice-text">
-              관리자 패널 → 사용자 관리에서 복구 토큰을 발급받을 수 있습니다.
-            </p>
+            <p className="fpw-notice-label">{t('forgotPassword.noToken')}</p>
+            <p className="fpw-notice-text">{t('forgotPassword.noTokenText')}</p>
           </div>
 
           <Button
@@ -273,7 +256,7 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
             className="fpw-back-btn"
             onClick={() => setStep('choice')}
           >
-            이전으로
+            {t('forgotPassword.back')}
           </Button>
         </section>
       </main>
@@ -287,8 +270,8 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
         <section className="panel fpw-panel" aria-labelledby="fpw-title">
           <div className="fpw-header">
             <span className="fpw-icon" aria-hidden="true">✅</span>
-            <h1 className="fpw-title" id="fpw-title">새 비밀번호 설정</h1>
-            <p className="fpw-desc">복구 토큰이 확인되었습니다. 새 비밀번호를 설정하세요.</p>
+            <h1 className="fpw-title" id="fpw-title">{t('forgotPassword.newPasswordTitle')}</h1>
+            <p className="fpw-desc">{t('forgotPassword.newPasswordDesc')}</p>
           </div>
 
           {pwError && (
@@ -296,12 +279,12 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
           )}
 
           <form className="stack fpw-form" onSubmit={handleNewPwSubmit} noValidate>
-            <FormField label="새 비밀번호" htmlFor="fpw-newpw">
+            <FormField label={t('forgotPassword.newPassword')} htmlFor="fpw-newpw">
               <Input
                 id="fpw-newpw"
                 type="password"
                 autoComplete="new-password"
-                placeholder="8자 이상 입력"
+                placeholder="••••••••"
                 value={newPw}
                 onChange={(e) => {
                   setNewPw(e.target.value);
@@ -309,12 +292,12 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
                 }}
               />
             </FormField>
-            <FormField label="비밀번호 확인" htmlFor="fpw-confirmpw">
+            <FormField label={t('forgotPassword.confirmPassword')} htmlFor="fpw-confirmpw">
               <Input
                 id="fpw-confirmpw"
                 type="password"
                 autoComplete="new-password"
-                placeholder="동일한 비밀번호 재입력"
+                placeholder="••••••••"
                 value={confirmPw}
                 onChange={(e) => {
                   setConfirmPw(e.target.value);
@@ -329,7 +312,7 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
               disabled={newPw.length === 0 || confirmPw.length === 0 || isSubmitting}
               loading={isSubmitting}
             >
-              비밀번호 변경
+              {t('forgotPassword.changePassword')}
             </Button>
           </form>
         </section>
@@ -343,11 +326,11 @@ export function ForgotPasswordView({ onBack, onRecovered }: ForgotPasswordViewPr
       <section className="panel fpw-panel" aria-labelledby="fpw-title">
         <div className="fpw-header">
           <span className="fpw-icon" aria-hidden="true">🎉</span>
-          <h1 className="fpw-title" id="fpw-title">비밀번호 변경 완료</h1>
-          <p className="fpw-desc">새 비밀번호로 로그인할 수 있습니다.</p>
+          <h1 className="fpw-title" id="fpw-title">{t('forgotPassword.doneTitle')}</h1>
+          <p className="fpw-desc">{t('forgotPassword.doneDesc')}</p>
         </div>
         <Button variant="primary" block type="button" onClick={onRecovered ?? onBack}>
-          로그인으로 이동
+          {t('forgotPassword.goToLogin')}
         </Button>
       </section>
     </main>

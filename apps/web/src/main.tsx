@@ -1,7 +1,11 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { useTranslation } from "react-i18next";
 
 import { setSessionExpiredHandler } from "./lib/apiFetch";
+
+// i18n 초기화 — 다른 import보다 먼저 로드되어야 함
+import './i18n/index';
 
 import "./styles/global.css";
 import "./styles/login.css";
@@ -105,6 +109,7 @@ function loadStartupRoute(): StartupRoute {
 
 // ─── App Root ─────────────────────────────────────────────────
 function App() {
+  const { t } = useTranslation();
   const [theme, setTheme] = useState<ThemeSetting>(loadTheme);
 
   const handleThemeChange = (next: ThemeSetting) => {
@@ -307,7 +312,7 @@ function App() {
           setLoginLockedUntil(Date.now() + LOCKOUT_MS);
           setLoginError(null);
         } else {
-          setLoginError("이메일 또는 비밀번호가 올바르지 않습니다.");
+          setLoginError(t('login.errors.invalidCredentials'));
         }
         return;
       }
@@ -328,7 +333,7 @@ function App() {
       sessionStorage.setItem(SS.refresh, data.tokens.refreshToken);
       handleLoginSuccess(email, data.isAdmin, data.isTempPassword);
     } catch {
-      setLoginError("서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      setLoginError(t('login.errors.serverError'));
     }
   };
 
