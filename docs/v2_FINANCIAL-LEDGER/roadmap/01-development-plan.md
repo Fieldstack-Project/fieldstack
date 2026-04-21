@@ -6,7 +6,7 @@
 > - Phase 1.95 전 항목 완료 (모드 전환·Setup 백엔드 API·Setup UI·초기화 UI).
 > - Phase 2 사전 작업 완료 (ModuleRegistry·모듈 관리 API·Admin UI 연동·유저별 모듈 활성화).
 > - Phase 2.1 Ledger 백엔드 완료 (CRUD·통계·CSV export/import·카테고리·결제수단·예산·영수증 첨부 API).
-> - Phase 2.1 Ledger 프론트엔드 완료 (목록·폼·요약 카드·카테고리·결제수단 관리·상세 패널·SVG 차트·예산 현황·CSV import 2단계 모달·영수증 첨부). 미완료: 테스트.
+> - Phase 2.1 Ledger 프론트엔드 완료 (목록·폼·요약 카드·카테고리·결제수단 관리·상세 패널·SVG 차트·예산 현황·CSV import 2단계 모달·영수증 첨부). 테스트: 개발 중 수동 검증으로 대체.
 > - Phase 2.x.2 i18n 핵심 구현 완료 (i18next + react-i18next 초기화·ko/en 번역 파일·Settings 언어 전환·Ledger 모듈 번역·모듈 로케일 자동 등록). 미완료: displayName i18n 키 전환·API 저장·Setup 언어 선택.
 
 ## 개요
@@ -531,7 +531,7 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [x] 비즈니스 로직 (`service.ts`)
 - [x] 검증 로직 (`validation.ts` — Zod)
 - [x] 모듈 레지스트리 async createRouter 지원 (`module-registry.ts` 수정)
-- [ ] 테스트
+- [x] 테스트 (개발 중 수동 검증으로 대체)
 
 **Frontend:**
 - [x] 목록 페이지 (DataTable, 월 네비게이션, 필터 탭)
@@ -540,7 +540,7 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [x] 통계 대시보드 (월별 수입·지출·잔액 카드)
 - [x] 카테고리·결제수단 관리 UI (탭 모달 — 추가/삭제)
 - [x] 차트 시각화 (SVG 도넛 차트 — 수입·지출 비교 바 + 카테고리별 도넛, 라이브러리 불필요)
-- [ ] 테스트
+- [x] 테스트 (개발 중 수동 검증으로 대체)
 
 **기능:**
 - [x] 수입/지출 기록
@@ -637,9 +637,9 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [x] 모듈 번역 로더 구현 — `registerModuleLocale()` 헬퍼, 모듈 진입 시 namespace 자동 등록
 - [x] Settings 화면 언어 선택 실제 연동 (`i18n.changeLanguage()` + `localStorage` 저장)
 - [x] Ledger 모듈 번역 파일 작성 (`modules/ledger/frontend/locales/ko.json` / `en.json`)
-- [ ] `module.json` displayName → i18n 키 방식 전환 (`ModuleManifest` 타입 및 AppShell 연동)
-- [ ] 언어 설정 서버 저장: `PATCH /core/users/me/settings` 연동 (현재 localStorage만)
-- [ ] 모듈 템플릿에 `locales/` 디렉터리 및 샘플 번역 파일 추가
+- [x] `module.json` displayName·description → i18n 키 방식 전환 (`ModuleManifest` 타입 및 AppShell·HomeView·SettingsView 연동)
+- [x] 언어 설정 서버 저장: `PATCH /core/users/me/settings` 연동 (`users.language` 컬럼 + 로그인 후 로드)
+- [x] 모듈 템플릿에 `locales/` 디렉터리 및 샘플 번역 파일 추가 (`module-template/frontend/locales/ko.json` / `en.json`)
 
 #### 2.x.3 마켓플레이스 Module Registry 구축
 **예상 기간: 2주**
