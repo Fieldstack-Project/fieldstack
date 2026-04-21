@@ -571,11 +571,14 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 #### 2.2 Subscription Module (구독 관리)
 **예상 기간: 4주**
 
+> **선행 완료 권장:** 2.1.5 환율 시스템 / 2.x.3 Event Bus / 2.x.4 Core Scheduler / 2.x.5 통합 서비스 레이어(Google Calendar)
+
 **Backend:**
-- [ ] DB 스키마 설계 (설계 완료)
+- [ ] DB 스키마 설계 (설계 완료 — `modules/00-default-modules.md`)
 - [ ] API 엔드포인트 (설계 완료)
-- [ ] Google Calendar 연동 (설계 완료)
-- [ ] 알림 시스템 (Scheduler) (설계 완료)
+- [ ] Google Calendar 연동 (2.x.5 통합 레이어 활용)
+- [ ] 알림 시스템 (2.x.4 Scheduler 활용 — 매일 자정 결제일 체크)
+- [ ] Ledger 자동 연동 (2.x.3 Event Bus `subscription:payment` 이벤트 발행)
 - [ ] 테스트
 
 **Frontend:**
@@ -656,7 +659,53 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [x] 언어 설정 서버 저장: `PATCH /core/users/me/settings` 연동 (`users.language` 컬럼 + 로그인 후 로드)
 - [x] 모듈 템플릿에 `locales/` 디렉터리 및 샘플 번역 파일 추가 (`module-template/frontend/locales/ko.json` / `en.json`)
 
-#### 2.x.3 마켓플레이스 Module Registry 구축
+#### 2.x.3 Event Bus & Core Service Registry
+**예상 기간: 3일**
+
+> 모듈 간 직접 import 금지 원칙(CLAUDE.md 참고)을 지키면서 데이터를 주고받을 수 있는 인프라.
+> 설계는 `modules/03-system-design.md` 기준. Subscription → Ledger 자동 연동에 필수.
+
+**Event Bus:**
+- [ ] `apps/api/src/event-bus.ts` — 발행(emit) / 구독(on) / 단발(once) 인터페이스 구현
+- [ ] 타입 안전한 이벤트 이름 + 페이로드 타입 정의 (`subscription:payment`, `ledger:created` 등)
+- [ ] 모듈 종료(shutdown) 시 리스너 자동 해제 지원
+
+**Core Service Registry:**
+- [ ] `apps/api/src/service-registry.ts` — 모듈 서비스 인스턴스 중앙 등록소
+- [ ] `register(name, service)` / `getService(name)` 메서드
+- [ ] 모듈 로더와 연동 — 모듈 초기화 시 서비스 자동 등록, 언로드 시 해제
+
+#### 2.x.4 Core Scheduler (Cron 기반 배경 작업)
+**예상 기간: 3일**
+
+> 모듈이 주기적 작업을 등록할 수 있는 코어 인프라. 설계는 `technical/06-scheduler.md` 기준.
+> Subscription 결제일 자동 체크·Ledger 자동 기록에 필수.
+> Phase 5.1의 "Scheduler 관리 UI"와는 별개 — 여기서는 엔진(실행기)만 구현.
+
+- [ ] `apps/api/src/plugins/scheduler/index.ts` — Scheduler 싱글턴 엔진 (`node-cron` 또는 `cron` 패키지)
+- [ ] `register(taskName, cronExpr, handler, opts?)` / `unregister(taskName)` / `runNow(taskName)` / `toggle(taskName, enabled)` 메서드
+- [ ] 중복 실행 방지 (`runningTasks` Set)
+- [ ] 실행 로그 DB 저장 (`scheduler_logs` 테이블 — `taskName`, `executedAt`, `success`, `duration`, `error`)
+- [ ] 재시도 정책 (`retries`, `retryDelay`)
+- [ ] 서버 부트스트랩 시 자동 시작, graceful shutdown 시 전체 중지
+- [ ] 타임존 지원 (기본: `Asia/Seoul`)
+
+#### 2.x.5 통합 서비스 레이어 (Google Calendar 우선)
+**예상 기간: 1주**
+
+> 외부 서비스 연동을 위한 추상화 레이어. 설계는 `modules/02-integrations.md` 기준.
+> 1순위: Google Calendar (Subscription 결제일 이벤트 자동 등록에 필요).
+> 이후 Google Drive, Gmail, Microsoft Calendar 등 순차 확장.
+
+- [ ] `packages/core/src/integrations/base.ts` — `Integration` 인터페이스 + `BaseIntegration` 추상 클래스
+- [ ] `packages/core/src/integrations/security.ts` — OAuth 토큰 AES-256 암호화 저장
+- [ ] `packages/core/src/integrations/google/calendar.ts` — Google Calendar API 클라이언트
+  - 이벤트 생성 / 수정 / 삭제
+  - OAuth 2.0 인증 흐름 (Google Cloud Console 앱 등록 전제)
+- [ ] Admin 설정 화면에 Google 연동 섹션 추가 (연동하기 버튼 → OAuth 팝업 → 상태 표시)
+- [ ] `integrations` DB 테이블 — 서비스명·암호화 토큰·만료일 저장
+
+#### 2.x.6 마켓플레이스 Module Registry 구축
 **예상 기간: 2주**
 
 > Phase 3 마켓플레이스 웹사이트 개발의 선행 인프라.
@@ -677,7 +726,8 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 ### 마일스톤 2.x 완료 기준
 - ✅ SMTP 연동 및 이메일 발송 작동
 - ✅ 한국어/영어 전환 실제 동작, 모듈별 번역 파일 로드
-- ✅ 마켓플레이스 Registry GitHub 저장소 공개 및 제출 프로세스 문서화
+- ✅ Event Bus / Core Scheduler / 통합 서비스 레이어 구현 완료 (Subscription 착수 가능 상태)
+- ✅ 마켓플레이스 Registry 제출 프로세스 설계 완료
 
 ---
 
@@ -731,6 +781,22 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [ ] 다운로드 카운트
 - [ ] 인기 모듈 랭킹
 - [ ] 대시보드 차트
+
+#### 3.4 사용자 ID 시스템 (공개 핸들)
+**예상 기간: 1주**
+
+> 마켓플레이스 모듈 제작자 프로필·커뮤니티 멘션에 필요. 설계: `docs/local/user-id-system-design.md`.
+
+**3계층 ID 구조:**
+- 내부 ID: UUID (기존 DB PK 그대로 유지)
+- 공개 핸들: `@username` 형식 — 사용자 변경 가능, 시스템 내 고유
+- 사용자 코드: 20자 영숫자 — 생성 시 고정, 핸들 변경 후 계정 확인용
+
+**주요 작업:**
+- [ ] `users` 테이블에 `handle`·`user_code` 컬럼 추가
+- [ ] 핸들 변경 API (`PATCH /core/users/me/handle`) — 중복 검사 + 변경 이력 저장
+- [ ] 사용자 코드 자동 생성 (가입 시, 혼동 문자 제외)
+- [ ] 프로필 페이지 URL 라우팅 (`/u/:handle`)
 
 ### 마일스톤 3 완료 기준
 - ✅ 공식 웹사이트 오픈
@@ -858,15 +924,32 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 #### 4.3 자동 업데이트 시스템
 **예상 기간: 2주**
 
-- [ ] 업데이트 체커 (Scheduler)
-- [ ] 시간대 지정
-- [ ] 활성 사용자 확인
-- [ ] 백업 자동 생성
-- [ ] 유지보수 모드
-- [ ] 롤백 기능
-- [ ] 알림 시스템
+> 상세 설계: `deployment/04-updates.md`, `deployment/05-update-channels.md`
 
-#### 4.4 배포 템플릿
+**업데이트 채널 (3단계):**
+- Release (안정): 충분히 검증된 버전 — 일반 사용자 권장
+- Beta: 신규 기능 얼리 액세스 — 일부 버그 가능성 인지 필요
+- Alpha: 개발 중 최신본 — 테스터·기여자 대상
+
+**주요 작업:**
+- [ ] 업데이트 체커 (Scheduler 기반 — 사용자 지정 주기)
+- [ ] 채널 선택 UI (Admin 설정 — Release / Beta / Alpha)
+- [ ] 활성 사용자 확인 후 유지보수 모드 전환
+- [ ] 백업 자동 생성 (업데이트 전)
+- [ ] 롤백 기능 (이전 버전으로 복원)
+- [ ] 업데이트 알림 (앱 내 배너)
+
+#### 4.4 Server Console CLI
+**예상 기간: 3일**
+
+> 서버 실행 중 터미널에서 명령어를 입력해 제어하는 인터랙티브 CLI. 설계: `docs/local/fieldstack-cli-spec.md`.
+> Minecraft 서버 콘솔 방식 — Node.js `readline`으로 `process.stdin`을 비동기 읽기, Express와 충돌 없음.
+
+- [ ] `packages/cli/src/index.ts` — readline 기반 CLI 루프
+- [ ] 기본 명령어: `status`, `reload`, `shutdown`, `users list`, `modules list`, `scheduler list`
+- [ ] 서버 엔트리(`apps/api/src/index.ts`)에서 CLI 자동 실행
+
+#### 4.5 배포 템플릿
 **예상 기간: 1주**
 
 - [ ] Docker Compose 최적화
@@ -889,53 +972,94 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 
 ### 주요 작업
 
-#### 5.1 Scheduler Plugin
-**예상 기간: 2주**
+#### 5.1 Scheduler 관리 UI
+**예상 기간: 1주**
 
-- [ ] Cron 표현식 지원
-- [ ] 작업 등록/관리
-- [ ] 실행 로그
-- [ ] 웹 UI 관리 페이지
+> 코어 엔진은 Phase 2.x.4에서 구현. 여기서는 관리자/사용자가 등록된 작업을 제어하는 UI.
 
-#### 5.2 TODO Module
+- [ ] Admin 패널 "스케줄러" 섹션 — 등록된 작업 목록 조회
+- [ ] 작업 활성화/비활성화 토글
+- [ ] 다음 실행 시간 표시
+- [ ] 수동 실행 트리거 버튼
+- [ ] 실행 히스토리(로그) 조회
+
+#### 5.2 Tax Management Module (세무 관리)
+**예상 기간: 4주**
+
+> 사업자·프리랜서·크리에이터 대상 세무 신고 보조 모듈. 설계는 `modules/04-tax-management.md`.
+> **착수 조건:** 세무사 자문 완료 후 (`docs/local/tax_Q-a-A.md` 미결 항목 해소 필요).
+
+- [ ] 증빙 분류 (세금계산서 / 현금영수증 / 카드 / 기타)
+- [ ] 원천세 대상 거래 태깅 (3.3% 원천징수)
+- [ ] 부가세 신고용 데이터 집계 (과세/면세/영세율 구분)
+- [ ] 크리에이터 특화 항목 (플랫폼 수익 종류별 분류)
+- [ ] Ledger 모듈 연동 (세무 메타데이터 컬럼 확장 — Event Bus 경유)
+
+#### 5.3 TODO Module
 **예상 기간: 3주**
 
+> 설계 초안: `docs/_modules_for-future/01-todo-scheduler.md`
+
 - [ ] 할 일 생성/관리
-- [ ] 우선순위
-- [ ] 마감일
+- [ ] 우선순위 / 마감일
 - [ ] 카테고리/태그
 - [ ] 완료 통계
 
-#### 5.3 Project Module
+#### 5.4 Project Module (프로젝트·외주 관리)
 **예상 기간: 4주**
 
-- [ ] 프로젝트 생성/관리
-- [ ] 외주 정보 기록
-- [ ] 일정 관리
-- [ ] 예산/정산
-- [ ] 클라이언트 관리
+> 설계 초안: `docs/_modules_for-future/02-project-outsource.md` (Gmail / 위드싸인 연동 포함)
 
-#### 5.4 AI 요약 자동화
+- [ ] 프로젝트 생성/관리
+- [ ] 외주 정보 기록 (클라이언트, 계약 금액, 정산 일정)
+- [ ] 예산/정산 관리
+- [ ] 계약서 관리 (위드싸인 연동 검토)
+
+#### 5.5 Planner Module
+**예상 기간: 3주**
+
+> 설계 초안: `docs/_modules_for-future/03-planner.md` (여행 계획 등 목적 특화 계획 관리)
+
+- [ ] 계획 생성/관리 (여행, 이벤트, 프로젝트 등)
+- [ ] 일정 타임라인 뷰
+- [ ] 체크리스트
+
+#### 5.6 Video Downloader Module
 **예상 기간: 2주**
+
+> 설계 초안: `docs/_modules_for-future/04-video-downloader.md` (yt-dlp / Streamlink 기반)
+
+- [ ] URL 입력 → yt-dlp 다운로드 실행
+- [ ] 다운로드 큐 관리 및 진행 상태 표시
+- [ ] 파일 포맷/품질 선택
+
+#### 5.7 AI 요약 자동화
+**예상 기간: 2주**
+
+> AI 정책 및 아키텍처: `technical/08-ai-integration.md`
 
 - [ ] 월간 가계부 요약
 - [ ] 지출 패턴 분석
 - [ ] 구독 최적화 제안
 - [ ] 프로젝트 리포트
 
-#### 5.5 통합 서비스 확장
+#### 5.8 통합 서비스 확장
 **예상 기간: 2주**
 
+> 2.x.5에서 Google Calendar 레이어 구축 후 순차 확장.
+
+- [ ] Google Drive 자동 백업
+- [ ] Gmail 연동
+- [ ] Microsoft Calendar / OneDrive
 - [ ] Notion 연동
 - [ ] Slack 연동
-- [ ] GitHub 연동
 - [ ] 커스텀 Webhook
 
 ### 마일스톤 5 완료 기준
-- ✅ 5개 이상 공식 모듈
-- ✅ AI 자동화 작동
-- ✅ 다양한 통합 서비스
-- ✅ 완성도 높은 생태계
+- ✅ 5개 이상 공식 모듈 (Tax / TODO / Project / Planner / Video Downloader 포함)
+- ✅ AI 요약 자동화 작동
+- ✅ Google Drive, Gmail, Notion, Slack 등 통합 서비스 2개 이상 실제 연동
+- ✅ Scheduler 관리 UI 완성
 
 ---
 
