@@ -4,6 +4,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import type { AppServices } from '../app';
+import { convertAmount, getLatestRate, getRateForDate } from '../exchange-rate/service';
 import { requireAuth } from '../middleware/require-auth';
 import { ModuleRegistry, reloadModules } from '../module-registry';
 
@@ -237,6 +238,114 @@ export function createCoreRouter(services: AppServices): Router {
       );
 
       res.json({ success: true, data: { language } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  // ── 환율 API ───────────────────────────────────────────────────
+
+  /**
+   * GET /core/exchange-rates — 특정 날짜의 환율 조회
+   *
+   * Query: from (기준 통화), to (대상 통화), date (YYYY-MM-DD, 생략 시 최신)
+   *
+   * 예: GET /core/exchange-rates?from=USD&to=KRW&date=2024-01-15
+   */
+  router.get('/exchange-rates', auth, async (req, res) => {
+    const schema = z.object({
+      from: z.string().min(1).max(10).toUpperCase(),
+      to: z.string().min(1).max(10).toUpperCase(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    });
+
+    const parsed = schema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.message });
+      return;
+    }
+
+    const { from, to, date } = parsed.data;
+
+    try {
+      const { getDb } = await import('@fieldstack/core');
+      const database = await getDb();
+
+      const rateData = date
+        ? await getRateForDate(database, date, from, to)
+        : await getLatestRate(database, from, to);
+
+      res.json({ success: true, data: rateData });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /**
+   * POST /core/exchange-rates/convert — 금액 환율 변환
+   *
+   * Body: { amount, from, to, date? }
+   */
+  router.post('/exchange-rates/convert', auth, async (req, res) => {
+    const schema = z.object({
+      amount: z.number().positive(),
+      from: z.string().min(1).max(10),
+      to: z.string().min(1).max(10),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    });
+
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.message });
+      return;
+    }
+
+    const { amount, from, to, date } = parsed.data;
+
+    try {
+      const { getDb } = await import('@fieldstack/core');
+      const database = await getDb();
+
+      const result = await convertAmount(database, amount, from, to, date);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /**
+   * POST /core/exchange-rates/refresh — 특정 날짜·통화 쌍 환율 강제 갱신 (어드민 전용)
+   *
+   * DB에 캐시된 데이터가 있어도 API에서 다시 fetch 후 덮어쓴다.
+   * Body: { from, to, date }
+   */
+  router.post('/exchange-rates/refresh', auth, async (req, res) => {
+    const schema = z.object({
+      from: z.string().min(1).max(10),
+      to: z.string().min(1).max(10),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    });
+
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.message });
+      return;
+    }
+
+    const { from, to, date } = parsed.data;
+
+    try {
+      const { getDb } = await import('@fieldstack/core');
+      const database = await getDb();
+
+      // 기존 캐시 삭제 후 재조회 (강제 갱신)
+      await database.query(
+        'DELETE FROM exchange_rates WHERE rate_date = $1 AND base = $2 AND target = $3',
+        [date, from.toUpperCase(), to.toUpperCase()],
+      );
+
+      const rateData = await getRateForDate(database, date, from, to);
+      res.json({ success: true, data: rateData });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
     }

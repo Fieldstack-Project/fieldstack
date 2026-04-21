@@ -1,13 +1,14 @@
 # 단계별 개발 계획
 
-> 📌 **프로젝트 상태:** 2026-04-21 기준 **Phase 2.1 Ledger 완료 (테스트 제외) + Phase 2.x.2 i18n 핵심 구현 완료**.
+> 📌 **프로젝트 상태:** 2026-04-22 기준 **Phase 2.x.2 i18n 완료 + 환율 시스템 완료. 다음: Phase 2.2 Subscription 모듈**.
 > - Phase 1.5 전 항목 완료 (Core UI Shell / 로그인 / 홈 / 설정 / 관리자).
 > - Phase 1.9 완료 (API 서버 + DB + 인증 백엔드 + 공유 링크).
 > - Phase 1.95 전 항목 완료 (모드 전환·Setup 백엔드 API·Setup UI·초기화 UI).
 > - Phase 2 사전 작업 완료 (ModuleRegistry·모듈 관리 API·Admin UI 연동·유저별 모듈 활성화).
 > - Phase 2.1 Ledger 백엔드 완료 (CRUD·통계·CSV export/import·카테고리·결제수단·예산·영수증 첨부 API).
 > - Phase 2.1 Ledger 프론트엔드 완료 (목록·폼·요약 카드·카테고리·결제수단 관리·상세 패널·SVG 차트·예산 현황·CSV import 2단계 모달·영수증 첨부). 테스트: 개발 중 수동 검증으로 대체.
-> - Phase 2.x.2 i18n 핵심 구현 완료 (i18next + react-i18next 초기화·ko/en 번역 파일·Settings 언어 전환·Ledger 모듈 번역·모듈 로케일 자동 등록). 미완료: displayName i18n 키 전환·API 저장·Setup 언어 선택.
+> - Phase 2.x.2 i18n 전 항목 완료 (i18next·ko/en 번역·Settings 언어 전환·Ledger 번역·모듈 로케일 자동 등록·displayName·description i18n 키 전환·언어 서버 저장·모듈 템플릿 locales 추가). 미완료: Setup 언어 선택.
+> - 환율 시스템 완료 (`exchange_rates` 테이블·Frankfurter API 클라이언트·캐시 우선 서비스·`/core/exchange-rates` API 엔드포인트).
 
 ## 개요
 
@@ -552,6 +553,20 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [x] CSV 가져오기 (은행·카드사 포맷 자동 감지·열 매핑·중복 감지·2단계 모달 — `csv-import.ts`)
 - [x] 영수증 첨부 (`ledger_entries.receipt_path` — `003_receipt.sql`, 상세 패널 업로드/삭제)
 - [ ] 사업자 관련 (세무 메타데이터 — `docs/modules/04-tax-management.md` 초안 완료, 세무사 검증 후 착수)
+
+#### 2.1.5 환율 시스템 (Subscription 선행 인프라)
+**예상 기간: 2일**
+
+> Subscription 모듈에서 USD 구독(Claude, Discord, Railway 등)을 KRW로 환산하려면 환율 시스템이 선행 필요.
+> 결제일 당일 환율을 기본값으로 적용하고, 실제 카드 청구 금액과 다를 경우 사용자가 직접 수정 가능한 구조.
+
+- [x] `exchange_rates` 테이블 (`006_exchange_rates.sql` — `rate_date·base·target` UNIQUE, `NUMERIC(18,6)`)
+- [x] Frankfurter API 클라이언트 (`apps/api/src/exchange-rate/frankfurter.ts` — `fetchRateForDate` / `fetchLatestRate`)
+- [x] 환율 서비스 (`apps/api/src/exchange-rate/service.ts` — DB 캐시 우선, `getRateForDate` / `getLatestRate` / `convertAmount`)
+- [x] `/core/exchange-rates` API 엔드포인트
+  - [x] `GET /core/exchange-rates?from=USD&to=KRW&date=YYYY-MM-DD` — 특정 날짜 환율 조회
+  - [x] `POST /core/exchange-rates/convert` — 금액 변환 (`amount`, `from`, `to`, `date?`)
+  - [x] `POST /core/exchange-rates/refresh` — 특정 날짜 환율 강제 갱신 (캐시 삭제 후 재fetch)
 
 #### 2.2 Subscription Module (구독 관리)
 **예상 기간: 4주**
