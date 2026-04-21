@@ -782,22 +782,6 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [ ] 인기 모듈 랭킹
 - [ ] 대시보드 차트
 
-#### 3.4 사용자 ID 시스템 (공개 핸들)
-**예상 기간: 1주**
-
-> 마켓플레이스 모듈 제작자 프로필·커뮤니티 멘션에 필요. 설계: `docs/local/user-id-system-design.md`.
-
-**3계층 ID 구조:**
-- 내부 ID: UUID (기존 DB PK 그대로 유지)
-- 공개 핸들: `@username` 형식 — 사용자 변경 가능, 시스템 내 고유
-- 사용자 코드: 20자 영숫자 — 생성 시 고정, 핸들 변경 후 계정 확인용
-
-**주요 작업:**
-- [ ] `users` 테이블에 `handle`·`user_code` 컬럼 추가
-- [ ] 핸들 변경 API (`PATCH /core/users/me/handle`) — 중복 검사 + 변경 이력 저장
-- [ ] 사용자 코드 자동 생성 (가입 시, 혼동 문자 제외)
-- [ ] 프로필 페이지 URL 라우팅 (`/u/:handle`)
-
 ### 마일스톤 3 완료 기준
 - ✅ 공식 웹사이트 오픈
 - ✅ 마켓플레이스 작동
@@ -933,23 +917,14 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 
 **주요 작업:**
 - [ ] 업데이트 체커 (Scheduler 기반 — 사용자 지정 주기)
+- [ ] 업데이트 실행 시간대 지정 (Admin 설정 — 타임존 선택, 예: Asia/Seoul)
 - [ ] 채널 선택 UI (Admin 설정 — Release / Beta / Alpha)
 - [ ] 활성 사용자 확인 후 유지보수 모드 전환
 - [ ] 백업 자동 생성 (업데이트 전)
 - [ ] 롤백 기능 (이전 버전으로 복원)
 - [ ] 업데이트 알림 (앱 내 배너)
 
-#### 4.4 Server Console CLI
-**예상 기간: 3일**
-
-> 서버 실행 중 터미널에서 명령어를 입력해 제어하는 인터랙티브 CLI. 설계: `docs/local/fieldstack-cli-spec.md`.
-> Minecraft 서버 콘솔 방식 — Node.js `readline`으로 `process.stdin`을 비동기 읽기, Express와 충돌 없음.
-
-- [ ] `packages/cli/src/index.ts` — readline 기반 CLI 루프
-- [ ] 기본 명령어: `status`, `reload`, `shutdown`, `users list`, `modules list`, `scheduler list`
-- [ ] 서버 엔트리(`apps/api/src/index.ts`)에서 CLI 자동 실행
-
-#### 4.5 배포 템플릿
+#### 4.4 배포 템플릿
 **예상 기간: 1주**
 
 - [ ] Docker Compose 최적화
