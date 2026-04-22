@@ -6,6 +6,12 @@ export interface ModuleRoutes {
   api: string;
 }
 
+export interface ModuleAuthor {
+  name?: string;
+  email?: string;
+  url?: string;
+}
+
 export interface ModuleManifest {
   name: string;
   displayName: string;
@@ -14,6 +20,8 @@ export interface ModuleManifest {
   enabled: boolean;
   dependencies: string[];
   routes: ModuleRoutes;
+  repository?: string;
+  author?: ModuleAuthor | string;
 }
 
 export interface BackendRouteRegistration {
@@ -48,6 +56,8 @@ export function parseModuleJson(content: string): ModuleManifest {
       frontend: parsed.routes?.frontend ?? "",
       api: parsed.routes?.api ?? "",
     },
+    ...(parsed.repository !== undefined && { repository: parsed.repository }),
+    ...(parsed.author !== undefined && { author: parsed.author }),
   };
 }
 

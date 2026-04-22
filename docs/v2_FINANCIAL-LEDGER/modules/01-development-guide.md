@@ -41,6 +41,12 @@ modules/{name}/
   "routes": {
     "frontend": "/my-module",
     "api": "/api/my-module"
+  },
+  "repository": "https://github.com/author/module-my-module",
+  "author": {
+    "name": "작성자 이름",
+    "email": "author@example.com",
+    "url": "https://example.com"
   }
 }
 ```
@@ -48,6 +54,8 @@ modules/{name}/
 - `displayName` → 사이드바에 자동 표시 (API 경유)
 - `enabled: false` → 서버 시작 시 완전히 무시
 - `routes.api` → Express 라우터 마운트 경로
+- `repository` → 마켓플레이스 상세 페이지에서 GitHub README 표시에 사용 (선택)
+- `author` → npm `package.json` 관례. `string` 또는 `{ name, email, url }` 객체 모두 허용 (선택)
 
 ---
 

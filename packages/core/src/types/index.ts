@@ -20,12 +20,20 @@ export interface ModuleRoutes {
   api: string;
 }
 
+export interface ModuleAuthor {
+  name?: string;
+  email?: string;
+  url?: string;
+}
+
 export interface ModuleManifest {
   name: string;
   version: string;
   enabled: boolean;
   dependencies: string[];
   routes: ModuleRoutes;
+  repository?: string;
+  author?: ModuleAuthor | string;
 }
 
 export interface IntegrationConfig {

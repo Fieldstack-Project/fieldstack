@@ -51,6 +51,8 @@ packages/
 modules/   — Phase 2 모듈 (Ledger, Subscription) 위치 예정
 ```
 
+**모듈 템플릿**: `D:\5. Development\A. Project\Fieldstack-Project\module-template` (WSL: `/mnt/d/5. Development/A. Project/Fieldstack-Project/module-template`) — 프로젝트 루트 외부에 별도 존재. `module.json` 스펙 변경 시 함께 업데이트.
+
 pnpm workspace, `node-linker=hoisted`.
 
 ### apps/web — 라우팅 & 상태

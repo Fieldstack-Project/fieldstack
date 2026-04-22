@@ -3,12 +3,20 @@ export interface ModuleRoutes {
   api: string;
 }
 
+export interface ModuleAuthor {
+  name?: string;
+  email?: string;
+  url?: string;
+}
+
 export interface ModuleManifest {
   name: string;
   version: string;
   enabled: boolean;
   dependencies: string[];
   routes: ModuleRoutes;
+  repository?: string;
+  author?: ModuleAuthor | string;
 }
 
 export interface FrontendRouteRegistration {
@@ -34,6 +42,8 @@ export function parseModuleJson(content: string): ModuleManifest {
       frontend: parsed.routes?.frontend ?? "",
       api: parsed.routes?.api ?? "",
     },
+    ...(parsed.repository !== undefined && { repository: parsed.repository }),
+    ...(parsed.author !== undefined && { author: parsed.author }),
   };
 }
 

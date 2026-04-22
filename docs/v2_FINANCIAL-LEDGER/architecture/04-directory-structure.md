@@ -312,15 +312,18 @@ modules/[module-name]/
   "version": "1.0.0",
   "displayName": "가계부",
   "description": "수입/지출 관리",
-  "icon": "💰",
-  "category": "finance",
+  "enabled": true,
+  "dependencies": [],
   "routes": {
     "frontend": "/ledger",
     "api": "/api/ledger"
   },
-  "permissions": ["db:read", "db:write"],
-  "dependencies": [],
-  "enabled": true
+  "repository": "https://github.com/author/module-ledger",
+  "author": {
+    "name": "작성자 이름",
+    "email": "author@example.com",
+    "url": "https://example.com"
+  }
 }
 ```
 

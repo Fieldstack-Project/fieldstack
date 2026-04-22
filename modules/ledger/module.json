@@ -5,6 +5,12 @@
   "description": "ledger:description",
   "enabled": true,
   "dependencies": [],
+  "repository": "",
+  "author": {
+    "name": "",
+    "email": "",
+    "url": ""
+  },
   "routes": {
     "frontend": "/ledger",
     "api": "/api/ledger"
