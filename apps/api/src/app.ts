@@ -22,6 +22,7 @@ import { errorHandler } from './middleware/error';
 import { requestLogger } from './middleware/logger';
 import { EventBus } from './event-bus';
 import { ModuleRegistry } from './module-registry';
+import { Scheduler } from './plugins/scheduler/index';
 import { ServiceRegistry } from './service-registry';
 import { createAdminRouter } from './routes/admin';
 import { createAuthRouter } from './routes/auth';
@@ -45,6 +46,7 @@ export interface AppServices {
   db: DbProvider;
   eventBus: EventBus;
   serviceRegistry: ServiceRegistry;
+  scheduler: Scheduler;
 }
 
 export function createApp(services?: AppServices) {
@@ -196,6 +198,8 @@ export async function initServices(db: DbProvider): Promise<AppServices> {
 
   const eventBus = EventBus.getInstance();
   const serviceRegistry = ServiceRegistry.getInstance();
+  const scheduler = Scheduler.getInstance();
+  scheduler.setDb(db);
 
-  return { jwtManager, whitelist, adminPin, totpService, userAuth, sharedLink, settings, db, eventBus, serviceRegistry };
+  return { jwtManager, whitelist, adminPin, totpService, userAuth, sharedLink, settings, db, eventBus, serviceRegistry, scheduler };
 }

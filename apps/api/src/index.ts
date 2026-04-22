@@ -156,6 +156,9 @@ async function startApp() {
   // ── Graceful shutdown ─────────────────────────────────────────
   const shutdown = () => {
     log.info('api', `shutting down…`);
+    if (services) {
+      services.scheduler.stopAll();
+    }
     server.close(() => {
       if (services) {
         services.db.disconnect().finally(() => process.exit(0));
