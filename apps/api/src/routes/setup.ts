@@ -237,8 +237,8 @@ export function createSetupRouter(): Router {
       currentStep = 'db_migrate';
       emit({ step: 'db_migrate', status: 'running', message: '마이그레이션을 적용하는 중...' });
       const { FileMigrationRunner } = await import('@fieldstack/core');
-      // __dirname: apps/api/src/routes → ../db/migrations/core
-      const coreDir = path.join(__dirname, '..', 'db', 'migrations', 'core');
+      // __dirname: apps/api/src/routes → ../migrations/core
+      const coreDir = path.join(__dirname, '..', 'migrations', 'core');
       const runner = new FileMigrationRunner(db, 'core', coreDir);
       await runner.run();
       emit({ step: 'db_migrate', status: 'done', message: '마이그레이션 완료' });

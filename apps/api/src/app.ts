@@ -155,7 +155,7 @@ export async function initDb(): Promise<DbProvider> {
 
 export async function runMigrations(db: DbProvider): Promise<void> {
   const { FileMigrationRunner } = await import('@fieldstack/core');
-  const coreDir = path.join(__dirname, 'db', 'migrations', 'core');
+  const coreDir = path.join(__dirname, 'migrations', 'core');
   const runner = new FileMigrationRunner(db, 'core', coreDir);
   await runner.run();
 }
