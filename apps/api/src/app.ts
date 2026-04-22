@@ -20,7 +20,9 @@ import type { SharedLinkRenderer } from '@fieldstack/core' with { "resolution-mo
 import { validateEnv } from './config/env';
 import { errorHandler } from './middleware/error';
 import { requestLogger } from './middleware/logger';
+import { EventBus } from './event-bus';
 import { ModuleRegistry } from './module-registry';
+import { ServiceRegistry } from './service-registry';
 import { createAdminRouter } from './routes/admin';
 import { createAuthRouter } from './routes/auth';
 import { createCoreRouter } from './routes/core';
@@ -41,6 +43,8 @@ export interface AppServices {
   settings: SystemSettingsService;
   // 모듈 라우터에서 사용할 DB 프로바이더 (모듈이 @fieldstack/core를 직접 import하지 않아도 되도록)
   db: DbProvider;
+  eventBus: EventBus;
+  serviceRegistry: ServiceRegistry;
 }
 
 export function createApp(services?: AppServices) {
@@ -190,5 +194,8 @@ export async function initServices(db: DbProvider): Promise<AppServices> {
   const settings = new SystemSettingsService(db);
   const sharedLink = new SharedLinkService(db, settings, env.PUBLIC_URL ?? null);
 
-  return { jwtManager, whitelist, adminPin, totpService, userAuth, sharedLink, settings, db };
+  const eventBus = EventBus.getInstance();
+  const serviceRegistry = ServiceRegistry.getInstance();
+
+  return { jwtManager, whitelist, adminPin, totpService, userAuth, sharedLink, settings, db, eventBus, serviceRegistry };
 }
