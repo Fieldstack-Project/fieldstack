@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { DbProvider, DbRow } from '../index.js';
+import { coreLog } from '../../logging.js';
 
 // ── _migrations 테이블 ────────────────────────────────────────
 
@@ -62,9 +63,7 @@ export class FileMigrationRunner {
     const files = await this.getPendingFiles();
     if (files.length === 0) return;
 
-    console.log(
-      `[fieldstack][migrations] ${this.moduleName}: ${files.length} pending migration(s)`,
-    );
+    coreLog.info('migrations', `${this.moduleName}: ${files.length} pending migration(s)`);
 
     for (const filename of files) {
       await this.applyFile(filename);
@@ -85,6 +84,7 @@ export class FileMigrationRunner {
         .filter((f) => f.endsWith('.sql'))
         .sort();
     } catch {
+      // 모듈에 migrations 디렉터리가 없는 경우도 정상 시나리오이므로 빈 목록 반환.
       return [];
     }
 
@@ -104,6 +104,8 @@ export class FileMigrationRunner {
     const sql = applyDialect(rawSql, this.db.name);
 
     await this.db.transaction(async (tx) => {
+      // SQL 실행과 _migrations 기록을 하나의 트랜잭션으로 묶어
+      // 중간 실패 시 "실행은 됐는데 기록은 없는" 불일치를 막는다.
       await tx.query(sql);
       await tx.query(
         'INSERT INTO _migrations (module, filename) VALUES ($1, $2)',
@@ -111,7 +113,7 @@ export class FileMigrationRunner {
       );
     });
 
-    console.log(`[fieldstack][migrations] ${this.moduleName}: applied ${filename}`);
+    coreLog.info('migrations', `${this.moduleName}: applied ${filename}`);
   }
 }
 

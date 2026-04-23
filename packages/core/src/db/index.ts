@@ -30,7 +30,7 @@ export async function getDb(): Promise<DbProvider> {
 
   if (provider === 'postgres') {
     const url = process.env['DATABASE_URL'];
-    if (!url) throw new Error('[fieldstack][db] DATABASE_URL is required for postgres provider');
+    if (!url) throw new Error('DATABASE_URL is required for postgres provider');
     const { PostgresProvider } = await import('./providers/postgres.js');
     _db = new PostgresProvider({ connectionString: url });
   } else if (provider === 'sqlite') {
@@ -38,7 +38,7 @@ export async function getDb(): Promise<DbProvider> {
     const { SqliteProvider } = await import('./providers/sqlite.js');
     _db = new SqliteProvider({ connectionString: path });
   } else {
-    throw new Error(`[fieldstack][db] Unknown DB_PROVIDER: "${provider}"`);
+    throw new Error(`Unknown DB_PROVIDER: "${provider}"`);
   }
 
   await _db.connect();

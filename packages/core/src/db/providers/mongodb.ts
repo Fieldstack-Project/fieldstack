@@ -1,4 +1,5 @@
 import type { DbConnectionConfig, DbProvider, DbRow } from '../index.js';
+import { coreLog } from '../../logging.js';
 
 /** MongoDB Provider — scaffold (미구현, Phase later) */
 export class MongoDbProvider implements DbProvider {
@@ -7,9 +8,7 @@ export class MongoDbProvider implements DbProvider {
   public constructor(private readonly config: DbConnectionConfig) {}
 
   public async connect(): Promise<void> {
-    console.warn(
-      `[fieldstack][db] MongoDB provider is not yet implemented. uri="${this.config.connectionString}"`,
-    );
+    coreLog.warn('db', `MongoDB provider is not yet implemented. uri="${this.config.connectionString}"`);
   }
 
   public async disconnect(): Promise<void> {
@@ -17,10 +16,10 @@ export class MongoDbProvider implements DbProvider {
   }
 
   public async query<T extends DbRow = DbRow>(_sql: string, _params?: unknown[]): Promise<T[]> {
-    throw new Error('[fieldstack][db] MongoDB provider is not yet implemented');
+    throw new Error('MongoDB provider is not yet implemented');
   }
 
   public async transaction<T>(_fn: (tx: DbProvider) => Promise<T>): Promise<T> {
-    throw new Error('[fieldstack][db] MongoDB provider is not yet implemented');
+    throw new Error('MongoDB provider is not yet implemented');
   }
 }

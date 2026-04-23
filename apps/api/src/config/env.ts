@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { formatLogLine } from '../logging/format';
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -23,9 +24,9 @@ export function validateEnv(raw: NodeJS.ProcessEnv): Env {
   const result = EnvSchema.safeParse(raw);
 
   if (!result.success) {
-    console.error('[fieldstack][api] Invalid environment variables:');
+    console.error(formatLogLine('api', 'Invalid environment variables:', 'error'));
     for (const [field, issue] of Object.entries(result.error.flatten().fieldErrors)) {
-      console.error(`  ${field}: ${(issue as string[]).join(', ')}`);
+      console.error(formatLogLine('api', `${field}: ${(issue as string[]).join(', ')}`, 'error'));
     }
     process.exit(1);
   }

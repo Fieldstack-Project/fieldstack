@@ -1,41 +1,19 @@
 import type { NextFunction, Request, Response } from 'express';
 
-// ── ANSI 색상 (개발 모드용) ────────────────────────────────────
+import { LOG_COLORS, formatLogLine } from '../logging/format';
 
-const IS_DEV = process.env['NODE_ENV'] !== 'production';
+// ── 스킵 경로 ────────────────────────────────────────────────
+// health 체크는 매 30초마다 호출되어 로그를 오염시키므로 제외
 
-const c = IS_DEV
-  ? {
-      reset: '\x1b[0m',
-      dim: '\x1b[2m',
-      bold: '\x1b[1m',
-      green: '\x1b[32m',
-      yellow: '\x1b[33m',
-      red: '\x1b[31m',
-      cyan: '\x1b[36m',
-      magenta: '\x1b[35m',
-      blue: '\x1b[34m',
-      gray: '\x1b[90m',
-    }
-  : Object.fromEntries(
-      ['reset', 'dim', 'bold', 'green', 'yellow', 'red', 'cyan', 'magenta', 'blue', 'gray'].map(
-        (k) => [k, ''],
-      ),
-    );
-
-// ── 타임스탬프 ────────────────────────────────────────────────
-
-function ts(): string {
-  return new Date().toISOString().replace('T', ' ').slice(0, 23);
-}
+const SKIP_PATHS = new Set(['/health', '/health/']);
 
 // ── 상태코드 → 색상 ───────────────────────────────────────────
 
 function statusColor(status: number): string {
-  if (status >= 500) return c['red'] as string;
-  if (status >= 400) return c['yellow'] as string;
-  if (status >= 300) return c['cyan'] as string;
-  return c['green'] as string;
+  if (status >= 500) return LOG_COLORS.red;
+  if (status >= 400) return LOG_COLORS.yellow;
+  if (status >= 300) return LOG_COLORS.cyan;
+  return LOG_COLORS.green;
 }
 
 // ── HTTP 메서드 → 색상 ────────────────────────────────────────
@@ -43,23 +21,18 @@ function statusColor(status: number): string {
 function methodColor(method: string): string {
   switch (method.toUpperCase()) {
     case 'GET':
-      return c['blue'] as string;
+      return LOG_COLORS.blue;
     case 'POST':
-      return c['green'] as string;
+      return LOG_COLORS.green;
     case 'PUT':
     case 'PATCH':
-      return c['yellow'] as string;
+      return LOG_COLORS.yellow;
     case 'DELETE':
-      return c['red'] as string;
+      return LOG_COLORS.red;
     default:
-      return c['gray'] as string;
+      return LOG_COLORS.gray;
   }
 }
-
-// ── 스킵 경로 ────────────────────────────────────────────────
-// health 체크는 매 30초마다 호출되어 로그를 오염시키므로 제외
-
-const SKIP_PATHS = new Set(['/health', '/health/']);
 
 // ── HTTP 요청 로거 미들웨어 ────────────────────────────────────
 
@@ -70,14 +43,16 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
   }
 
   const start = Date.now();
-  const method = req.method.padEnd(6);
+  const method = req.method.toUpperCase().padEnd(6);
   const path = req.path;
   const query = Object.keys(req.query).length > 0 ? `?${new URLSearchParams(req.query as Record<string, string>)}` : '';
+  // 메서드/쿼리 문자열은 메시지 본문에서만 색상을 주고,
+  // 공통 포맷(formatLogLine)의 timestamp/tag 포맷은 그대로 유지한다.
+  const methodStyled = `${methodColor(req.method)}${method}${LOG_COLORS.reset}`;
+  const queryStyled = query.length > 0 ? `${LOG_COLORS.dim}${query}${LOG_COLORS.reset}` : '';
 
   // 요청 수신 로그
-  console.log(
-    `${c['gray']}${ts()}${c['reset']} ${c['dim']}→${c['reset']} ${methodColor(req.method)}${method}${c['reset']} ${path}${c['dim']}${query}${c['reset']}`,
-  );
+  console.log(formatLogLine('http', `${LOG_COLORS.dim}→${LOG_COLORS.reset} ${methodStyled} ${path}${queryStyled}`));
 
   // 응답 완료 후 로그
   res.on('finish', () => {
@@ -85,8 +60,12 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
     const status = res.statusCode;
     const durationStr = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
 
+    const statusStyled = `${statusColor(status)}${status}${LOG_COLORS.reset}`;
     console.log(
-      `${c['gray']}${ts()}${c['reset']} ${c['dim']}←${c['reset']} ${statusColor(status)}${status}${c['reset']} ${methodColor(req.method)}${method}${c['reset']} ${path} ${c['dim']}(${durationStr})${c['reset']}`,
+      formatLogLine(
+        'http',
+        `${LOG_COLORS.dim}←${LOG_COLORS.reset} ${statusStyled} ${methodStyled} ${path} ${LOG_COLORS.dim}(${durationStr})${LOG_COLORS.reset}`,
+      ),
     );
   });
 
@@ -98,35 +77,26 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
 
 export const log = {
   info(tag: string, msg: string, meta?: Record<string, unknown>): void {
-    const metaStr = meta ? ` ${c['dim']}${JSON.stringify(meta)}${c['reset']}` : '';
-    console.log(
-      `${c['gray']}${ts()}${c['reset']} ${c['cyan']}[${tag}]${c['reset']} ${msg}${metaStr}`,
-    );
+    const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
+    console.log(formatLogLine(tag, `${msg}${metaStr}`, 'info'));
   },
 
   warn(tag: string, msg: string, meta?: Record<string, unknown>): void {
-    const metaStr = meta ? ` ${c['dim']}${JSON.stringify(meta)}${c['reset']}` : '';
-    console.warn(
-      `${c['gray']}${ts()}${c['reset']} ${c['yellow']}[${tag}]${c['reset']} ${c['yellow']}${msg}${c['reset']}${metaStr}`,
-    );
+    const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
+    console.warn(formatLogLine(tag, `${msg}${metaStr}`, 'warn'));
   },
 
   error(tag: string, msg: string, err?: unknown): void {
-    const errStr =
-      err instanceof Error
-        ? ` — ${err.message}${IS_DEV && err.stack ? `\n${c['dim']}${err.stack}${c['reset']}` : ''}`
-        : err != null
-          ? ` — ${String(err)}`
-          : '';
-    console.error(
-      `${c['gray']}${ts()}${c['reset']} ${c['red']}[${tag}]${c['reset']} ${c['red']}${msg}${c['reset']}${errStr}`,
-    );
+    const errStr = err == null
+      ? ''
+      : err instanceof Error
+        ? ` — ${err.stack ?? err.message}`
+        : ` — ${String(err)}`;
+    console.error(formatLogLine(tag, `${msg}${errStr}`, 'error'));
   },
 
   success(tag: string, msg: string, meta?: Record<string, unknown>): void {
-    const metaStr = meta ? ` ${c['dim']}${JSON.stringify(meta)}${c['reset']}` : '';
-    console.log(
-      `${c['gray']}${ts()}${c['reset']} ${c['green']}[${tag}]${c['reset']} ${c['green']}${msg}${c['reset']}${metaStr}`,
-    );
+    const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
+    console.log(formatLogLine(tag, `${msg}${metaStr}`, 'success'));
   },
 };

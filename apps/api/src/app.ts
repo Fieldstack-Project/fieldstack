@@ -185,7 +185,7 @@ export async function initServices(db: DbProvider): Promise<AppServices> {
   const refreshSecret = env.JWT_REFRESH_SECRET ?? 'dev-refresh-secret-change-in-production';
 
   if (env.NODE_ENV === 'production' && !env.JWT_SECRET) {
-    throw new Error('[fieldstack][api] JWT_SECRET must be set in production');
+    throw new Error('JWT_SECRET must be set in production');
   }
 
   const jwtManager = new JwtSessionManagerImpl(db, accessSecret, refreshSecret);

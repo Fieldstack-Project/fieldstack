@@ -77,7 +77,12 @@ function printSetupBanner(apiPort: number, isDev: boolean) {
   }
   lines.push('  ╚══════════════════════════════════════════════════════╝');
   lines.push('');
-  console.log(lines.join('\n'));
+  for (const line of lines) {
+    // 빈 줄은 스킵하고, 배너 각 줄도 동일한 공통 로그 포맷으로 남긴다.
+    if (line.length > 0) {
+      log.info('setup', line);
+    }
+  }
 }
 
 // ── Setup 모드 ─────────────────────────────────────────────────

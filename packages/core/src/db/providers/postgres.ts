@@ -1,20 +1,16 @@
 import pg from 'pg';
 
 import type { DbConnectionConfig, DbProvider, DbRow } from '../index.js';
+import { coreLog } from '../../logging.js';
 
 const { Pool } = pg;
 
-const _isProd = process.env['NODE_ENV'] === 'production';
-const _gray   = _isProd ? '' : '\x1b[90m';
-const _green  = _isProd ? '' : '\x1b[32m';
-const _red    = _isProd ? '' : '\x1b[31m';
-const _reset  = _isProd ? '' : '\x1b[0m';
-function ts(): string { return new Date().toISOString().replace('T', ' ').slice(0, 23); }
+// core 패키지에서는 coreLog를 통해 로그 포맷을 일괄 적용한다.
 function dbLog(msg: string): void {
-  console.log(`${_gray}${ts()}${_reset} ${_green}[db]${_reset} ${_green}${msg}${_reset}`);
+  coreLog.info('db', msg);
 }
 function dbError(msg: string): void {
-  console.error(`${_gray}${ts()}${_reset} ${_red}[db]${_reset} ${_red}${msg}${_reset}`);
+  coreLog.error('db', msg);
 }
 
 const MAX_RETRIES = 5;
@@ -42,7 +38,8 @@ export class PostgresProvider implements DbProvider {
         dbError(`PostgreSQL connection failed (attempt ${attempt}/${MAX_RETRIES}): ${(err as Error).message}`);
         if (isLast) {
           await this.pool.end().catch(() => undefined);
-          throw new Error('[fieldstack][db] Could not connect to PostgreSQL after max retries');
+          // 에러 메시지는 간결하게 유지하고, [db] 태그/타임스탬프는 상위 로거가 담당한다.
+          throw new Error('Could not connect to PostgreSQL after max retries');
         }
         await sleep(RETRY_DELAY_MS * attempt);
       }
@@ -56,13 +53,13 @@ export class PostgresProvider implements DbProvider {
   }
 
   public async query<T extends DbRow = DbRow>(sql: string, params?: unknown[]): Promise<T[]> {
-    if (!this.pool) throw new Error('[fieldstack][db] Not connected');
+    if (!this.pool) throw new Error('PostgreSQL: not connected');
     const result = await this.pool.query<T>(sql, params);
     return result.rows;
   }
 
   public async transaction<T>(fn: (tx: DbProvider) => Promise<T>): Promise<T> {
-    if (!this.pool) throw new Error('[fieldstack][db] Not connected');
+    if (!this.pool) throw new Error('PostgreSQL: not connected');
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');

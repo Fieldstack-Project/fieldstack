@@ -5,6 +5,7 @@ import path from 'node:path';
 import type BetterSqlite3 from 'better-sqlite3';
 
 import type { DbConnectionConfig, DbProvider, DbRow } from '../index.js';
+import { coreLog } from '../../logging.js';
 
 /**
  * SQLite Provider — 개발/테스트 전용
@@ -45,17 +46,17 @@ export class SqliteProvider implements DbProvider {
     this.db.function('gen_random_uuid', () => crypto.randomUUID());
     this.db.function('now', () => new Date().toISOString());
 
-    console.log(`[fieldstack][db] SQLite connected: ${this.config.connectionString}`);
+    coreLog.info('db', `SQLite connected: ${this.config.connectionString}`);
   }
 
   public async disconnect(): Promise<void> {
     this.db?.close();
     this.db = null;
-    console.log('[fieldstack][db] SQLite disconnected');
+    coreLog.info('db', 'SQLite disconnected');
   }
 
   public async query<T extends DbRow = DbRow>(sql: string, params?: unknown[]): Promise<T[]> {
-    if (!this.db) throw new Error('[fieldstack][db] SQLite: not connected');
+    if (!this.db) throw new Error('SQLite: not connected');
 
     const hasParams = Boolean(params && params.length > 0);
 
@@ -91,7 +92,7 @@ export class SqliteProvider implements DbProvider {
   }
 
   public async transaction<T>(fn: (tx: DbProvider) => Promise<T>): Promise<T> {
-    if (!this.db) throw new Error('[fieldstack][db] SQLite: not connected');
+    if (!this.db) throw new Error('SQLite: not connected');
 
     // better-sqlite3는 동기 API지만 DbProvider 인터페이스는 async를 요구한다.
     // BEGIN/COMMIT을 수동 관리하여 async callback을 지원한다.

@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { formatLogLine } from '../logging/format';
+
 // 프로젝트 루트: apps/api/src/setup → ../../../../
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 
@@ -72,9 +74,9 @@ export function applyConfigToEnv(): void {
 // PM2/Docker/tsx watch 등 프로세스 매니저가 exit(0)을 감지해 자동 재시작한다.
 
 export function scheduleRestart(delayMs = 500): void {
-  console.log(`[fieldstack][setup] Server restart scheduled in ${delayMs}ms`);
+  console.log(formatLogLine('setup', `Server restart scheduled in ${delayMs}ms`));
   setTimeout(() => {
-    console.log('[fieldstack][setup] Exiting for restart.');
+    console.log(formatLogLine('setup', 'Exiting for restart.'));
     process.exit(0);
   }, delayMs);
 }
