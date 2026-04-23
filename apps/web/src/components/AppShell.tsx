@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import "../styles/shell.css";
 
 import { apiFetch } from "../lib/apiFetch";
-import type { ModuleSubRoute } from "../moduleConfig";
+import type { ModuleSubRoute } from "../moduleRegistry";
 
 // 코어 라우트 + 설치된 모듈 이름도 RouteKey에 포함 (가계부: "ledger" 등)
 export type CoreRouteKey = "login" | "forgot-password" | "home" | "marketplace" | "admin" | "change-password";

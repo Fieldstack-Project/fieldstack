@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { Suspense, type FormEvent, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useTranslation } from "react-i18next";
 
@@ -23,33 +23,18 @@ import { MarketplaceView } from "./views/MarketplaceView";
 import { ChangePasswordView } from "./views/ChangePasswordView";
 import { ForgotPasswordView } from "./views/ForgotPasswordView";
 import { SetupWizardView } from "./views/SetupWizardView";
-import { LedgerView } from "../../../modules/ledger/frontend/LedgerView";
-import { SubscriptionView } from "../../../modules/subscription/frontend/SubscriptionView";
-import { MODULE_SUB_NAV } from "./moduleConfig";
-
-// ─── Helpers ──────────────────────────────────────────────────
-
-// 코어 라우트 목록 (앱 shell 없이 전체 화면으로 렌더되는 것 제외)
-const CORE_ROUTES = ["login", "forgot-password", "home", "marketplace", "admin", "change-password"] as const;
-// 모듈 라우트 — module.json name 기준 (서버 레지스트리와 일치)
-const MODULE_ROUTES: string[] = ["ledger", "subscription"];
-
-/** 해시에서 베이스 라우트만 추출 ("ledger/import" → "ledger") */
-function getRouteFromHash(rawHash: string): RouteKey {
-  const hash = rawHash.replace("#", "");
-  const base = hash.split("/")[0] ?? hash;
-  if (base === "settings") return "home";
-  if ((CORE_ROUTES as readonly string[]).includes(base)) return base as RouteKey;
-  if (MODULE_ROUTES.includes(base)) return base as RouteKey;
-  return "login";
-}
-
-/** 해시에서 서브 라우트만 추출 ("ledger/import" → "import", "ledger" → "") */
-function getSubRouteFromHash(rawHash: string): string {
-  const hash = rawHash.replace("#", "");
-  const parts = hash.split("/");
-  return parts.length > 1 ? parts.slice(1).join("/") : "";
-}
+import {
+  MODULE_SUB_NAV,
+  getModuleView,
+  preloadModuleViews,
+  registerModuleLocales,
+} from "./moduleRegistry";
+import {
+  canStoreRedirectTarget,
+  getDeepLinkTarget,
+  getRouteFromHash,
+  getSubRouteFromHash,
+} from "./routeConfig";
 
 // ─── Theme ────────────────────────────────────────────────────
 type ThemeSetting = "light" | "dark" | "system";
@@ -64,6 +49,23 @@ function applyTheme(setting: ThemeSetting) {
   try { localStorage.setItem("fs_theme", setting); } catch { /* ignore */ }
 }
 
+function runWhenBrowserIdle(task: () => void): () => void {
+  // requestIdleCallback 지원 브라우저에서는 유휴 시간에 실행하고,
+  // 미지원 브라우저에서는 짧은 setTimeout으로 동작을 에뮬레이션한다.
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (callback: () => void) => number;
+    cancelIdleCallback?: (id: number) => void;
+  };
+
+  if (idleWindow.requestIdleCallback) {
+    const idleId = idleWindow.requestIdleCallback(task);
+    return () => idleWindow.cancelIdleCallback?.(idleId);
+  }
+
+  const timeoutId = window.setTimeout(task, 120);
+  return () => window.clearTimeout(timeoutId);
+}
+
 function loadTheme(): ThemeSetting {
   try {
     const saved = localStorage.getItem("fs_theme");
@@ -74,6 +76,9 @@ function loadTheme(): ThemeSetting {
 
 // 초기 테마 적용 (React 렌더 전에 FOUC 방지)
 applyTheme(loadTheme());
+// 모듈 i18n 번역 리소스를 앱 부트 시점에 선등록해
+// 모듈 첫 진입 시 영어 -> 한국어로 늦게 바뀌는 깜빡임을 줄인다.
+registerModuleLocales();
 
 // ─── Storage Keys ─────────────────────────────────────────────
 const SS = {
@@ -90,13 +95,6 @@ const LS = {
   firstVisitShown: "fs_first_visit_shown",
   startupRoute:    "fs_startup_route",
 } as const;
-
-// 딥 링크: 비인증 상태에서 진입한 app route 반환 (모듈 라우트 포함)
-function getDeepLinkTarget(): RouteKey | null {
-  const hash = window.location.hash.replace("#", "");
-  const appRoutes: string[] = ["home", "marketplace", "admin", ...MODULE_ROUTES];
-  return appRoutes.includes(hash) ? (hash as RouteKey) : null;
-}
 
 // 개인화: 로그인 후 첫 화면 설정
 type StartupRoute = "home" | "marketplace";
@@ -155,7 +153,7 @@ function App() {
   );
   // 딥 링크: 비인증 상태에서 진입한 app route (로그인 후 복귀)
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<RouteKey | null>(
-    () => (sessionStorage.getItem(SS.auth) === "true" ? null : getDeepLinkTarget()),
+    () => (sessionStorage.getItem(SS.auth) === "true" ? null : getDeepLinkTarget(window.location.hash)),
   );
   // 첫 방문 온보딩 배너
   const [isFirstVisit, setIsFirstVisit] = useState(false);
@@ -184,8 +182,7 @@ function App() {
       setRoute(next);
       setSubRoute(nextSub);
       // 비인증 상태에서 app route로 hash 변경 시 redirect 대상 갱신
-      const appRoutes: RouteKey[] = ["home", "marketplace", "admin"];
-      if (sessionStorage.getItem(SS.auth) !== "true" && (appRoutes as string[]).includes(next)) {
+      if (sessionStorage.getItem(SS.auth) !== "true" && canStoreRedirectTarget(next)) {
         setRedirectAfterLogin(next);
       }
     };
@@ -201,6 +198,14 @@ function App() {
     }
     return () => setSessionExpiredHandler(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
+  // 초기 로그인 이후 idle 타이밍에 모듈 청크를 미리 받아 첫 진입 체감 지연을 줄인다.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    return runWhenBrowserIdle(() => {
+      void preloadModuleViews();
+    });
   }, [isAuthenticated]);
 
   // 관리자 PIN 세션 30분 만료
@@ -236,14 +241,35 @@ function App() {
   }, [isAuthenticated, mustChangePassword, pendingOtpEmail, route]);
 
   useEffect(() => {
-    if (window.location.hash !== `#${effectiveRoute}`) {
-      window.location.hash = effectiveRoute;
+    // 인증/비인증 가드로 effectiveRoute가 바뀔 때 해시를 일치시킨다.
+    // 모듈 라우트는 subRoute를 보존해 #ledger/import 같은 주소가 사라지지 않게 처리한다.
+    const shouldKeepSubRoute = getModuleView(effectiveRoute) !== null && subRoute.length > 0;
+    const expectedHash = shouldKeepSubRoute ? `#${effectiveRoute}/${subRoute}` : `#${effectiveRoute}`;
+    if (window.location.hash !== expectedHash) {
+      window.location.hash = expectedHash;
     }
-  }, [effectiveRoute]);
+  }, [effectiveRoute, subRoute]);
 
   const navigate = (nextRoute: RouteKey) => {
     setRoute(nextRoute);
     window.location.hash = nextRoute;
+  };
+
+  const ActiveModuleView = getModuleView(effectiveRoute);
+
+  const applyServerLanguagePreference = async (): Promise<void> => {
+    // 로그인 직후 서버 저장 언어를 먼저 반영해
+    // 페이지 진입 후 번역이 뒤늦게 바뀌는 체감을 줄인다.
+    try {
+      const response = await apiFetch("/core/users/me/settings");
+      const json = await response.json() as { success: boolean; data?: { language?: string } };
+      const language = json.data?.language;
+      if (json.success && typeof language === "string" && language.length > 0) {
+        await changeLanguage(language);
+      }
+    } catch {
+      // 언어 설정 로드 실패는 무음 처리
+    }
   };
 
   // ── 로그인 성공 시 공통 처리 ─────────────────────────────────
@@ -271,19 +297,12 @@ function App() {
       if (localStorage.getItem(LS.firstVisitShown) !== "true") setIsFirstVisit(true);
     } catch { /* ignore */ }
 
-    // 서버에 저장된 언어 설정 로드 (실패해도 무음 처리)
-    apiFetch("/core/users/me/settings")
-      .then((r) => r.json())
-      .then((json: { success: boolean; data?: { language: string } }) => {
-        if (json.success && json.data?.language) {
-          void changeLanguage(json.data.language);
-        }
-      })
-      .catch(() => { /* 언어 설정 로드 실패는 무음 처리 */ });
-
-    const target = redirectAfterLogin ?? startupRoute;
-    setRedirectAfterLogin(null);
-    navigate(target);
+    // 화면 이동 전에 서버 언어 설정을 우선 반영해 en → ko 깜빡임을 줄인다.
+    void applyServerLanguagePreference().finally(() => {
+      const target = redirectAfterLogin ?? startupRoute;
+      setRedirectAfterLogin(null);
+      navigate(target);
+    });
   };
 
   // Auth handlers
@@ -520,8 +539,17 @@ function App() {
           />
         )}
         {/* ── 모듈 뷰 ────────────────────────────────────── */}
-        {effectiveRoute === "ledger" && <LedgerView subRoute={subRoute} />}
-        {effectiveRoute === "subscription" && <SubscriptionView />}
+        {ActiveModuleView && (
+          <Suspense
+            fallback={(
+              <div style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span className="setup-spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+              </div>
+            )}
+          >
+            <ActiveModuleView subRoute={subRoute} />
+          </Suspense>
+        )}
         {isSettingsOpen && (
           <SettingsView
             theme={theme}
