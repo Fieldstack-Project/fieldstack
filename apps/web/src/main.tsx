@@ -24,6 +24,7 @@ import { ChangePasswordView } from "./views/ChangePasswordView";
 import { ForgotPasswordView } from "./views/ForgotPasswordView";
 import { SetupWizardView } from "./views/SetupWizardView";
 import { LedgerView } from "../../../modules/ledger/frontend/LedgerView";
+import { SubscriptionView } from "../../../modules/subscription/frontend/SubscriptionView";
 import { MODULE_SUB_NAV } from "./moduleConfig";
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -31,7 +32,7 @@ import { MODULE_SUB_NAV } from "./moduleConfig";
 // 코어 라우트 목록 (앱 shell 없이 전체 화면으로 렌더되는 것 제외)
 const CORE_ROUTES = ["login", "forgot-password", "home", "marketplace", "admin", "change-password"] as const;
 // 모듈 라우트 — module.json name 기준 (서버 레지스트리와 일치)
-const MODULE_ROUTES: string[] = ["ledger"];
+const MODULE_ROUTES: string[] = ["ledger", "subscription"];
 
 /** 해시에서 베이스 라우트만 추출 ("ledger/import" → "ledger") */
 function getRouteFromHash(rawHash: string): RouteKey {
@@ -520,6 +521,7 @@ function App() {
         )}
         {/* ── 모듈 뷰 ────────────────────────────────────── */}
         {effectiveRoute === "ledger" && <LedgerView subRoute={subRoute} />}
+        {effectiveRoute === "subscription" && <SubscriptionView />}
         {isSettingsOpen && (
           <SettingsView
             theme={theme}

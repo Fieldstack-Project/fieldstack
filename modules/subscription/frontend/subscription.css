@@ -1,0 +1,441 @@
+/* ── Subscription 모듈 스타일 ────────────────────────────────────── */
+
+/* 헤더 */
+.sub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.sub-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+/* 요약 카드 행 */
+.sub-summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.sub-stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 1rem 1.125rem;
+}
+
+.sub-stat-card .stat-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.sub-stat-card .stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.sub-stat-card .stat-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+/* 구독 카드 그리드 */
+.sub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.875rem;
+}
+
+.sub-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 1rem 1.125rem;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sub-card:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.sub-card.inactive {
+  opacity: 0.55;
+}
+
+.sub-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sub-card-name {
+  font-size: 0.975rem;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.sub-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.2em 0.55em;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sub-badge.active   { background: var(--ok-subtle);   color: var(--ok); }
+.sub-badge.inactive { background: var(--err-subtle);  color: var(--err); }
+
+.sub-card-amount {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.sub-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sub-card-meta span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.sub-card-meta .next-date {
+  color: var(--warn);
+  font-weight: 500;
+}
+
+/* 상세 패널 (슬라이드) */
+.sub-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 200;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sub-detail-panel {
+  width: min(480px, 100vw);
+  height: 100%;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sub-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.125rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 0.75rem;
+}
+
+.sub-detail-header h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  word-break: break-word;
+}
+
+.sub-detail-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.sub-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 상세 섹션 */
+.sub-detail-section {
+  padding: 1rem 0;
+}
+
+.sub-detail-section:first-child {
+  padding-top: 0;
+}
+
+.sub-detail-section h4 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.75rem 0;
+}
+
+.sub-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1rem;
+}
+
+.sub-detail-item .di-label {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  margin-bottom: 0.1rem;
+}
+
+.sub-detail-item .di-value {
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* 누적 금액 통계 */
+.sub-cumulative-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.sub-cumul-item {
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  padding: 0.625rem 0.75rem;
+}
+
+.sub-cumul-item .ci-label {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  margin-bottom: 0.2rem;
+}
+
+.sub-cumul-item .ci-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* 가격 히스토리 타임라인 */
+.sub-history-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sub-history-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  position: relative;
+}
+
+.sub-history-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 24px;
+  bottom: -8px;
+  width: 2px;
+  background: var(--border-subtle);
+}
+
+.sub-history-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-surface);
+  flex-shrink: 0;
+  margin-top: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.sub-history-dot.first {
+  background: var(--ok);
+}
+
+.sub-history-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sub-history-amount {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sub-history-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+}
+
+.sub-history-reason {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  margin-top: 0.1rem;
+}
+
+/* 폼 레이아웃 */
+.sub-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.sub-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* 메모 테이블 */
+.sub-notes-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sub-note-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sub-note-input {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.82rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.sub-note-input:focus {
+  border-color: var(--accent-border);
+}
+
+.sub-note-input::placeholder {
+  color: var(--text-faint);
+}
+
+.sub-note-add-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.sub-note-add-btn:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+
+.sub-note-add-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sub-note-empty {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  padding: 0.25rem 0;
+}
+
+.sub-note-list {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sub-note-list tr {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sub-note-list tr:last-child {
+  border-bottom: none;
+}
+
+.sub-note-date {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+  padding: 0.4rem 0.6rem 0.4rem 0;
+  vertical-align: top;
+  width: 90px;
+}
+
+.sub-note-content {
+  font-size: 0.82rem;
+  color: var(--text);
+  padding: 0.4rem 0.5rem;
+  vertical-align: top;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.sub-note-delete {
+  padding: 0.3rem 0 0.3rem 0.5rem;
+  vertical-align: top;
+  width: 24px;
+}
+
+.sub-note-del-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+.sub-note-del-btn:hover {
+  color: var(--err);
+  background: var(--err-subtle);
+}
+
+/* 섹션 구분선 */
+.sub-divider {
+  height: 0;
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}

@@ -1,0 +1,36 @@
+import { z } from 'zod';
+
+const CURRENCIES = ['KRW', 'USD', 'EUR', 'JPY', 'GBP'] as const;
+const BILLING_CYCLES = ['monthly', 'yearly'] as const;
+
+export const createSubscriptionSchema = z.object({
+  serviceName: z.string().min(1).max(100),
+  currentAmount: z.number().nonnegative(),
+  currency: z.enum(CURRENCIES),
+  billingCycle: z.enum(BILLING_CYCLES),
+  billingDay: z.number().int().min(1).max(31),
+  startedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  category: z.string().max(50).optional(),
+  description: z.string().max(500).optional(),
+  url: z.string().url().optional().or(z.literal('')),
+  tags: z.array(z.string().max(30)).max(10).optional(),
+});
+
+export const updateSubscriptionSchema = createSubscriptionSchema
+  .partial()
+  .extend({
+    isActive: z.boolean().optional(),
+    cancelledAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  });
+
+export const createNoteSchema = z.object({
+  content: z.string().min(1).max(1000),
+});
+
+export const createPriceHistorySchema = z.object({
+  effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  amount: z.number().nonnegative(),
+  currency: z.enum(CURRENCIES),
+  reason: z.string().max(200).optional(),
+  note: z.string().max(500).optional(),
+});
