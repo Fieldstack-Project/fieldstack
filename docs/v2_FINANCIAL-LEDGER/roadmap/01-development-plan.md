@@ -1,6 +1,6 @@
 # 단계별 개발 계획
 
-> 📌 **프로젝트 상태:** 2026-04-22 기준 **Phase 2.x.2 i18n 완료 + 환율 시스템 완료. 다음: Phase 2.2 Subscription 모듈**.
+> 📌 **프로젝트 상태:** 2026-04-23 기준 **Phase 2.2 Subscription 모듈 진행 중 (핵심 기능 완료, 잔여 항목 지속 작업)**.
 > - Phase 1.5 전 항목 완료 (Core UI Shell / 로그인 / 홈 / 설정 / 관리자).
 > - Phase 1.9 완료 (API 서버 + DB + 인증 백엔드 + 공유 링크).
 > - Phase 1.95 전 항목 완료 (모드 전환·Setup 백엔드 API·Setup UI·초기화 UI).
@@ -9,6 +9,8 @@
 > - Phase 2.1 Ledger 프론트엔드 완료 (목록·폼·요약 카드·카테고리·결제수단 관리·상세 패널·SVG 차트·예산 현황·CSV import 2단계 모달·영수증 첨부). 테스트: 개발 중 수동 검증으로 대체.
 > - Phase 2.x.2 i18n 전 항목 완료 (i18next·ko/en 번역·Settings 언어 전환·Ledger 번역·모듈 로케일 자동 등록·displayName·description i18n 키 전환·언어 서버 저장·모듈 템플릿 locales 추가). 미완료: Setup 언어 선택.
 > - 환율 시스템 완료 (`exchange_rates` 테이블·Frankfurter API 클라이언트·캐시 우선 서비스·`/core/exchange-rates` API 엔드포인트).
+> - Phase 2.x.3 Event Bus & Service Registry 완료. Phase 2.x.4 Core Scheduler 완료 (`node-cron`·DB 로그·재시도·Asia/Seoul).
+> - Phase 2.2 Subscription 핵심 기능 완료 (DB 스키마·API·Scheduler 결제일 체크·Event Bus 연동·프론트 목록/추가/수정/상세 패널/누적 통계/가격 히스토리/메모). 잔여: Google Calendar·결제일 캘린더 뷰·Ledger 수신 연동·구독 상태 이력.
 
 ## 개요
 
@@ -574,27 +576,35 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 > **선행 완료 권장:** 2.1.5 환율 시스템 / 2.x.3 Event Bus / 2.x.4 Core Scheduler / 2.x.5 통합 서비스 레이어(Google Calendar)
 
 **Backend:**
-- [ ] DB 스키마 설계 (설계 완료 — `modules/00-default-modules.md`)
-- [ ] API 엔드포인트 (설계 완료)
+- [x] DB 스키마 설계 및 구현 (`subscription_services`, `subscription_price_history`, `subscription_notes`)
+- [x] API 엔드포인트 (구독 CRUD·가격 히스토리·누적 통계·요약·메모 CRUD)
+- [x] 알림 시스템 — Scheduler 활용, 매일 자정 결제일 체크 (`subscription-payment-check`)
+- [x] Event Bus `subscription:payment` 이벤트 발행 (Ledger 수신 연동은 Ledger 측 미구현)
+- [ ] 구독 상태 이력 (`subscription_status_history` 테이블 — 해지/재개 기록, 누적 계산 시 해지 기간 제외)
 - [ ] Google Calendar 연동 (2.x.5 통합 레이어 활용)
-- [ ] 알림 시스템 (2.x.4 Scheduler 활용 — 매일 자정 결제일 체크)
-- [ ] Ledger 자동 연동 (2.x.3 Event Bus `subscription:payment` 이벤트 발행)
 - [ ] 테스트
 
 **Frontend:**
-- [ ] 구독 목록
-- [ ] 구독 추가/수정
-- [ ] 대시보드
+- [x] 구독 목록 (카드 그리드·활성/비활성 뱃지)
+- [x] 구독 추가/수정 (서비스명·금액·통화·결제 주기·결제일·구독 시작일·카테고리·URL·메모)
+- [x] 대시보드 요약 카드 (월간 구독료·활성 구독 수·다음 결제일 D-day)
+- [x] 상세 패널 (기본 정보·누적 통계·가격 변동 히스토리·메모 테이블)
+- [x] 가격 변경 모달 (적용일·사유 기록)
+- [x] 구독 해지/재개·삭제
 - [ ] 결제일 캘린더 뷰
 - [ ] 테스트
 
 **기능:**
-- [ ] 구독 서비스 등록
-- [ ] 결제일 추적
+- [x] 구독 서비스 등록 및 관리
+- [x] 결제일 추적 (다음 결제일 자동 계산·갱신)
+- [x] 가격 변동 히스토리 추적
+- [x] 월간/연간 구독료 합산 (KRW 환산)
+- [x] 누적 결제 금액·평균 월 비용·사용 일수 통계
+- [x] 인라인 메모 (날짜 기록 테이블 형식)
+- [ ] 구독 상태 이력 추적 (해지/재개 기록 → 누적 계산에서 해지 기간 제외)
 - [ ] Google Calendar 자동 등록
 - [ ] 결제일 알림 (D-7, D-3, D-1)
-- [ ] 월간/연간 구독료 계산
-- [ ] Ledger Module (가계부) 연동
+- [ ] Ledger Module 자동 연동 (Ledger 측 `subscription:payment` 이벤트 수신 구현 필요)
 
 #### 2.3 통합 및 테스트
 **예상 기간: 1주**
@@ -659,36 +669,36 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [x] 언어 설정 서버 저장: `PATCH /core/users/me/settings` 연동 (`users.language` 컬럼 + 로그인 후 로드)
 - [x] 모듈 템플릿에 `locales/` 디렉터리 및 샘플 번역 파일 추가 (`module-template/frontend/locales/ko.json` / `en.json`)
 
-#### 2.x.3 Event Bus & Core Service Registry
+#### 2.x.3 Event Bus & Core Service Registry ✅ 완료
 **예상 기간: 3일**
 
 > 모듈 간 직접 import 금지 원칙(CLAUDE.md 참고)을 지키면서 데이터를 주고받을 수 있는 인프라.
 > 설계는 `modules/03-system-design.md` 기준. Subscription → Ledger 자동 연동에 필수.
 
 **Event Bus:**
-- [ ] `apps/api/src/event-bus.ts` — 발행(emit) / 구독(on) / 단발(once) 인터페이스 구현
-- [ ] 타입 안전한 이벤트 이름 + 페이로드 타입 정의 (`subscription:payment`, `ledger:created` 등)
-- [ ] 모듈 종료(shutdown) 시 리스너 자동 해제 지원
+- [x] `apps/api/src/event-bus.ts` — 발행(emit) / 구독(on) / 단발(once) 인터페이스 구현
+- [x] 타입 안전한 이벤트 이름 + 페이로드 타입 정의 (`subscription:payment`, `ledger:created` 등)
+- [x] 모듈 종료(shutdown) 시 리스너 자동 해제 지원
 
 **Core Service Registry:**
-- [ ] `apps/api/src/service-registry.ts` — 모듈 서비스 인스턴스 중앙 등록소
-- [ ] `register(name, service)` / `getService(name)` 메서드
+- [x] `apps/api/src/service-registry.ts` — 모듈 서비스 인스턴스 중앙 등록소
+- [x] `register(name, service)` / `getService(name)` 메서드
 - [ ] 모듈 로더와 연동 — 모듈 초기화 시 서비스 자동 등록, 언로드 시 해제
 
-#### 2.x.4 Core Scheduler (Cron 기반 배경 작업)
+#### 2.x.4 Core Scheduler (Cron 기반 배경 작업) ✅ 완료
 **예상 기간: 3일**
 
 > 모듈이 주기적 작업을 등록할 수 있는 코어 인프라. 설계는 `technical/06-scheduler.md` 기준.
 > Subscription 결제일 자동 체크·Ledger 자동 기록에 필수.
 > Phase 5.1의 "Scheduler 관리 UI"와는 별개 — 여기서는 엔진(실행기)만 구현.
 
-- [ ] `apps/api/src/plugins/scheduler/index.ts` — Scheduler 싱글턴 엔진 (`node-cron` 또는 `cron` 패키지)
-- [ ] `register(taskName, cronExpr, handler, opts?)` / `unregister(taskName)` / `runNow(taskName)` / `toggle(taskName, enabled)` 메서드
-- [ ] 중복 실행 방지 (`runningTasks` Set)
-- [ ] 실행 로그 DB 저장 (`scheduler_logs` 테이블 — `taskName`, `executedAt`, `success`, `duration`, `error`)
-- [ ] 재시도 정책 (`retries`, `retryDelay`)
-- [ ] 서버 부트스트랩 시 자동 시작, graceful shutdown 시 전체 중지
-- [ ] 타임존 지원 (기본: `Asia/Seoul`)
+- [x] `apps/api/src/plugins/scheduler/index.ts` — Scheduler 싱글턴 엔진 (`node-cron`)
+- [x] `register` / `unregister` / `runNow` / `toggle` / `stopAll` / `list` / `getLogs` 메서드
+- [x] 중복 실행 방지 (`runningTasks` Set)
+- [x] 실행 로그 DB 저장 (`scheduler_logs` 테이블 — `007_scheduler_logs.sql`)
+- [x] 재시도 정책 (`retries`, `retryDelay`)
+- [x] 서버 부트스트랩 시 자동 시작, graceful shutdown 시 전체 중지
+- [x] 타임존 지원 (기본: `Asia/Seoul`)
 
 #### 2.x.5 통합 서비스 레이어 (Google Calendar 우선)
 **예상 기간: 1주**
