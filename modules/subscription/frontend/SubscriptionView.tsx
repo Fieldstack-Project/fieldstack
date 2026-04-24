@@ -74,10 +74,11 @@ interface SubscriptionNote {
 }
 
 interface CumulativeResult {
-  totalPaidKrw: number;
-  currentPricePaidKrw: number;
+  currency: Currency;
+  totalPaid: number;
+  currentPricePaid: number;
   priceChangeCount: number;
-  averageMonthlyKrw: number;
+  averageMonthly: number;
   daysSinceStart: number;
 }
 
@@ -122,6 +123,15 @@ function formatKrw(amount: number): string {
   return `₩${Math.round(amount).toLocaleString()}`;
 }
 
+function formatDuration(days: number): string {
+  const years = Math.floor(days / 365);
+  const months = Math.floor((days % 365) / 30);
+  if (years > 0 && months > 0) return `${years}년 ${months}개월 (${days.toLocaleString()}일)`;
+  if (years > 0) return `${years}년 (${days.toLocaleString()}일)`;
+  if (months > 0) return `${months}개월 (${days.toLocaleString()}일)`;
+  return `${days.toLocaleString()}일`;
+}
+
 function daysUntil(dateStr: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -144,7 +154,6 @@ function emptyForm() {
     billingDay: "1",
     startedAt: todayStr(),
     category: "",
-    description: "",
     url: "",
   };
 }
@@ -275,7 +284,6 @@ export function SubscriptionView() {
           billingDay: day,
           startedAt: form.startedAt || undefined,
           category: form.category || undefined,
-          description: form.description || undefined,
           url: form.url || undefined,
         }),
       });
@@ -300,7 +308,6 @@ export function SubscriptionView() {
       billingDay: String(selected.billingDay),
       startedAt: selected.startedAt,
       category: selected.category ?? "",
-      description: selected.description ?? "",
       url: selected.url ?? "",
     });
     setFormError(null);
@@ -323,7 +330,6 @@ export function SubscriptionView() {
           billingCycle: form.billingCycle,
           billingDay: day,
           category: form.category || undefined,
-          description: form.description || undefined,
           url: form.url || undefined,
         }),
       });
@@ -538,7 +544,7 @@ export function SubscriptionView() {
                   </div>
                   <div className="sub-detail-item">
                     <div className="di-label">결제 주기</div>
-                    <div className="di-value">{CYCLE_LABELS[selected.billingCycle]} ({selected.billingDay}일)</div>
+                    <div className="di-value">{CYCLE_LABELS[selected.billingCycle]} · 매 {selected.billingDay}일</div>
                   </div>
                   <div className="sub-detail-item">
                     <div className="di-label">다음 결제일</div>
@@ -565,7 +571,7 @@ export function SubscriptionView() {
                   )}
                   {selected.description && (
                     <div className="sub-detail-item" style={{ gridColumn: "1 / -1" }}>
-                      <div className="di-label">메모</div>
+                      <div className="di-label">비고</div>
                       <div className="di-value" style={{ whiteSpace: "pre-wrap" }}>
                         {selected.description}
                       </div>
@@ -584,19 +590,19 @@ export function SubscriptionView() {
                   <div className="sub-cumulative-grid">
                     <div className="sub-cumul-item">
                       <div className="ci-label">전체 누적</div>
-                      <div className="ci-value">{formatKrw(cumulative.totalPaidKrw)}</div>
+                      <div className="ci-value">{formatAmount(cumulative.totalPaid, cumulative.currency)}</div>
                     </div>
                     <div className="sub-cumul-item">
                       <div className="ci-label">현재 가격 누적</div>
-                      <div className="ci-value">{formatKrw(cumulative.currentPricePaidKrw)}</div>
+                      <div className="ci-value">{formatAmount(cumulative.currentPricePaid, cumulative.currency)}</div>
                     </div>
                     <div className="sub-cumul-item">
                       <div className="ci-label">월 평균</div>
-                      <div className="ci-value">{formatKrw(cumulative.averageMonthlyKrw)}</div>
+                      <div className="ci-value">{formatAmount(cumulative.averageMonthly, cumulative.currency)}</div>
                     </div>
                     <div className="sub-cumul-item">
-                      <div className="ci-label">사용 일수</div>
-                      <div className="ci-value">{cumulative.daysSinceStart.toLocaleString()}일</div>
+                      <div className="ci-label">사용 기간</div>
+                      <div className="ci-value">{formatDuration(cumulative.daysSinceStart)}</div>
                     </div>
                   </div>
                 ) : (
@@ -632,7 +638,7 @@ export function SubscriptionView() {
               <div className="sub-divider" />
 
               <div className="sub-detail-section">
-                <h4>메모</h4>
+                <h4>비고/메모</h4>
                 <div className="sub-notes-table">
                   {/* 입력 행 */}
                   <div className="sub-note-input-row">
@@ -912,14 +918,6 @@ function SubscriptionForm({
           value={form.url}
           onChange={set("url")}
           placeholder="https://..."
-        />
-      </FormField>
-      <FormField label="메모">
-        <Textarea
-          rows={3}
-          value={form.description}
-          onChange={(e) => onChange({ ...form, description: e.target.value })}
-          placeholder="비고, 플랜 정보 등 자유롭게 입력"
         />
       </FormField>
     </div>

@@ -81,10 +81,11 @@ export interface SubscriptionSummary {
 
 export interface CumulativeResult {
   subscriptionId: string;
-  totalPaidKrw: number;          // 전체 누적 (KRW 환산)
-  currentPricePaidKrw: number;   // 현재 가격 적용 이후 누적
+  currency: SubscriptionCurrency;
+  totalPaid: number;
+  currentPricePaid: number;
   priceChangeCount: number;
-  averageMonthlyKrw: number;
+  averageMonthly: number;
   daysSinceStart: number;
   periods: CumulativePeriod[];
 }
@@ -95,7 +96,7 @@ export interface CumulativePeriod {
   amount: number;
   currency: SubscriptionCurrency;
   paymentCount: number;
-  periodTotalKrw: number;
+  periodTotal: number;
 }
 
 // ── 메모 ──────────────────────────────────────────────────────────

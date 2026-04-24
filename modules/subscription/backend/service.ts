@@ -294,8 +294,7 @@ export class SubscriptionService {
       const periodEnd = history[i + 1] ? new Date(history[i + 1].effectiveDate) : today;
 
       const paymentCount = countPayments(sub.billingCycle, sub.billingDay, periodStart, periodEnd);
-      // 환율 단순화: KRW 아닌 경우 1:1 처리 (실제론 exchange-rate API 활용)
-      const periodTotalKrw = paymentCount * h.amount;
+      const periodTotal = paymentCount * h.amount;
 
       periods.push({
         effectiveDate: h.effectiveDate,
@@ -303,25 +302,26 @@ export class SubscriptionService {
         amount: h.amount,
         currency: h.currency,
         paymentCount,
-        periodTotalKrw,
+        periodTotal,
       });
 
-      totalKrw += periodTotalKrw;
+      totalKrw += periodTotal;
     }
 
     // 현재 가격 구간 누적
     const lastPeriod = periods[periods.length - 1];
-    const currentPricePaidKrw = lastPeriod?.periodTotalKrw ?? 0;
+    const currentPricePaid = lastPeriod?.periodTotal ?? 0;
 
     const monthsElapsed = Math.max(daysSinceStart / 30, 1);
-    const averageMonthlyKrw = Math.round(totalKrw / monthsElapsed);
+    const averageMonthly = Math.round(totalKrw / monthsElapsed);
 
     return {
       subscriptionId: id,
-      totalPaidKrw: Math.round(totalKrw),
-      currentPricePaidKrw: Math.round(currentPricePaidKrw),
+      currency: sub.currency,
+      totalPaid: Math.round(totalKrw),
+      currentPricePaid: Math.round(currentPricePaid),
       priceChangeCount: Math.max(history.length - 1, 0),
-      averageMonthlyKrw,
+      averageMonthly,
       daysSinceStart,
       periods,
     };

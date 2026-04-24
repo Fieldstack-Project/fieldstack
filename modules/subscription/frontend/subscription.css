@@ -232,7 +232,7 @@
 
 .sub-cumul-item .ci-label {
   font-size: 0.7rem;
-  color: var(--text-faint);
+  color: var(--text-muted);
   margin-bottom: 0.2rem;
 }
 
