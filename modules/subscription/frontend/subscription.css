@@ -35,7 +35,7 @@
 .sub-stat-card .stat-label {
   font-size: 0.72rem;
   font-weight: 500;
-  color: var(--text-faint);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 0.35rem;
@@ -244,7 +244,7 @@
   color: #fff;
 }
 
-/* 가격 히스토리 타임라인 */
+/* 히스토리 타임라인 */
 .sub-history-timeline {
   display: flex;
   flex-direction: column;
@@ -284,7 +284,7 @@
 .sub-history-dot.dot-cancelled { background: var(--err); }
 .sub-history-dot.dot-resumed   { background: var(--ok); }
 .sub-history-dot.dot-plan      { background: var(--warn); }
-.sub-history-dot.dot-memo      { background: var(--text-faint); }
+.sub-history-dot.dot-memo      { background: var(--text-muted); }
 
 .sub-history-content {
   flex: 1;
@@ -314,7 +314,7 @@
 
 .sub-history-reason {
   font-size: 0.75rem;
-  color: var(--text-faint);
+  color: var(--text-muted);
   margin-top: 0.1rem;
 }
 
@@ -331,7 +331,7 @@
   gap: 0.75rem;
 }
 
-/* 메모 테이블 */
+/* 비고/메모 테이블 */
 .sub-notes-table {
   display: flex;
   flex-direction: column;
@@ -360,7 +360,7 @@
 }
 
 .sub-note-input::placeholder {
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .sub-note-add-btn {
@@ -369,7 +369,7 @@
   border-radius: 6px;
   padding: 0.4rem 0.75rem;
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--text);
   cursor: pointer;
   white-space: nowrap;
   transition: border-color 0.15s, color 0.15s;
@@ -387,7 +387,7 @@
 
 .sub-note-empty {
   font-size: 0.8rem;
-  color: var(--text-faint);
+  color: var(--text-muted);
   padding: 0.25rem 0;
 }
 
@@ -406,7 +406,7 @@
 
 .sub-note-date {
   font-size: 0.75rem;
-  color: var(--text-faint);
+  color: var(--text-muted);
   white-space: nowrap;
   padding: 0.4rem 0.6rem 0.4rem 0;
   vertical-align: top;
@@ -433,7 +433,7 @@
   border: none;
   cursor: pointer;
   font-size: 0.72rem;
-  color: var(--text-faint);
+  color: var(--text-muted);
   padding: 2px 4px;
   border-radius: 3px;
   line-height: 1;
