@@ -207,13 +207,14 @@
 
 .sub-detail-item .di-label {
   font-size: 0.72rem;
-  color: var(--text-faint);
+  color: #fff;
+  opacity: 0.55;
   margin-bottom: 0.1rem;
 }
 
 .sub-detail-item .di-value {
   font-size: 0.9rem;
-  color: var(--text);
+  color: #fff;
   font-weight: 500;
 }
 
@@ -232,14 +233,15 @@
 
 .sub-cumul-item .ci-label {
   font-size: 0.7rem;
-  color: var(--text-muted);
+  color: #fff;
+  opacity: 0.55;
   margin-bottom: 0.2rem;
 }
 
 .sub-cumul-item .ci-value {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--text);
+  color: #fff;
 }
 
 /* 가격 히스토리 타임라인 */
