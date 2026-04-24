@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { requireAuth } from '../middleware/require-auth';
 import { clearConfig, clearInstalled, scheduleRestart } from '../setup/mode';
+import { tunnelManager } from '../tunnel/cloudflare-tunnel';
 import type { AppServices } from '../app';
 
 // ── 입력 스키마 ───────────────────────────────────────────────
@@ -174,6 +175,54 @@ export function createAdminRouter(services: AppServices): Router {
       res.json({ success: true, data: { message: '부분 초기화 완료.' } });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  // ── Cloudflare Tunnel ─────────────────────────────────────────
+
+  /** GET /admin/tunnel/status */
+  router.get('/tunnel/status', requireAuth(services.jwtManager), (_req, res) => {
+    res.json({ success: true, data: tunnelManager.status });
+  });
+
+  /** GET /admin/tunnel/config */
+  router.get('/tunnel/config', requireAuth(services.jwtManager), (_req, res) => {
+    res.json({ success: true, data: tunnelManager.getConfig() });
+  });
+
+  /** PUT /admin/tunnel/config */
+  const TunnelConfigBody = z.object({
+    mode: z.enum(['quick', 'named']),
+    token: z.string(),
+  });
+
+  router.put('/tunnel/config', requireAuth(services.jwtManager), (req, res) => {
+    const parsed = TunnelConfigBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.flatten() });
+      return;
+    }
+    tunnelManager.setConfig(parsed.data);
+    res.json({ success: true });
+  });
+
+  /** POST /admin/tunnel/start */
+  router.post('/tunnel/start', requireAuth(services.jwtManager), async (_req, res) => {
+    try {
+      const { url } = await tunnelManager.start();
+      res.json({ success: true, data: { url } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** POST /admin/tunnel/stop */
+  router.post('/tunnel/stop', requireAuth(services.jwtManager), (_req, res) => {
+    try {
+      tunnelManager.stop();
+      res.json({ success: true });
+    } catch (err) {
+      res.status(400).json({ success: false, error: (err as Error).message });
     }
   });
 

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, type FormEvent } from "react";
+import { useState, useEffect, useCallback, useRef, type FormEvent } from "react";
 
-import { Button, FormField, PinInput } from "@fieldstack/controls";
+import { Button, FormField, Input, PinInput, Select } from "@fieldstack/controls";
 
 import "../styles/admin.css";
 
@@ -40,6 +40,7 @@ const ADMIN_SECTIONS = [
   { id: "overview", icon: "⊟",  name: "개요",           desc: "시스템 상태 및 통계" },
   { id: "users",    icon: "👥", name: "사용자 관리",      desc: "Whitelist 추가·제거, 역할 관리" },
   { id: "modules",  icon: "📦", name: "모듈 레지스트리",  desc: "모듈 활성화·비활성화, 버전 관리" },
+  { id: "tunnel",   icon: "🌐", name: "터널",            desc: "Cloudflare Tunnel 외부 접근 설정" },
   { id: "system",   icon: "🗄️", name: "시스템 설정",     desc: "DB 설정, 업데이트, 백업" },
   { id: "security", icon: "🔐", name: "보안 설정",        desc: "PIN 변경, 세션 정책" },
   { id: "audit",    icon: "📋", name: "감사 로그",        desc: "PIN 실패, 주요 설정 변경 이력" },
@@ -68,7 +69,8 @@ const AUDIT_FILTER_LABELS: Record<AuditFilter, string> = {
   pin:      "PIN",
 };
 
-type ActiveSection = "overview" | "users" | "modules" | "system" | "security" | "audit";
+type TunnelMode = "quick" | "named";
+type ActiveSection = "overview" | "users" | "modules" | "tunnel" | "system" | "security" | "audit";
 
 export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
   const [activeSection, setActiveSection] = useState<ActiveSection>("overview");
@@ -89,6 +91,16 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
   const [confirmPin, setConfirmPin] = useState("");
   const [pinError, setPinError] = useState("");
   const [pinSuccess, setPinSuccess] = useState(false);
+
+  // 터널
+  const [tunnelRunning, setTunnelRunning] = useState(false);
+  const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
+  const [tunnelMode, setTunnelMode] = useState<TunnelMode>("quick");
+  const [tunnelToken, setTunnelToken] = useState("");
+  const [tunnelLoading, setTunnelLoading] = useState(false);
+  const [tunnelError, setTunnelError] = useState<string | null>(null);
+  const [tunnelCopied, setTunnelCopied] = useState(false);
+  const tunnelCopyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 초기화 플로우
   const [resetPhase, setResetPhase] = useState<ResetPhase>("idle");
@@ -123,6 +135,94 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
       void fetchModules();
     }
   }, [activeSection, fetchModules]);
+
+  // 터널 섹션 진입 시 상태 로드
+  useEffect(() => {
+    if (activeSection !== "tunnel") return;
+    void (async () => {
+      try {
+        const [statusRes, configRes] = await Promise.all([
+          apiFetch("/admin/tunnel/status"),
+          apiFetch("/admin/tunnel/config"),
+        ]);
+        type StatusResp = { success: boolean; data: { running: boolean; url: string | null; mode: TunnelMode | null } };
+        type ConfigResp = { success: boolean; data: { mode: TunnelMode; token: string } };
+        const status = await statusRes.json() as StatusResp;
+        const config = await configRes.json() as ConfigResp;
+        if (status.success) {
+          setTunnelRunning(status.data.running);
+          setTunnelUrl(status.data.url);
+        }
+        if (config.success) {
+          setTunnelMode(config.data.mode);
+          setTunnelToken(config.data.token);
+        }
+      } catch { /* 무시 */ }
+    })();
+  }, [activeSection]);
+
+  const handleTunnelSaveConfig = async () => {
+    await apiFetch("/admin/tunnel/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: tunnelMode, token: tunnelToken }),
+    });
+  };
+
+  const handleTunnelStart = async () => {
+    setTunnelLoading(true);
+    setTunnelError(null);
+    try {
+      await handleTunnelSaveConfig();
+      const res = await apiFetch("/admin/tunnel/start", { method: "POST" });
+      type Resp = { success: boolean; data?: { url: string }; error?: string };
+      const json = await res.json() as Resp;
+      if (!json.success) { setTunnelError(json.error ?? "시작 실패"); return; }
+      setTunnelRunning(true);
+      setTunnelUrl(json.data?.url ?? null);
+    } catch {
+      setTunnelError("서버 연결 실패");
+    } finally {
+      setTunnelLoading(false);
+    }
+  };
+
+  const handleTunnelStop = async () => {
+    setTunnelLoading(true);
+    setTunnelError(null);
+    try {
+      await apiFetch("/admin/tunnel/stop", { method: "POST" });
+      setTunnelRunning(false);
+      setTunnelUrl(null);
+    } catch {
+      setTunnelError("서버 연결 실패");
+    } finally {
+      setTunnelLoading(false);
+    }
+  };
+
+  const handleTunnelCopy = () => {
+    if (!tunnelUrl) return;
+    const doCopy = async () => {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(tunnelUrl);
+      } else {
+        // HTTP 또는 IP 주소 접근 시 fallback
+        const el = document.createElement('textarea');
+        el.value = tunnelUrl;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
+      setTunnelCopied(true);
+      if (tunnelCopyTimer.current) clearTimeout(tunnelCopyTimer.current);
+      tunnelCopyTimer.current = setTimeout(() => setTunnelCopied(false), 2000);
+    };
+    void doCopy();
+  };
 
   const handleModuleReload = async () => {
     setReloading(true);
@@ -390,6 +490,92 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
                 ))}
               </ul>
             )}
+          </>
+        )}
+
+        {/* 터널 */}
+        {activeSection === "tunnel" && (
+          <>
+            <div className="admin-content-header">
+              <h1 className="admin-content-title">Cloudflare Tunnel</h1>
+              <span className={`admin-badge ${tunnelRunning ? "admin-badge-ok" : ""}`}>
+                {tunnelRunning ? "실행 중" : "중지됨"}
+              </span>
+            </div>
+
+            {/* 모드 선택 */}
+            <div className="admin-tunnel-section">
+              <p className="admin-panel-sub-title">터널 모드</p>
+              <FormField label="모드 선택">
+                <Select
+                  value={tunnelMode}
+                  options={[
+                    { value: "quick", label: "Quick Tunnel (임시 URL, 토큰 불필요)" },
+                    { value: "named", label: "Named Tunnel (Zero Trust, 도메인 고정)" },
+                  ]}
+                  onChange={(e) => setTunnelMode(e.target.value as TunnelMode)}
+                  disabled={tunnelRunning}
+                />
+              </FormField>
+
+              {tunnelMode === "named" && (
+                <FormField label="터널 토큰" helpText="Cloudflare Zero Trust 대시보드에서 발급한 토큰">
+                  <Input
+                    type="password"
+                    value={tunnelToken}
+                    onChange={(e) => setTunnelToken(e.target.value)}
+                    placeholder="eyJ..."
+                    disabled={tunnelRunning}
+                  />
+                </FormField>
+              )}
+            </div>
+
+            {/* URL 표시 */}
+            {tunnelRunning && tunnelUrl && (
+              <div className="admin-tunnel-url-box">
+                <span className="admin-tunnel-url-label">접속 URL</span>
+                <div className="admin-tunnel-url-row">
+                  <code className="admin-tunnel-url">{tunnelUrl}</code>
+                  <Button size="sm" type="button" onClick={handleTunnelCopy}>
+                    {tunnelCopied ? "복사됨 ✓" : "복사"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {tunnelError && (
+              <p style={{ fontSize: "13px", color: "var(--err)", margin: "0" }}>{tunnelError}</p>
+            )}
+
+            {/* 시작/중지 버튼 */}
+            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+              {!tunnelRunning ? (
+                <Button
+                  variant="primary"
+                  type="button"
+                  onClick={() => void handleTunnelStart()}
+                  disabled={tunnelLoading || (tunnelMode === "named" && !tunnelToken)}
+                  loading={tunnelLoading}
+                >
+                  터널 시작
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => void handleTunnelStop()}
+                  disabled={tunnelLoading}
+                  loading={tunnelLoading}
+                >
+                  터널 중지
+                </Button>
+              )}
+            </div>
+
+            <p className="admin-tunnel-notice">
+              Quick Tunnel은 서버 재시작 시 URL이 변경됩니다.<br />
+              고정 URL이 필요하면 Named Tunnel(Zero Trust)을 사용하세요.
+            </p>
           </>
         )}
 

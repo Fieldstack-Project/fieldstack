@@ -32,6 +32,7 @@ docker-compose up -d
 - PostgreSQL: docker-compose에 postgres 서비스가 자동으로 함께 구성됨
 
 Cloudflare Tunnel 연동은 Docker 버전의 확장 옵션으로 제공한다 (`cloudflared` 서비스 추가).
+nginx, Apache, Traefik 등 리버스 프록시를 통한 외부 노출도 지원할 예정이다 (문서 및 예제 설정 제공 계획).
 
 ---
 
@@ -69,6 +70,7 @@ systemd 서비스 등록은 문서에 힌트만 제공하며, 안정성은 보�
 | AIO 이미지 제공 | ✅ | ❌ | ❌ | ❌ |
 | DB 자동 구성 | ✅ | ❌ (수동) | ✅ (D1) | ❌ (수동) |
 | Cloudflare Tunnel | ✅ (확장 옵션) | 별도 설치 | 해당 없음 | 별도 설치 |
+| 리버스 프록시 (nginx 등) | ✅ (예정) | ✅ (예정) | 해당 없음 | ✅ (예정) |
 | 업데이트 편의 | ✅ 이미지 pull | 보통 | 느림 (별도 배포) | 낮음 |
 | 권장도 | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⚠️ |
 

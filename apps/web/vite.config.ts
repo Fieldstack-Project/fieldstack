@@ -25,6 +25,7 @@ export default defineConfig({
   },
   server: {
     host: true,
+    allowedHosts: true,
     proxy: {
       "/setup": "http://localhost:3000",
       "/core": "http://localhost:3000",

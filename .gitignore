@@ -138,3 +138,4 @@ local/
 # =============================================================================
 fieldstack.config.json
 installed.lock
+tunnel.config.json
