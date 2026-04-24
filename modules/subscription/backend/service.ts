@@ -106,7 +106,7 @@ export class SubscriptionService {
     const sub = this.mapRow(rows[0]);
 
     // 초기 가격을 히스토리에 기록 (구독 시작일 기준)
-    await this.addPriceHistory(sub.id, {
+    await this.addPriceHistory(userId, sub.id, {
       effectiveDate: startedAt,
       amount: dto.currentAmount,
       currency: dto.currency,
@@ -198,9 +198,16 @@ export class SubscriptionService {
   // ── 가격 히스토리 ────────────────────────────────────────────
 
   async addPriceHistory(
+    userId: string,
     subscriptionId: string,
     dto: CreatePriceHistoryDto,
   ): Promise<PriceHistory> {
+    const owned = await this.db.query<{ id: string }>(
+      `SELECT id FROM subscription_services WHERE id = $1 AND user_id = $2`,
+      [subscriptionId, userId],
+    );
+    if (!owned.length) throw new Error('Forbidden');
+
     const rows = await this.db.query<Record<string, unknown>>(
       `INSERT INTO subscription_price_history
          (subscription_id, effective_date, amount, currency, reason, note)

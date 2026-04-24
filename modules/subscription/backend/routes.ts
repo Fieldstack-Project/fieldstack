@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
 import type { SubscriptionService } from './service.js';
 import {
@@ -12,30 +13,24 @@ type JwtManager = {
   verifyAccessToken(token: string): Promise<{ userId: string; email: string }>;
 };
 
-// ── 인증 미들웨어 (Ledger 패턴 동일) ─────────────────────────────
+type AuthRequest = Request & { userId: string };
+
+// ── 인증 미들웨어 ─────────────────────────────────────────────────
 
 function makeAuth(jwtManager: JwtManager) {
-  return async (
-    req: Parameters<Router['use']>[0] extends (...args: infer A) => unknown ? A[0] : never,
-    res: Parameters<Router['use']>[0] extends (...args: infer A) => unknown ? A[1] : never,
-    next: Parameters<Router['use']>[0] extends (...args: infer A) => unknown ? A[2] : never,
-  ): Promise<void> => {
-    const header = (req as { headers: Record<string, string | undefined> }).headers['authorization'];
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const header = req.headers['authorization'];
     if (!header?.startsWith('Bearer ')) {
-      (res as { status: (n: number) => { json: (b: unknown) => void } })
-        .status(401)
-        .json({ success: false, error: 'Unauthorized' });
+      res.status(401).json({ success: false, error: 'Unauthorized' });
       return;
     }
     try {
       const token = header.slice(7);
       const payload = await jwtManager.verifyAccessToken(token);
-      (req as Record<string, unknown>)['userId'] = payload.userId;
-      (next as () => void)();
+      (req as AuthRequest).userId = payload.userId;
+      next();
     } catch {
-      (res as { status: (n: number) => { json: (b: unknown) => void } })
-        .status(401)
-        .json({ success: false, error: 'Unauthorized' });
+      res.status(401).json({ success: false, error: 'Unauthorized' });
     }
   };
 }
@@ -49,118 +44,162 @@ export function createSubscriptionRouter(
 
   // ── 구독 목록 / 생성 ──────────────────────────────────────────
   router.get('/services', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const items = await service.findAll(userId);
-    res.json({ success: true, data: items });
+    try {
+      const userId = (req as AuthRequest).userId;
+      const items = await service.findAll(userId);
+      res.json({ success: true, data: items });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   });
 
   router.post('/services', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const parsed = createSubscriptionSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ success: false, error: parsed.error.message });
-      return;
+    try {
+      const userId = (req as AuthRequest).userId;
+      const parsed = createSubscriptionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ success: false, error: parsed.error.message });
+        return;
+      }
+      const sub = await service.create(userId, parsed.data);
+      res.status(201).json({ success: true, data: sub });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
     }
-    const sub = await service.create(userId, parsed.data);
-    res.status(201).json({ success: true, data: sub });
   });
 
   // ── 구독 상세 / 수정 / 삭제 ──────────────────────────────────
   router.get('/services/:id', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const sub = await service.findById(userId, req.params['id']);
-    if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-    res.json({ success: true, data: sub });
+    try {
+      const userId = (req as AuthRequest).userId;
+      const sub = await service.findById(userId, req.params['id']);
+      if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      res.json({ success: true, data: sub });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   });
 
   router.put('/services/:id', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const parsed = updateSubscriptionSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ success: false, error: parsed.error.message });
-      return;
+    try {
+      const userId = (req as AuthRequest).userId;
+      const parsed = updateSubscriptionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ success: false, error: parsed.error.message });
+        return;
+      }
+      const sub = await service.update(userId, req.params['id'], parsed.data);
+      if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      res.json({ success: true, data: sub });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
     }
-    const sub = await service.update(userId, req.params['id'], parsed.data);
-    if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-    res.json({ success: true, data: sub });
   });
 
   router.delete('/services/:id', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const ok = await service.delete(userId, req.params['id']);
-    if (!ok) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-    res.json({ success: true });
+    try {
+      const userId = (req as AuthRequest).userId;
+      const ok = await service.delete(userId, req.params['id']);
+      if (!ok) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      res.json({ success: true });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   });
 
   // ── 요약 통계 ─────────────────────────────────────────────────
   router.get('/summary', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const summary = await service.getSummary(userId);
-    res.json({ success: true, data: summary });
+    try {
+      const userId = (req as AuthRequest).userId;
+      const summary = await service.getSummary(userId);
+      res.json({ success: true, data: summary });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   });
 
   // ── 가격 히스토리 ─────────────────────────────────────────────
   router.post('/services/:id/price', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const sub = await service.findById(userId, req.params['id']);
-    if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-
-    const parsed = createPriceHistorySchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ success: false, error: parsed.error.message });
-      return;
+    try {
+      const userId = (req as AuthRequest).userId;
+      const parsed = createPriceHistorySchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ success: false, error: parsed.error.message });
+        return;
+      }
+      const history = await service.addPriceHistory(userId, req.params['id'], parsed.data);
+      res.status(201).json({ success: true, data: history });
+    } catch (err) {
+      const isForbidden = err instanceof Error && err.message === 'Forbidden';
+      res.status(isForbidden ? 404 : 500).json({ success: false, error: 'Not found' });
     }
-
-    const history = await service.addPriceHistory(req.params['id'], parsed.data);
-    res.status(201).json({ success: true, data: history });
   });
 
   router.get('/services/:id/history', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const sub = await service.findById(userId, req.params['id']);
-    if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-
-    const history = await service.getPriceHistory(req.params['id']);
-    res.json({ success: true, data: history });
+    try {
+      const userId = (req as AuthRequest).userId;
+      const sub = await service.findById(userId, req.params['id']);
+      if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      const history = await service.getPriceHistory(req.params['id']);
+      res.json({ success: true, data: history });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   });
 
   // ── 메모 ──────────────────────────────────────────────────────
   router.get('/services/:id/notes', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const sub = await service.findById(userId, req.params['id']);
-    if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-    const notes = await service.getNotes(req.params['id']);
-    res.json({ success: true, data: notes });
+    try {
+      const userId = (req as AuthRequest).userId;
+      const sub = await service.findById(userId, req.params['id']);
+      if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      const notes = await service.getNotes(req.params['id']);
+      res.json({ success: true, data: notes });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   });
 
   router.post('/services/:id/notes', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const sub = await service.findById(userId, req.params['id']);
-    if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-    const parsed = createNoteSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ success: false, error: parsed.error.message });
-      return;
+    try {
+      const userId = (req as AuthRequest).userId;
+      const sub = await service.findById(userId, req.params['id']);
+      if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      const parsed = createNoteSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ success: false, error: parsed.error.message });
+        return;
+      }
+      const note = await service.addNote(req.params['id'], parsed.data);
+      res.status(201).json({ success: true, data: note });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
     }
-    const note = await service.addNote(req.params['id'], parsed.data);
-    res.status(201).json({ success: true, data: note });
   });
 
   router.delete('/services/:id/notes/:noteId', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const sub = await service.findById(userId, req.params['id']);
-    if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-    const ok = await service.deleteNote(req.params['id'], req.params['noteId']);
-    if (!ok) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-    res.json({ success: true });
+    try {
+      const userId = (req as AuthRequest).userId;
+      const sub = await service.findById(userId, req.params['id']);
+      if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      const ok = await service.deleteNote(req.params['id'], req.params['noteId']);
+      if (!ok) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      res.json({ success: true });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   });
 
   // ── 누적 결제 금액 ────────────────────────────────────────────
   router.get('/services/:id/cumulative', auth, async (req, res) => {
-    const userId = (req as Record<string, string>)['userId'];
-    const result = await service.getCumulative(userId, req.params['id']);
-    if (!result) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-    res.json({ success: true, data: result });
+    try {
+      const userId = (req as AuthRequest).userId;
+      const result = await service.getCumulative(userId, req.params['id']);
+      if (!result) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      res.json({ success: true, data: result });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   });
 
   return router;
