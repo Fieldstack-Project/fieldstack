@@ -2,12 +2,13 @@ import type { DbProvider } from '@fieldstack/core' with { 'resolution-mode': 'im
 
 import type {
   BillingCycle,
+  CreateHistoryEventDto,
   CreateNoteDto,
-  CreatePriceHistoryDto,
   CreateSubscriptionDto,
   CumulativePeriod,
   CumulativeResult,
-  PriceHistory,
+  HistoryEvent,
+  HistoryEventType,
   Subscription,
   SubscriptionCurrency,
   SubscriptionNote,
@@ -106,7 +107,8 @@ export class SubscriptionService {
     const sub = this.mapRow(rows[0]);
 
     // 초기 가격을 히스토리에 기록 (구독 시작일 기준)
-    await this.addPriceHistory(userId, sub.id, {
+    await this.addHistoryEvent(userId, sub.id, {
+      eventType: 'price_change',
       effectiveDate: startedAt,
       amount: dto.currentAmount,
       currency: dto.currency,
@@ -195,53 +197,61 @@ export class SubscriptionService {
     return rows.length > 0;
   }
 
-  // ── 가격 히스토리 ────────────────────────────────────────────
+  // ── 히스토리 이벤트 ──────────────────────────────────────────
 
-  async addPriceHistory(
+  async addHistoryEvent(
     userId: string,
     subscriptionId: string,
-    dto: CreatePriceHistoryDto,
-  ): Promise<PriceHistory> {
+    dto: CreateHistoryEventDto,
+  ): Promise<HistoryEvent> {
     const owned = await this.db.query<{ id: string }>(
       `SELECT id FROM subscription_services WHERE id = $1 AND user_id = $2`,
       [subscriptionId, userId],
     );
     if (!owned.length) throw new Error('Forbidden');
 
+    const isPriceChange = dto.eventType === 'price_change';
     const rows = await this.db.query<Record<string, unknown>>(
       `INSERT INTO subscription_price_history
-         (subscription_id, effective_date, amount, currency, reason, note)
-       VALUES ($1,$2,$3,$4,$5,$6)
+         (subscription_id, event_type, effective_date, amount, currency, reason, note)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
        RETURNING *`,
       [
         subscriptionId,
+        dto.eventType,
         dto.effectiveDate,
-        dto.amount,
-        dto.currency,
+        isPriceChange ? (dto.amount ?? 0) : 0,
+        isPriceChange ? (dto.currency ?? 'KRW') : 'KRW',
         dto.reason ?? null,
         dto.note ?? null,
       ],
     );
 
-    // 구독의 currentAmount 업데이트
-    await this.db.query(
-      `UPDATE subscription_services
-       SET current_amount = $1, currency = $2, updated_at = NOW()
-       WHERE id = $3`,
-      [dto.amount, dto.currency, subscriptionId],
-    );
+    if (isPriceChange && dto.amount !== undefined && dto.currency !== undefined) {
+      await this.db.query(
+        `UPDATE subscription_services
+         SET current_amount = $1, currency = $2, updated_at = NOW()
+         WHERE id = $3`,
+        [dto.amount, dto.currency, subscriptionId],
+      );
+    }
 
-    return this.mapPriceHistoryRow(rows[0]);
+    return this.mapHistoryRow(rows[0]);
   }
 
-  async getPriceHistory(subscriptionId: string): Promise<PriceHistory[]> {
+  async getHistory(subscriptionId: string): Promise<HistoryEvent[]> {
     const rows = await this.db.query<Record<string, unknown>>(
       `SELECT * FROM subscription_price_history
        WHERE subscription_id = $1
-       ORDER BY effective_date ASC`,
+       ORDER BY effective_date ASC, created_at ASC`,
       [subscriptionId],
     );
-    return rows.map((r) => this.mapPriceHistoryRow(r));
+    return rows.map((r) => this.mapHistoryRow(r));
+  }
+
+  /** @deprecated getHistory 사용 */
+  async getPriceHistory(subscriptionId: string): Promise<HistoryEvent[]> {
+    return this.getHistory(subscriptionId);
   }
 
   // ── 메모 ──────────────────────────────────────────────────────
@@ -276,7 +286,8 @@ export class SubscriptionService {
     const sub = await this.findById(userId, id);
     if (!sub) return null;
 
-    const history = await this.getPriceHistory(id);
+    const allHistory = await this.getHistory(id);
+    const history = allHistory.filter((h) => h.eventType === 'price_change' && h.amount !== null);
     if (history.length === 0) return null;
 
     const startDate = new Date(sub.startedAt);
@@ -294,7 +305,7 @@ export class SubscriptionService {
       const periodEnd = history[i + 1] ? new Date(history[i + 1].effectiveDate) : today;
 
       const paymentCount = countPayments(sub.billingCycle, sub.billingDay, periodStart, periodEnd);
-      const periodTotal = paymentCount * h.amount;
+      const periodTotal = paymentCount * (h.amount ?? 0);
 
       periods.push({
         effectiveDate: h.effectiveDate,
@@ -433,13 +444,16 @@ export class SubscriptionService {
     };
   }
 
-  private mapPriceHistoryRow(r: Record<string, unknown>): PriceHistory {
+  private mapHistoryRow(r: Record<string, unknown>): HistoryEvent {
+    const eventType = ((r['event_type'] as string) ?? 'price_change') as HistoryEventType;
+    const isPriceChange = eventType === 'price_change';
     return {
       id: r['id'] as string,
       subscriptionId: r['subscription_id'] as string,
+      eventType,
       effectiveDate: parseDateField(r['effective_date']),
-      amount: Number(r['amount']),
-      currency: r['currency'] as SubscriptionCurrency,
+      amount: isPriceChange ? Number(r['amount']) : null,
+      currency: isPriceChange ? (r['currency'] as SubscriptionCurrency) : null,
       reason: (r['reason'] as string) ?? null,
       note: (r['note'] as string) ?? null,
       createdAt: r['created_at'] as string,

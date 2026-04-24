@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const CURRENCIES = ['KRW', 'USD', 'EUR', 'JPY', 'GBP'] as const;
 const BILLING_CYCLES = ['monthly', 'yearly'] as const;
+const EVENT_TYPES = ['price_change', 'cancelled', 'resumed', 'plan_change', 'memo'] as const;
 
 export const createSubscriptionSchema = z.object({
   serviceName: z.string().min(1).max(100),
@@ -27,10 +28,24 @@ export const createNoteSchema = z.object({
   content: z.string().min(1).max(1000),
 });
 
-export const createPriceHistorySchema = z.object({
-  effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  amount: z.number().nonnegative(),
-  currency: z.enum(CURRENCIES),
-  reason: z.string().max(200).optional(),
-  note: z.string().max(500).optional(),
-});
+export const createHistoryEventSchema = z.discriminatedUnion('eventType', [
+  z.object({
+    eventType: z.literal('price_change'),
+    effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    amount: z.number().nonnegative(),
+    currency: z.enum(CURRENCIES),
+    reason: z.string().max(200).optional(),
+    note: z.string().max(500).optional(),
+  }),
+  z.object({
+    eventType: z.enum(['cancelled', 'resumed', 'plan_change', 'memo']),
+    effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    reason: z.string().max(200).optional(),
+    note: z.string().max(500).optional(),
+  }),
+]);
+
+/** @deprecated createPriceHistorySchema → createHistoryEventSchema 로 대체 */
+export const createPriceHistorySchema = createHistoryEventSchema;
+
+export { EVENT_TYPES };

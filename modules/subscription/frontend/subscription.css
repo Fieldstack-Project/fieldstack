@@ -278,13 +278,24 @@
   z-index: 1;
 }
 
-.sub-history-dot.first {
-  background: var(--ok);
-}
+.sub-history-dot.dot-price    { background: var(--accent); }
+.sub-history-dot.dot-cancelled { background: var(--err); }
+.sub-history-dot.dot-resumed   { background: var(--ok); }
+.sub-history-dot.dot-plan      { background: var(--warn); }
+.sub-history-dot.dot-memo      { background: var(--text-faint); }
 
 .sub-history-content {
   flex: 1;
   min-width: 0;
+}
+
+.sub-history-event-type {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.1rem;
 }
 
 .sub-history-amount {

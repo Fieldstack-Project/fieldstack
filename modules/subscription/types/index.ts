@@ -47,26 +47,35 @@ export interface UpdateSubscriptionDto extends Partial<CreateSubscriptionDto> {
   cancelledAt?: string | null;
 }
 
-// ── 가격 히스토리 ────────────────────────────────────────────────
+// ── 히스토리 이벤트 ──────────────────────────────────────────────
 
-export interface PriceHistory {
+export type HistoryEventType = 'price_change' | 'cancelled' | 'resumed' | 'plan_change' | 'memo';
+
+export interface HistoryEvent {
   id: string;
   subscriptionId: string;
-  effectiveDate: string;   // YYYY-MM-DD — 이 가격이 적용되기 시작한 날짜
-  amount: number;
-  currency: SubscriptionCurrency;
+  eventType: HistoryEventType;
+  effectiveDate: string;   // YYYY-MM-DD
+  amount: number | null;   // price_change 이벤트만 사용
+  currency: SubscriptionCurrency | null;
   reason: string | null;
   note: string | null;
   createdAt: string;
 }
 
-export interface CreatePriceHistoryDto {
+export interface CreateHistoryEventDto {
+  eventType: HistoryEventType;
   effectiveDate: string;
-  amount: number;
-  currency: SubscriptionCurrency;
+  amount?: number;
+  currency?: SubscriptionCurrency;
   reason?: string;
   note?: string;
 }
+
+/** @deprecated PriceHistory → HistoryEvent 로 대체 */
+export type PriceHistory = HistoryEvent;
+/** @deprecated CreatePriceHistoryDto → CreateHistoryEventDto 로 대체 */
+export type CreatePriceHistoryDto = CreateHistoryEventDto;
 
 // ── 통계 ──────────────────────────────────────────────────────────
 

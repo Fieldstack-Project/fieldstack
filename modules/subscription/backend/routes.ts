@@ -3,8 +3,8 @@ import type { NextFunction, Request, Response } from 'express';
 
 import type { SubscriptionService } from './service.js';
 import {
+  createHistoryEventSchema,
   createNoteSchema,
-  createPriceHistorySchema,
   createSubscriptionSchema,
   updateSubscriptionSchema,
 } from './validation.js';
@@ -118,17 +118,17 @@ export function createSubscriptionRouter(
     }
   });
 
-  // ── 가격 히스토리 ─────────────────────────────────────────────
-  router.post('/services/:id/price', auth, async (req, res) => {
+  // ── 히스토리 이벤트 ───────────────────────────────────────────
+  router.post('/services/:id/history', auth, async (req, res) => {
     try {
       const userId = (req as AuthRequest).userId;
-      const parsed = createPriceHistorySchema.safeParse(req.body);
+      const parsed = createHistoryEventSchema.safeParse(req.body);
       if (!parsed.success) {
         res.status(400).json({ success: false, error: parsed.error.message });
         return;
       }
-      const history = await service.addPriceHistory(userId, req.params['id'], parsed.data);
-      res.status(201).json({ success: true, data: history });
+      const event = await service.addHistoryEvent(userId, req.params['id'], parsed.data);
+      res.status(201).json({ success: true, data: event });
     } catch (err) {
       const isForbidden = err instanceof Error && err.message === 'Forbidden';
       res.status(isForbidden ? 404 : 500).json({ success: false, error: 'Not found' });
@@ -140,7 +140,7 @@ export function createSubscriptionRouter(
       const userId = (req as AuthRequest).userId;
       const sub = await service.findById(userId, req.params['id']);
       if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
-      const history = await service.getPriceHistory(req.params['id']);
+      const history = await service.getHistory(req.params['id']);
       res.json({ success: true, data: history });
     } catch {
       res.status(500).json({ success: false, error: 'Internal server error' });

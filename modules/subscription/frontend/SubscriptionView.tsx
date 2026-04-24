@@ -25,6 +25,7 @@ registerModuleLocale("subscription", koLocale, enLocale);
 
 type BillingCycle = "monthly" | "yearly";
 type Currency = "KRW" | "USD" | "EUR" | "JPY" | "GBP";
+type HistoryEventType = "price_change" | "cancelled" | "resumed" | "plan_change" | "memo";
 
 interface Subscription {
   id: string;
@@ -46,12 +47,13 @@ interface Subscription {
   updatedAt: string;
 }
 
-interface PriceHistory {
+interface HistoryEvent {
   id: string;
   subscriptionId: string;
+  eventType: HistoryEventType;
   effectiveDate: string;
-  amount: number;
-  currency: Currency;
+  amount: number | null;
+  currency: Currency | null;
   reason: string | null;
   note: string | null;
   createdAt: string;
@@ -97,13 +99,37 @@ const BILLING_CYCLE_OPTIONS = [
   { value: "yearly",  label: "연간" },
 ];
 
-const PRICE_CHANGE_REASON_OPTIONS = [
-  { value: "",              label: "선택 안 함" },
-  { value: "가격 인상",    label: "가격 인상" },
-  { value: "프로모션 종료", label: "프로모션 종료" },
-  { value: "플랜 변경",    label: "플랜 변경" },
-  { value: "기타",          label: "기타" },
+const EVENT_TYPE_OPTIONS = [
+  { value: "price_change", label: "가격 변경" },
+  { value: "cancelled",    label: "구독 해지" },
+  { value: "resumed",      label: "구독 재개" },
+  { value: "plan_change",  label: "플랜 변경" },
+  { value: "memo",         label: "메모/기록" },
 ];
+
+const PRICE_CHANGE_REASON_OPTIONS = [
+  { value: "",               label: "선택 안 함" },
+  { value: "가격 인상",     label: "가격 인상" },
+  { value: "프로모션 종료", label: "프로모션 종료" },
+  { value: "플랜 변경",     label: "플랜 변경" },
+  { value: "기타",           label: "기타" },
+];
+
+const EVENT_TYPE_LABELS: Record<HistoryEventType, string> = {
+  price_change: "가격 변경",
+  cancelled:    "구독 해지",
+  resumed:      "구독 재개",
+  plan_change:  "플랜 변경",
+  memo:         "메모/기록",
+};
+
+const EVENT_TYPE_DOT_CLASS: Record<HistoryEventType, string> = {
+  price_change: "dot-price",
+  cancelled:    "dot-cancelled",
+  resumed:      "dot-resumed",
+  plan_change:  "dot-plan",
+  memo:         "dot-memo",
+};
 
 const CYCLE_LABELS: Record<BillingCycle, string> = { monthly: "월간", yearly: "연간" };
 
@@ -158,6 +184,17 @@ function emptyForm() {
   };
 }
 
+function emptyHistoryForm() {
+  return {
+    eventType: "price_change" as HistoryEventType,
+    effectiveDate: todayStr(),
+    amount: "",
+    currency: "KRW" as Currency,
+    reason: "",
+    note: "",
+  };
+}
+
 // ── SubscriptionView ───────────────────────────────────────────────
 
 export function SubscriptionView() {
@@ -168,7 +205,7 @@ export function SubscriptionView() {
 
   // 상세 패널
   const [selected, setSelected] = useState<Subscription | null>(null);
-  const [history, setHistory] = useState<PriceHistory[]>([]);
+  const [history, setHistory] = useState<HistoryEvent[]>([]);
   const [cumulative, setCumulative] = useState<CumulativeResult | null>(null);
   const [notes, setNotes] = useState<SubscriptionNote[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -178,20 +215,14 @@ export function SubscriptionView() {
   // 모달
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [priceOpen, setPriceOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   // 폼 상태
   const [form, setForm] = useState(emptyForm());
-  const [priceForm, setPriceForm] = useState({
-    amount: "",
-    currency: "KRW" as Currency,
-    effectiveDate: todayStr(),
-    reason: "",
-    note: "",
-  });
+  const [historyForm, setHistoryForm] = useState(emptyHistoryForm());
 
   // ── 데이터 로드 ──────────────────────────────────────────────
 
@@ -223,7 +254,7 @@ export function SubscriptionView() {
     setDetailLoading(true);
     try {
       const [histData, cumData, notesData] = await Promise.all([
-        apiCall<PriceHistory[]>(`/api/subscription/services/${sub.id}/history`),
+        apiCall<HistoryEvent[]>(`/api/subscription/services/${sub.id}/history`),
         apiCall<CumulativeResult>(`/api/subscription/services/${sub.id}/cumulative`),
         apiCall<SubscriptionNote[]>(`/api/subscription/services/${sub.id}/notes`),
       ]);
@@ -335,7 +366,6 @@ export function SubscriptionView() {
       });
       setEditOpen(false);
       await loadAll();
-      // 상세 패널 갱신
       const updated = await apiCall<Subscription>(`/api/subscription/services/${selected.id}`);
       if (updated) setSelected(updated);
     } catch {
@@ -349,51 +379,64 @@ export function SubscriptionView() {
 
   async function handleToggleActive() {
     if (!selected) return;
+    const nowActive = selected.isActive;
     await apiCall(`/api/subscription/services/${selected.id}`, {
       method: "PUT",
       body: JSON.stringify({
-        isActive: !selected.isActive,
-        cancelledAt: selected.isActive ? todayStr() : null,
+        isActive: !nowActive,
+        cancelledAt: nowActive ? todayStr() : null,
+      }),
+    });
+    // 히스토리 자동 기록
+    await apiCall(`/api/subscription/services/${selected.id}/history`, {
+      method: "POST",
+      body: JSON.stringify({
+        eventType: nowActive ? "cancelled" : "resumed",
+        effectiveDate: todayStr(),
       }),
     });
     setSelected(null);
     await loadAll();
   }
 
-  // ── 가격 변경 ────────────────────────────────────────────────
+  // ── 히스토리 추가 ─────────────────────────────────────────────
 
-  function openPrice() {
+  function openHistory() {
     if (!selected) return;
-    setPriceForm({
+    setHistoryForm({
+      ...emptyHistoryForm(),
       amount: String(selected.currentAmount),
       currency: selected.currency,
-      effectiveDate: todayStr(),
-      reason: "",
-      note: "",
     });
     setFormError(null);
-    setPriceOpen(true);
+    setHistoryOpen(true);
   }
 
-  async function handlePriceChange() {
+  async function handleAddHistory() {
     if (!selected) return;
-    const amount = parseFloat(priceForm.amount);
-    if (isNaN(amount) || amount < 0) { setFormError("금액을 올바르게 입력해주세요."); return; }
+    const isPriceChange = historyForm.eventType === "price_change";
+
+    if (isPriceChange) {
+      const amount = parseFloat(historyForm.amount);
+      if (isNaN(amount) || amount < 0) { setFormError("금액을 올바르게 입력해주세요."); return; }
+    }
 
     setSaving(true);
     setFormError(null);
     try {
-      await apiCall(`/api/subscription/services/${selected.id}/price`, {
+      const isPriceChange = historyForm.eventType === "price_change";
+      const amount = parseFloat(historyForm.amount);
+      await apiCall(`/api/subscription/services/${selected.id}/history`, {
         method: "POST",
         body: JSON.stringify({
-          amount,
-          currency: priceForm.currency,
-          effectiveDate: priceForm.effectiveDate,
-          reason: priceForm.reason || undefined,
-          note: priceForm.note || undefined,
+          eventType: historyForm.eventType,
+          effectiveDate: historyForm.effectiveDate,
+          ...(isPriceChange && { amount, currency: historyForm.currency }),
+          reason: historyForm.reason || undefined,
+          note: historyForm.note || undefined,
         }),
       });
-      setPriceOpen(false);
+      setHistoryOpen(false);
       await loadAll();
       await loadDetail(selected);
     } catch {
@@ -528,7 +571,7 @@ export function SubscriptionView() {
                 </span>
               </div>
               <div className="sub-detail-header-actions">
-                <Button size="sm" variant="ghost" onClick={openPrice}>가격 변경</Button>
+                <Button size="sm" variant="ghost" onClick={openHistory}>+ 히스토리</Button>
                 <Button size="sm" variant="ghost" onClick={openEdit}>수정</Button>
                 <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>✕</Button>
               </div>
@@ -613,18 +656,21 @@ export function SubscriptionView() {
               <div className="sub-divider" />
 
               <div className="sub-detail-section">
-                <h4>가격 변동 히스토리</h4>
+                <h4>히스토리</h4>
                 {detailLoading ? (
                   <Skeleton variant="rect" height={80} />
                 ) : history.length === 0 ? (
                   <span style={{ fontSize: "0.82rem", color: "var(--text-faint)" }}>히스토리 없음</span>
                 ) : (
                   <div className="sub-history-timeline">
-                    {[...history].reverse().map((h, i) => (
+                    {[...history].reverse().map((h) => (
                       <div key={h.id} className="sub-history-item">
-                        <div className={`sub-history-dot${i === history.length - 1 ? " first" : ""}`} />
+                        <div className={`sub-history-dot ${EVENT_TYPE_DOT_CLASS[h.eventType]}`} />
                         <div className="sub-history-content">
-                          <div className="sub-history-amount">{formatAmount(h.amount, h.currency)}</div>
+                          <div className="sub-history-event-type">{EVENT_TYPE_LABELS[h.eventType]}</div>
+                          {h.amount !== null && h.currency !== null && (
+                            <div className="sub-history-amount">{formatAmount(h.amount, h.currency)}</div>
+                          )}
                           <div className="sub-history-date">적용일: {h.effectiveDate}</div>
                           {h.reason && <div className="sub-history-reason">{h.reason}</div>}
                           {h.note && <div className="sub-history-reason">{h.note}</div>}
@@ -640,7 +686,6 @@ export function SubscriptionView() {
               <div className="sub-detail-section">
                 <h4>비고/메모</h4>
                 <div className="sub-notes-table">
-                  {/* 입력 행 */}
                   <div className="sub-note-input-row">
                     <input
                       className="sub-note-input"
@@ -658,7 +703,6 @@ export function SubscriptionView() {
                       추가
                     </button>
                   </div>
-                  {/* 메모 목록 */}
                   {detailLoading ? (
                     <Skeleton variant="rect" height={60} />
                   ) : notes.length === 0 ? (
@@ -747,16 +791,16 @@ export function SubscriptionView() {
         <SubscriptionForm form={form} onChange={setForm} error={formError} />
       </Modal>
 
-      {/* ── 가격 변경 모달 ────────────────────────────── */}
+      {/* ── 히스토리 추가 모달 ───────────────────────── */}
       <Modal
-        open={priceOpen}
-        onClose={() => setPriceOpen(false)}
-        title="가격 변경"
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        title="히스토리 추가"
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setPriceOpen(false)} disabled={saving}>취소</Button>
-            <Button variant="primary" onClick={() => void handlePriceChange()} disabled={saving}>
+            <Button variant="ghost" onClick={() => setHistoryOpen(false)} disabled={saving}>취소</Button>
+            <Button variant="primary" onClick={() => void handleAddHistory()} disabled={saving}>
               {saving ? <Spinner size="sm" /> : "저장"}
             </Button>
           </>
@@ -764,43 +808,57 @@ export function SubscriptionView() {
       >
         <div className="sub-form">
           {formError && <Alert variant="error">{formError}</Alert>}
-          <div className="sub-form-row">
-            <FormField label="새 금액" required>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={priceForm.amount}
-                onChange={(e) => setPriceForm((p) => ({ ...p, amount: e.target.value }))}
-              />
-            </FormField>
-            <FormField label="통화">
-              <Select
-                options={CURRENCY_OPTIONS}
-                value={priceForm.currency}
-                onChange={(e) => setPriceForm((p) => ({ ...p, currency: e.target.value as Currency }))}
-              />
-            </FormField>
-          </div>
-          <FormField label="적용 시작일" required>
+          <FormField label="이벤트 유형" required>
+            <Select
+              options={EVENT_TYPE_OPTIONS}
+              value={historyForm.eventType}
+              onChange={(e) => setHistoryForm((p) => ({
+                ...p,
+                eventType: e.target.value as HistoryEventType,
+              }))}
+            />
+          </FormField>
+          <FormField label="적용일" required>
             <Input
               type="date"
-              value={priceForm.effectiveDate}
-              onChange={(e) => setPriceForm((p) => ({ ...p, effectiveDate: e.target.value }))}
+              value={historyForm.effectiveDate}
+              onChange={(e) => setHistoryForm((p) => ({ ...p, effectiveDate: e.target.value }))}
             />
           </FormField>
-          <FormField label="변경 사유">
-            <Select
-              options={PRICE_CHANGE_REASON_OPTIONS}
-              value={priceForm.reason}
-              onChange={(e) => setPriceForm((p) => ({ ...p, reason: e.target.value }))}
-            />
-          </FormField>
+          {historyForm.eventType === "price_change" && (
+            <div className="sub-form-row">
+              <FormField label="금액" required>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={historyForm.amount}
+                  onChange={(e) => setHistoryForm((p) => ({ ...p, amount: e.target.value }))}
+                />
+              </FormField>
+              <FormField label="통화">
+                <Select
+                  options={CURRENCY_OPTIONS}
+                  value={historyForm.currency}
+                  onChange={(e) => setHistoryForm((p) => ({ ...p, currency: e.target.value as Currency }))}
+                />
+              </FormField>
+            </div>
+          )}
+          {historyForm.eventType === "price_change" && (
+            <FormField label="변경 사유">
+              <Select
+                options={PRICE_CHANGE_REASON_OPTIONS}
+                value={historyForm.reason}
+                onChange={(e) => setHistoryForm((p) => ({ ...p, reason: e.target.value }))}
+              />
+            </FormField>
+          )}
           <FormField label="메모">
             <Textarea
               rows={2}
-              value={priceForm.note}
-              onChange={(e) => setPriceForm((p) => ({ ...p, note: e.target.value }))}
+              value={historyForm.note}
+              onChange={(e) => setHistoryForm((p) => ({ ...p, note: e.target.value }))}
               placeholder="추가 메모 (선택)"
             />
           </FormField>
@@ -829,7 +887,7 @@ export function SubscriptionView() {
       >
         <p style={{ color: "var(--text-muted)", margin: 0 }}>
           <strong style={{ color: "var(--text)" }}>{selected?.serviceName}</strong> 구독을 삭제하면
-          가격 히스토리도 함께 삭제됩니다. 계속하시겠습니까?
+          히스토리도 함께 삭제됩니다. 계속하시겠습니까?
         </p>
       </Modal>
     </>
