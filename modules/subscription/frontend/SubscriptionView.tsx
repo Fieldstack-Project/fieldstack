@@ -281,6 +281,12 @@ export function SubscriptionView() {
     }
   }
 
+  async function handleDeleteHistory(historyId: string) {
+    if (!selected) return;
+    await apiCall(`/api/subscription/services/${selected.id}/history/${historyId}`, { method: "DELETE" });
+    setHistory((prev) => prev.filter((h) => h.id !== historyId));
+  }
+
   async function handleDeleteNote(noteId: string) {
     if (!selected) return;
     await apiCall(`/api/subscription/services/${selected.id}/notes/${noteId}`, { method: "DELETE" });
@@ -675,6 +681,13 @@ export function SubscriptionView() {
                           {h.reason && <div className="sub-history-reason">{h.reason}</div>}
                           {h.note && <div className="sub-history-reason">{h.note}</div>}
                         </div>
+                        <button
+                          className="sub-note-del-btn"
+                          onClick={() => void handleDeleteHistory(h.id)}
+                          title="삭제"
+                        >
+                          ✕
+                        </button>
                       </div>
                     ))}
                   </div>

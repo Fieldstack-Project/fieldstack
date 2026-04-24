@@ -135,6 +135,18 @@ export function createSubscriptionRouter(
     }
   });
 
+  router.delete('/services/:id/history/:historyId', auth, async (req, res) => {
+    try {
+      const userId = (req as AuthRequest).userId;
+      const ok = await service.deleteHistoryEvent(userId, req.params['id'], req.params['historyId']);
+      if (!ok) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      res.json({ success: true });
+    } catch (err) {
+      const isForbidden = err instanceof Error && err.message === 'Forbidden';
+      res.status(isForbidden ? 404 : 500).json({ success: false, error: 'Not found' });
+    }
+  });
+
   router.get('/services/:id/history', auth, async (req, res) => {
     try {
       const userId = (req as AuthRequest).userId;

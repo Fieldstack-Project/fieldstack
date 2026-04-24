@@ -249,6 +249,22 @@ export class SubscriptionService {
     return rows.map((r) => this.mapHistoryRow(r));
   }
 
+  async deleteHistoryEvent(userId: string, subscriptionId: string, historyId: string): Promise<boolean> {
+    const owned = await this.db.query<{ id: string }>(
+      `SELECT id FROM subscription_services WHERE id = $1 AND user_id = $2`,
+      [subscriptionId, userId],
+    );
+    if (!owned.length) throw new Error('Forbidden');
+
+    const rows = await this.db.query<{ id: string }>(
+      `DELETE FROM subscription_price_history
+       WHERE id = $1 AND subscription_id = $2
+       RETURNING id`,
+      [historyId, subscriptionId],
+    );
+    return rows.length > 0;
+  }
+
   /** @deprecated getHistory 사용 */
   async getPriceHistory(subscriptionId: string): Promise<HistoryEvent[]> {
     return this.getHistory(subscriptionId);
