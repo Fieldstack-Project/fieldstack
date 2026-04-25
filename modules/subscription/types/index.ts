@@ -96,6 +96,8 @@ export interface CumulativeResult {
   priceChangeCount: number;
   averageMonthly: number;
   daysSinceStart: number;
+  /** 실제 구독이 활성화된 기간(일), 해지 기간 제외 */
+  activeDays: number;
   periods: CumulativePeriod[];
 }
 
@@ -119,6 +121,19 @@ export interface SubscriptionNote {
 
 export interface CreateNoteDto {
   content: string;
+}
+
+// ── 상태 이력 ─────────────────────────────────────────────────────
+
+export type SubscriptionStatus = 'active' | 'cancelled';
+
+export interface StatusHistoryEntry {
+  id: string;
+  subscriptionId: string;
+  status: SubscriptionStatus;
+  changedAt: string;   // YYYY-MM-DD
+  reason: string | null;
+  createdAt: string;
 }
 
 // ── API 공통 응답 ─────────────────────────────────────────────────

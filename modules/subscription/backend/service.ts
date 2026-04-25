@@ -9,9 +9,10 @@ import type {
   CumulativeResult,
   HistoryEvent,
   HistoryEventType,
-  Subscription,
+  StatusHistoryEntry,
   SubscriptionCurrency,
   SubscriptionNote,
+  SubscriptionStatus,
   SubscriptionSummary,
   UpdateSubscriptionDto,
 } from '../types/index.js';
@@ -37,8 +38,24 @@ function parseDateField(v: unknown): string {
   return String(v).slice(0, 10);
 }
 
+/** YYYY-MM-DD 문자열을 로컬 자정 Date로 파싱 (UTC 파싱으로 인한 09:00 시차 방지) */
+function parseLocalDate(dateStr: string): Date {
+  const [yRaw, mRaw, dRaw] = dateStr.split('-');
+  const y = Number(yRaw);
+  const m = Number(mRaw);
+  const d = Number(dRaw);
+
+  if (!Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d)) {
+    return new Date(y, m - 1, d);
+  }
+
+  const parsed = new Date(dateStr);
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
 function calcNextPaymentDate(billingDay: number, billingCycle: BillingCycle, from?: string): string {
-  const base = from ? new Date(from) : new Date();
+  const base = from ? parseLocalDate(from) : new Date();
   base.setHours(0, 0, 0, 0);
 
   const year = base.getFullYear();
@@ -115,6 +132,9 @@ export class SubscriptionService {
       reason: '최초 등록',
     });
 
+    // 초기 활성 상태 기록
+    await this.recordStatusChange(sub.id, 'active', startedAt);
+
     return sub;
   }
 
@@ -140,11 +160,14 @@ export class SubscriptionService {
 
     const billingDay = dto.billingDay ?? existing.billingDay;
     const billingCycle = dto.billingCycle ?? existing.billingCycle;
-    // 기존 nextPaymentDate는 parseDateField로 YYYY-MM-DD 보장됨;
-    // billingDay/billingCycle 변경 시에만 재계산
-    const nextPaymentDate = (dto.billingDay !== undefined || dto.billingCycle !== undefined)
-      ? calcNextPaymentDate(billingDay, billingCycle)
-      : existing.nextPaymentDate;
+    // 다음 결제일 재계산 조건:
+    //  1) billingDay / billingCycle 변경
+    //  2) 구독 재개 (isActive false → true): 오늘 기준으로 다음 결제일 재산정
+    const isResuming = dto.isActive === true && !existing.isActive;
+    const nextPaymentDate =
+      (dto.billingDay !== undefined || dto.billingCycle !== undefined || isResuming)
+        ? calcNextPaymentDate(billingDay, billingCycle)
+        : existing.nextPaymentDate;
 
     // cancelled_at: undefined → 기존 값 유지 / null → 명시적 null 설정 / 날짜 → 업데이트
     const cancelledAt = dto.cancelledAt !== undefined ? dto.cancelledAt : existing.cancelledAt;
@@ -186,7 +209,17 @@ export class SubscriptionService {
       ],
     );
 
-    return rows.length ? this.mapRow(rows[0]) : null;
+    const updated = rows.length ? this.mapRow(rows[0]) : null;
+
+    // isActive 전환 시 상태 이력 기록
+    if (updated && dto.isActive !== undefined && dto.isActive !== existing.isActive) {
+      const changedAt = dto.isActive === false
+        ? (dto.cancelledAt ?? toDateString(new Date()))
+        : toDateString(new Date());
+      await this.recordStatusChange(id, dto.isActive ? 'active' : 'cancelled', changedAt);
+    }
+
+    return updated;
   }
 
   async delete(userId: string, id: string): Promise<boolean> {
@@ -210,7 +243,7 @@ export class SubscriptionService {
     );
     if (!owned.length) throw new Error('Forbidden');
 
-    const isPriceChange = dto.eventType === 'price_change';
+    const isAmountEvent = dto.eventType === 'price_change' || dto.eventType === 'plan_change';
     const rows = await this.db.query<Record<string, unknown>>(
       `INSERT INTO subscription_price_history
          (subscription_id, event_type, effective_date, amount, currency, reason, note)
@@ -220,14 +253,14 @@ export class SubscriptionService {
         subscriptionId,
         dto.eventType,
         dto.effectiveDate,
-        isPriceChange ? (dto.amount ?? 0) : 0,
-        isPriceChange ? (dto.currency ?? 'KRW') : 'KRW',
+        isAmountEvent ? (dto.amount ?? 0) : 0,
+        isAmountEvent ? (dto.currency ?? 'KRW') : 'KRW',
         dto.reason ?? null,
         dto.note ?? null,
       ],
     );
 
-    if (isPriceChange && dto.amount !== undefined && dto.currency !== undefined) {
+    if (isAmountEvent && dto.amount !== undefined && dto.currency !== undefined) {
       await this.db.query(
         `UPDATE subscription_services
          SET current_amount = $1, currency = $2, updated_at = NOW()
@@ -303,24 +336,55 @@ export class SubscriptionService {
     if (!sub) return null;
 
     const allHistory = await this.getHistory(id);
-    const history = allHistory.filter((h) => h.eventType === 'price_change' && h.amount !== null);
+    const history = allHistory.filter(
+      (h) =>
+        (h.eventType === 'price_change' || h.eventType === 'plan_change') &&
+        h.amount !== null,
+    );
     if (history.length === 0) return null;
 
-    const startDate = new Date(sub.startedAt);
+    const startDate = parseLocalDate(sub.startedAt);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / 86400000);
+
+    // 활성 기간 창 구성
+    // subscription_price_history의 cancelled/resumed 이벤트를 소스로 사용.
+    // subscription_status_history는 partial 데이터(최근 토글만 기록)일 수 있으므로
+    // 누적 계산에는 항상 완전한 이력을 보유한 price_history를 기준으로 함.
+    const statusEvents: StatusHistoryEntry[] = allHistory
+      .filter((h) => h.eventType === 'cancelled' || h.eventType === 'resumed')
+      .map((h) => ({
+        id: h.id,
+        subscriptionId: h.subscriptionId,
+        status: (h.eventType === 'cancelled' ? 'cancelled' : 'active') as SubscriptionStatus,
+        changedAt: h.effectiveDate,
+        reason: h.reason,
+        createdAt: h.createdAt,
+      }));
+
+    const activeWindows = buildActiveWindows(sub.startedAt, today, statusEvents);
+    const activeDays = activeWindows.reduce(
+      (sum, w) => sum + Math.floor((w.to.getTime() - w.from.getTime()) / 86400000),
+      0,
+    );
 
     const periods: CumulativePeriod[] = [];
     let totalKrw = 0;
 
     for (let i = 0; i < history.length; i++) {
       const h = history[i];
-      const periodStart = new Date(h.effectiveDate);
-      const periodEnd = history[i + 1] ? new Date(history[i + 1].effectiveDate) : today;
+      const periodStart = parseLocalDate(h.effectiveDate);
+      const periodEnd = history[i + 1] ? parseLocalDate(history[i + 1].effectiveDate) : today;
 
-      const paymentCount = countPayments(sub.billingCycle, sub.billingDay, periodStart, periodEnd);
+      const paymentCount = countPaymentsInWindows(
+        sub.billingCycle,
+        sub.billingDay,
+        periodStart,
+        periodEnd,
+        activeWindows,
+      );
       const periodTotal = paymentCount * (h.amount ?? 0);
 
       periods.push({
@@ -339,8 +403,8 @@ export class SubscriptionService {
     const lastPeriod = periods[periods.length - 1];
     const currentPricePaid = lastPeriod?.periodTotal ?? 0;
 
-    const monthsElapsed = Math.max(daysSinceStart / 30, 1);
-    const averageMonthly = Math.round(totalKrw / monthsElapsed);
+    const activeMonths = Math.max(activeDays / 30, 1);
+    const averageMonthly = Math.round(totalKrw / activeMonths);
 
     return {
       subscriptionId: id,
@@ -350,6 +414,7 @@ export class SubscriptionService {
       priceChangeCount: Math.max(history.length - 1, 0),
       averageMonthly,
       daysSinceStart,
+      activeDays,
       periods,
     };
   }
@@ -374,7 +439,7 @@ export class SubscriptionService {
 
     // 가장 가까운 결제일
     const sorted = [...active].sort(
-      (a, b) => new Date(a.nextPaymentDate).getTime() - new Date(b.nextPaymentDate).getTime(),
+      (a, b) => parseLocalDate(a.nextPaymentDate).getTime() - parseLocalDate(b.nextPaymentDate).getTime(),
     );
     const nextDate = sorted[0]?.nextPaymentDate ?? null;
     const nextServices = nextDate
@@ -424,6 +489,32 @@ export class SubscriptionService {
     );
   }
 
+  // ── 상태 이력 ─────────────────────────────────────────────────
+
+  private async recordStatusChange(
+    subscriptionId: string,
+    status: SubscriptionStatus,
+    changedAt: string,
+    reason?: string,
+  ): Promise<void> {
+    await this.db.query(
+      `INSERT INTO subscription_status_history
+         (subscription_id, status, changed_at, reason)
+       VALUES ($1,$2,$3,$4)`,
+      [subscriptionId, status, changedAt, reason ?? null],
+    );
+  }
+
+  async getStatusHistory(subscriptionId: string): Promise<StatusHistoryEntry[]> {
+    const rows = await this.db.query<Record<string, unknown>>(
+      `SELECT * FROM subscription_status_history
+       WHERE subscription_id = $1
+       ORDER BY changed_at ASC, created_at ASC`,
+      [subscriptionId],
+    );
+    return rows.map((r) => this.mapStatusHistoryRow(r));
+  }
+
   // ── 행 매핑 ──────────────────────────────────────────────────
 
   private mapRow(r: Record<string, unknown>): Subscription {
@@ -460,21 +551,84 @@ export class SubscriptionService {
     };
   }
 
+  private mapStatusHistoryRow(r: Record<string, unknown>): StatusHistoryEntry {
+    return {
+      id: r['id'] as string,
+      subscriptionId: r['subscription_id'] as string,
+      status: r['status'] as SubscriptionStatus,
+      changedAt: parseDateField(r['changed_at']),
+      reason: (r['reason'] as string) ?? null,
+      createdAt: r['created_at'] as string,
+    };
+  }
+
   private mapHistoryRow(r: Record<string, unknown>): HistoryEvent {
     const eventType = ((r['event_type'] as string) ?? 'price_change') as HistoryEventType;
-    const isPriceChange = eventType === 'price_change';
+    const isAmountEvent = eventType === 'price_change' || eventType === 'plan_change';
     return {
       id: r['id'] as string,
       subscriptionId: r['subscription_id'] as string,
       eventType,
       effectiveDate: parseDateField(r['effective_date']),
-      amount: isPriceChange ? Number(r['amount']) : null,
-      currency: isPriceChange ? (r['currency'] as SubscriptionCurrency) : null,
+      amount: isAmountEvent ? Number(r['amount']) : null,
+      currency: isAmountEvent ? (r['currency'] as SubscriptionCurrency) : null,
       reason: (r['reason'] as string) ?? null,
       note: (r['note'] as string) ?? null,
       createdAt: r['created_at'] as string,
     };
   }
+}
+
+// ── 활성 기간 창 구성 ─────────────────────────────────────────────
+
+function buildActiveWindows(
+  startedAt: string,
+  today: Date,
+  statusHistory: StatusHistoryEntry[],
+): Array<{ from: Date; to: Date }> {
+  const windows: Array<{ from: Date; to: Date }> = [];
+
+  // 구독은 항상 startedAt부터 활성 상태로 시작
+  let windowStart: Date | null = parseLocalDate(startedAt);
+
+  for (const entry of statusHistory) {
+    const date = parseLocalDate(entry.changedAt);
+    if (entry.status === 'cancelled' && windowStart !== null) {
+      // 활성 구간 종료 (역순·중복 이벤트 방어: date가 windowStart보다 커야 유효)
+      if (date > windowStart) {
+        windows.push({ from: windowStart, to: date });
+      }
+      windowStart = null;
+    } else if (entry.status === 'active' && windowStart === null) {
+      // 비활성 구간 종료 → 새 활성 구간 시작
+      windowStart = date;
+    }
+    // 이미 같은 상태인 중복 이벤트는 무시
+  }
+
+  if (windowStart !== null) {
+    windows.push({ from: windowStart, to: today });
+  }
+
+  return windows;
+}
+
+function countPaymentsInWindows(
+  cycle: BillingCycle,
+  billingDay: number,
+  periodStart: Date,
+  periodEnd: Date,
+  activeWindows: Array<{ from: Date; to: Date }>,
+): number {
+  let count = 0;
+  for (const window of activeWindows) {
+    const from = new Date(Math.max(periodStart.getTime(), window.from.getTime()));
+    const to = new Date(Math.min(periodEnd.getTime(), window.to.getTime()));
+    if (from < to) {
+      count += countPayments(cycle, billingDay, from, to);
+    }
+  }
+  return count;
 }
 
 // ── 결제 횟수 계산 ────────────────────────────────────────────────

@@ -29,16 +29,18 @@ export const createNoteSchema = z.object({
 });
 
 export const createHistoryEventSchema = z.discriminatedUnion('eventType', [
+  // 금액 변경을 수반하는 이벤트 (price_change, plan_change)
   z.object({
-    eventType: z.literal('price_change'),
+    eventType: z.enum(['price_change', 'plan_change']),
     effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     amount: z.number().nonnegative(),
     currency: z.enum(CURRENCIES),
     reason: z.string().max(200).optional(),
     note: z.string().max(500).optional(),
   }),
+  // 금액 변경 없는 이벤트
   z.object({
-    eventType: z.enum(['cancelled', 'resumed', 'plan_change', 'memo']),
+    eventType: z.enum(['cancelled', 'resumed', 'memo']),
     effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     reason: z.string().max(200).optional(),
     note: z.string().max(500).optional(),

@@ -202,6 +202,19 @@ export function createSubscriptionRouter(
     }
   });
 
+  // ── 상태 이력 ─────────────────────────────────────────────────
+  router.get('/services/:id/status-history', auth, async (req, res) => {
+    try {
+      const userId = (req as AuthRequest).userId;
+      const sub = await service.findById(userId, req.params['id']);
+      if (!sub) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+      const history = await service.getStatusHistory(req.params['id']);
+      res.json({ success: true, data: history });
+    } catch {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  });
+
   // ── 누적 결제 금액 ────────────────────────────────────────────
   router.get('/services/:id/cumulative', auth, async (req, res) => {
     try {

@@ -82,6 +82,7 @@ interface CumulativeResult {
   priceChangeCount: number;
   averageMonthly: number;
   daysSinceStart: number;
+  activeDays?: number;
 }
 
 // ── 상수 ──────────────────────────────────────────────────────────
@@ -111,7 +112,6 @@ const PRICE_CHANGE_REASON_OPTIONS = [
   { value: "",               label: "선택 안 함" },
   { value: "가격 인상",     label: "가격 인상" },
   { value: "프로모션 종료", label: "프로모션 종료" },
-  { value: "플랜 변경",     label: "플랜 변경" },
   { value: "기타",           label: "기타" },
 ];
 
@@ -420,9 +420,9 @@ export function SubscriptionView() {
 
   async function handleAddHistory() {
     if (!selected) return;
-    const isPriceChange = historyForm.eventType === "price_change";
+    const isAmountEvent = historyForm.eventType === "price_change" || historyForm.eventType === "plan_change";
 
-    if (isPriceChange) {
+    if (isAmountEvent) {
       const amount = parseFloat(historyForm.amount);
       if (isNaN(amount) || amount < 0) { setFormError("금액을 올바르게 입력해주세요."); return; }
     }
@@ -430,14 +430,14 @@ export function SubscriptionView() {
     setSaving(true);
     setFormError(null);
     try {
-      const isPriceChange = historyForm.eventType === "price_change";
+      const isAmountEvent = historyForm.eventType === "price_change" || historyForm.eventType === "plan_change";
       const amount = parseFloat(historyForm.amount);
       await apiCall(`/api/subscription/services/${selected.id}/history`, {
         method: "POST",
         body: JSON.stringify({
           eventType: historyForm.eventType,
           effectiveDate: historyForm.effectiveDate,
-          ...(isPriceChange && { amount, currency: historyForm.currency }),
+          ...(isAmountEvent && { amount, currency: historyForm.currency }),
           reason: historyForm.reason || undefined,
           note: historyForm.note || undefined,
         }),
@@ -651,7 +651,7 @@ export function SubscriptionView() {
                     </div>
                     <div className="sub-cumul-item">
                       <div className="ci-label">사용 기간</div>
-                      <div className="ci-value">{formatDuration(cumulative.daysSinceStart)}</div>
+                      <div className="ci-value">{formatDuration(cumulative.activeDays ?? cumulative.daysSinceStart)}</div>
                     </div>
                   </div>
                 ) : (
@@ -838,7 +838,7 @@ export function SubscriptionView() {
               onChange={(e) => setHistoryForm((p) => ({ ...p, effectiveDate: e.target.value }))}
             />
           </FormField>
-          {historyForm.eventType === "price_change" && (
+          {(historyForm.eventType === "price_change" || historyForm.eventType === "plan_change") && (
             <div className="sub-form-row">
               <FormField label="금액" required>
                 <Input
