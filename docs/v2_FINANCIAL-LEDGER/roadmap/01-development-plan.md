@@ -10,7 +10,7 @@
 > - Phase 2.x.2 i18n 전 항목 완료 (i18next·ko/en 번역·Settings 언어 전환·Ledger 번역·모듈 로케일 자동 등록·displayName·description i18n 키 전환·언어 서버 저장·모듈 템플릿 locales 추가). 미완료: Setup 언어 선택.
 > - 환율 시스템 완료 (`exchange_rates` 테이블·Frankfurter API 클라이언트·캐시 우선 서비스·`/core/exchange-rates` API 엔드포인트).
 > - Phase 2.x.3 Event Bus & Service Registry 완료. Phase 2.x.4 Core Scheduler 완료 (`node-cron`·DB 로그·재시도·Asia/Seoul).
-> - Phase 2.2 Subscription 핵심 기능 완료 (DB 스키마·API·Scheduler 결제일 체크·Event Bus 연동·프론트 목록/추가/수정/상세 패널/누적 통계/가격 히스토리/메모). 잔여: Google Calendar·결제일 캘린더 뷰·Ledger 수신 연동·구독 상태 이력.
+> - Phase 2.2 Subscription 핵심 기능 완료 (DB 스키마·API·Scheduler 결제일 체크·Event Bus 연동·프론트 목록/추가/수정/상세 패널/누적 통계/가격 히스토리/메모). 잔여: Google Calendar·결제일 캘린더 뷰·Ledger 수신 연동·시간대 전략(표시/계산 분리) 고도화.
 
 ## 개요
 
@@ -580,7 +580,11 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [x] API 엔드포인트 (구독 CRUD·가격 히스토리·누적 통계·요약·메모 CRUD)
 - [x] 알림 시스템 — Scheduler 활용, 매일 자정 결제일 체크 (`subscription-payment-check`)
 - [x] Event Bus `subscription:payment` 이벤트 발행 (Ledger 수신 연동은 Ledger 측 미구현)
-- [ ] 구독 상태 이력 (`subscription_status_history` 테이블 — 해지/재개 기록, 누적 계산 시 해지 기간 제외)
+- [x] 구독 상태 이력 (`subscription_status_history` 테이블 — 해지/재개 기록, 누적 계산 시 해지 기간 제외)
+- [ ] 시간대 분리 전략 적용
+  - [ ] 서버 기준 시간 UTC 고정 (환경 로컬 시간대 의존 제거)
+  - [ ] 결제 계산 시간대(`billingTimezone`) 필드 도입 (유저 기본값 + 구독 단위 override)
+  - [ ] 누적 통계/다음 결제일/결제일 체크 로직을 `billingTimezone` 기준으로 통일
 - [ ] Google Calendar 연동 (2.x.5 통합 레이어 활용)
 - [ ] 테스트
 
@@ -602,6 +606,7 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [x] 누적 결제 금액·평균 월 비용·사용 일수 통계
 - [x] 인라인 메모 (날짜 기록 테이블 형식)
 - [ ] 구독 상태 이력 추적 (해지/재개 기록 → 누적 계산에서 해지 기간 제외)
+- [ ] 표시 시간대 설정 (사용자 설정)과 결제 계산 시간대(도메인 로직) 분리
 - [ ] Google Calendar 자동 등록
 - [ ] 결제일 알림 (D-7, D-3, D-1)
 - [ ] Ledger Module 자동 연동 (Ledger 측 `subscription:payment` 이벤트 수신 구현 필요)
