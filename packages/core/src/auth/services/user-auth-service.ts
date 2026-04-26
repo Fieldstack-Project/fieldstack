@@ -16,6 +16,15 @@ export type PasswordRecoveryResult = {
   userId: string;
 };
 
+export interface AdminUserSummary {
+  id: string;
+  email: string;
+  isAdmin: boolean;
+  isActive: boolean;
+  isTempPassword: boolean;
+  createdAt: string;
+}
+
 export class UserAuthService {
   public constructor(
     private readonly db: DbProvider,
@@ -30,15 +39,23 @@ export class UserAuthService {
     const allowed = await this.whitelist.isAllowed(email);
     if (!allowed) throw new Error('Email not allowed');
 
-    type UserRow = { id: string; password_hash: string; is_temp_password: boolean; is_admin: boolean };
+    type UserRow = {
+      id: string;
+      password_hash: string;
+      is_temp_password: boolean;
+      is_admin: boolean;
+      is_active: boolean;
+    };
     const [user] = await this.db.query<UserRow>(
-      'SELECT id, password_hash, is_temp_password, is_admin FROM users WHERE email = $1',
+      'SELECT id, password_hash, is_temp_password, is_admin, is_active FROM users WHERE email = $1',
       [email],
     );
     if (!user) throw new Error('Invalid credentials');
 
     const valid = await verifyPassword(password, user.password_hash);
     if (!valid) throw new Error('Invalid credentials');
+
+    if (!user.is_active) throw new Error('Account is disabled');
 
     // TOTP 등록 여부 확인
     type TotpRow = { verified: boolean };
@@ -151,5 +168,94 @@ export class UserAuthService {
         [passwordHash, record.user_id],
       );
     });
+  }
+
+  // ── 관리자: 사용자 관리 ─────────────────────────────────────────
+
+  public async listUsers(): Promise<AdminUserSummary[]> {
+    type Row = {
+      id: string;
+      email: string;
+      is_admin: boolean;
+      is_active: boolean;
+      is_temp_password: boolean;
+      created_at: string;
+    };
+    const rows = await this.db.query<Row>(
+      `SELECT id, email, is_admin, is_active, is_temp_password, created_at
+       FROM users
+       ORDER BY created_at`,
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      email: r.email,
+      isAdmin: r.is_admin,
+      isActive: r.is_active,
+      isTempPassword: r.is_temp_password,
+      createdAt: r.created_at,
+    }));
+  }
+
+  public async findUserIdByEmail(email: string): Promise<string | null> {
+    type Row = { id: string };
+    const [row] = await this.db.query<Row>(
+      'SELECT id FROM users WHERE email = $1',
+      [email],
+    );
+    return row?.id ?? null;
+  }
+
+  public async isUserAdmin(userId: string): Promise<boolean> {
+    type Row = { is_admin: boolean };
+    const [row] = await this.db.query<Row>(
+      'SELECT is_admin FROM users WHERE id = $1',
+      [userId],
+    );
+    return row?.is_admin ?? false;
+  }
+
+  public async countAdmins(): Promise<number> {
+    type Row = { count: string | number };
+    const [row] = await this.db.query<Row>(
+      'SELECT COUNT(*) AS count FROM users WHERE is_admin = TRUE AND is_active = TRUE',
+    );
+    return Number(row?.count ?? 0);
+  }
+
+  public async setUserActive(userId: string, isActive: boolean): Promise<void> {
+    await this.db.query(
+      'UPDATE users SET is_active = $1, updated_at = NOW() WHERE id = $2',
+      [isActive, userId],
+    );
+  }
+
+  public async setUserAdmin(userId: string, isAdmin: boolean): Promise<void> {
+    await this.db.query(
+      'UPDATE users SET is_admin = $1, updated_at = NOW() WHERE id = $2',
+      [isAdmin, userId],
+    );
+  }
+
+  public async deleteUser(userId: string): Promise<void> {
+    // ON DELETE CASCADE가 sessions / totp_credentials / totp_challenges /
+    // password_recovery_tokens에 설정되어 있으므로 users 한 행 삭제로 정리됨.
+    await this.db.query('DELETE FROM users WHERE id = $1', [userId]);
+  }
+
+  /**
+   * 신규 사용자 생성 + 일회용 초대 토큰 발급.
+   *
+   * SMTP 미연결 단계의 기본 가입 흐름.
+   * 비밀번호는 임의 hash로 채워 로그인 차단 → 사용자가 토큰으로 직접 비밀번호 설정.
+   * 반환된 `inviteToken`은 1회만 화면에 표시하며 재호출 시 새 토큰을 발급한다.
+   */
+  public async createUserWithInvite(
+    email: string,
+    isAdmin = false,
+  ): Promise<{ userId: string; inviteToken: string }> {
+    const placeholderPassword = crypto.randomBytes(32).toString('hex');
+    const userId = await this.createUser(email, placeholderPassword, true, isAdmin);
+    const { adminToken } = await this.issueRecoveryToken(userId);
+    return { userId, inviteToken: adminToken };
   }
 }

@@ -27,6 +27,13 @@ export class WhitelistServiceImpl implements WhitelistService {
     await this.db.query('DELETE FROM whitelist_rules WHERE id = $1', [ruleId]);
   }
 
+  public async setEnabled(ruleId: string, enabled: boolean): Promise<void> {
+    await this.db.query(
+      'UPDATE whitelist_rules SET enabled = $1 WHERE id = $2',
+      [enabled, ruleId],
+    );
+  }
+
   public async isAllowed(email: string): Promise<boolean> {
     const rules = await this.listRules();
     const active = rules.filter((r) => r.enabled);

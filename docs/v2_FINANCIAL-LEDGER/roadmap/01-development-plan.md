@@ -738,11 +738,58 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 - [ ] 관리자 심사 UI (제출 목록, 승인/거절, 스캔 결과 표시)
 - [ ] `ModuleManifest` 타입에 누락 필드 보완 (`displayName`, `description`, `fileHandlers`)
 
+#### 2.x.7 사용자 관리 & Whitelist 운영
+**예상 기간: 3일**
+
+> Phase 1.95.2 Setup 마법사가 만든 첫 관리자 계정 외에 추가 사용자를 운영 단계에서 발급할 수 있는 코어 기능.
+> Phase 2.x.1 SMTP가 완성되기 전이라도 동작해야 하므로 **수동 초대 토큰 방식**으로 우선 구현하고,
+> SMTP 도입 시 같은 토큰을 자동 메일 발송 채널로 전환만 한다.
+> 비밀번호 분실 복구(`password_recovery_tokens`) 인프라(Phase 1.9.3)를 그대로 재사용한다.
+
+**설계 원칙:**
+- 임시 비밀번호를 화면에 노출하지 않는다 — 일회용 초대 토큰만 발급
+- 관리자가 토큰을 복사해 외부 채널(메신저 등)로 전달 → 사용자가 `#forgot-password` 토큰 경로로 비밀번호 직접 설정
+- 모든 destructive 액션(삭제·관리자 강등·비활성화)은 자기 자신/마지막 관리자 보호
+- 관리자 전용 라우트는 `requireAdmin` 미들웨어로 JWT + DB `is_admin` 재확인
+
+**DB:**
+- [x] `users.is_active` 컬럼 추가 (`008_user_status.sql`) — 비활성 계정은 로그인 차단
+
+**Backend (admin 라우트):**
+- [x] `requireAdmin` 미들웨어 — JWT 검증 후 DB에서 `is_admin` 재확인
+- [x] `GET /admin/users` — 사용자 목록 (id, email, isAdmin, isActive, isTempPassword, createdAt)
+- [x] `POST /admin/users` — 사용자 생성 + 일회용 초대 토큰 반환 (옵션: `addToWhitelist`, `isAdmin`)
+- [x] `PATCH /admin/users/:id` — `isActive` / `isAdmin` 토글 (자기 자신·마지막 관리자 보호)
+- [x] `POST /admin/users/:id/invite` — 초대/복구 토큰 재발급
+- [x] `DELETE /admin/users/:id` — 삭제 (PIN 재확인 필수, 자기 자신·마지막 관리자 보호)
+- [x] `GET /admin/whitelist` — 룰 목록
+- [x] `POST /admin/whitelist` — 룰 추가 (email | domain)
+- [x] `PATCH /admin/whitelist/:id` — `enabled` 토글
+- [x] `DELETE /admin/whitelist/:id` — 룰 삭제
+
+**서비스 확장:**
+- [x] `UserAuthService.login()`이 `is_active = false` 계정을 차단
+- [x] `UserAuthService` — `listUsers` / `setUserActive` / `setUserAdmin` / `deleteUser` / `countAdmins`
+- [x] `WhitelistServiceImpl.setEnabled(id, enabled)`
+
+**Frontend (AdminView "사용자 관리" 패널):**
+- [x] 패널 내부 탭 — "사용자" / "Whitelist" 분리
+- [x] 사용자 목록 테이블 (이메일 / 역할 / 활성 / 임시 / 가입일 / 액션)
+- [x] "사용자 추가" 모달 — 이메일·관리자 여부·Whitelist 동시 추가 옵션
+- [x] 초대 토큰 표시 모달 — 토큰 1회 표시 + 복사 버튼 + 안내 문구 (창 닫으면 재발급 필요)
+- [x] 활성 토글 / 관리자 토글 / 토큰 재발급 / 삭제(PIN 재확인) 액션
+- [x] Whitelist 서브탭 — 룰 목록·추가(email/domain)·활성 토글·삭제
+
+**SMTP 연결 시 후속 작업 (2.x.1):**
+- [ ] 초대 토큰을 자동 이메일 발송으로 전환 (관리자 화면은 토큰 미표시 + "메일 발송됨" 안내)
+- [ ] SMTP 미설정 시 현재 수동 발급 UX를 폴백으로 유지
+
 ### 마일스톤 2.x 완료 기준
 - ✅ SMTP 연동 및 이메일 발송 작동
 - ✅ 한국어/영어 전환 실제 동작, 모듈별 번역 파일 로드
 - ✅ Event Bus / Core Scheduler / 통합 서비스 레이어 구현 완료 (Subscription 착수 가능 상태)
 - ✅ 마켓플레이스 Registry 제출 프로세스 설계 완료
+- ✅ 관리자가 추가 사용자 계정을 발급/관리 가능 (수동 토큰 → SMTP 자동화 후속)
 
 ---
 

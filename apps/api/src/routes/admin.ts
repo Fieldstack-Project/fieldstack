@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
+import { requireAdmin } from '../middleware/require-admin';
 import { requireAuth } from '../middleware/require-auth';
 import { clearConfig, clearInstalled, scheduleRestart } from '../setup/mode';
 import { tunnelManager } from '../tunnel/cloudflare-tunnel';
@@ -16,6 +17,37 @@ const ChangePinBody = z.object({
   currentPin: z.string().min(4),
   newPin: z.string().min(4),
 });
+
+const CreateUserBody = z.object({
+  email: z.string().email(),
+  isAdmin: z.boolean().optional(),
+  addToWhitelist: z.boolean().optional(),
+});
+
+const PatchUserBody = z
+  .object({
+    isActive: z.boolean().optional(),
+    isAdmin: z.boolean().optional(),
+  })
+  .refine((d) => d.isActive !== undefined || d.isAdmin !== undefined, {
+    message: 'At least one of isActive or isAdmin is required',
+  });
+
+const DeleteUserBody = z.object({
+  pin: z.string().min(4),
+});
+
+const WhitelistAddBody = z.object({
+  type: z.enum(['email', 'domain']),
+  value: z.string().min(1),
+  enabled: z.boolean().optional(),
+});
+
+const WhitelistPatchBody = z.object({
+  enabled: z.boolean(),
+});
+
+const UuidParam = z.string().uuid();
 
 // ── 완전 초기화: 삭제할 테이블 목록 (FK 의존성 역순) ──────────
 
@@ -41,6 +73,242 @@ const DATA_TABLES = ['shared_link_logs', 'shared_links'];
 
 export function createAdminRouter(services: AppServices): Router {
   const router = Router();
+  const adminGuard = requireAdmin(services.jwtManager, services.userAuth);
+
+  // ── 사용자 관리 ─────────────────────────────────────────────
+
+  /** GET /admin/users — 사용자 목록 */
+  router.get('/users', adminGuard, async (_req, res) => {
+    try {
+      const users = await services.userAuth.listUsers();
+      res.json({ success: true, data: { users } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /**
+   * POST /admin/users — 사용자 생성 + 일회용 초대 토큰 발급
+   *
+   * 응답의 `inviteToken`은 1회만 표시한다.
+   * 사용자는 ForgotPasswordView 토큰 경로로 비밀번호를 직접 설정한다.
+   */
+  router.post('/users', adminGuard, async (req, res) => {
+    const parsed = CreateUserBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.flatten() });
+      return;
+    }
+
+    const { email, isAdmin = false, addToWhitelist = false } = parsed.data;
+
+    try {
+      const existing = await services.userAuth.findUserIdByEmail(email);
+      if (existing) {
+        res.status(409).json({ success: false, error: '이미 존재하는 이메일입니다.' });
+        return;
+      }
+
+      const { userId, inviteToken } = await services.userAuth.createUserWithInvite(email, isAdmin);
+
+      if (addToWhitelist) {
+        // 활성 룰이 하나라도 있으면 화이트리스트가 강제 적용되므로,
+        // 새 사용자가 즉시 로그인할 수 있도록 룰을 추가한다.
+        await services.whitelist.addRule({ type: 'email', value: email, enabled: true });
+      }
+
+      res.json({
+        success: true,
+        data: { userId, email, inviteToken, adminToken: inviteToken, expiresInMinutes: 30 },
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** PATCH /admin/users/:id — 활성/관리자 토글 */
+  router.patch('/users/:id', adminGuard, async (req, res) => {
+    const idParse = UuidParam.safeParse(req.params['id']);
+    if (!idParse.success) {
+      res.status(400).json({ success: false, error: 'Invalid user id' });
+      return;
+    }
+    const parsed = PatchUserBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.flatten() });
+      return;
+    }
+
+    const targetId = idParse.data;
+    const requesterId = req.auth!.userId;
+    const { isActive, isAdmin } = parsed.data;
+
+    try {
+      // 자기 자신 보호 — 강등/비활성으로 락아웃되는 사고 방지
+      if (targetId === requesterId) {
+        if (isActive === false) {
+          res.status(400).json({ success: false, error: '본인 계정은 비활성화할 수 없습니다.' });
+          return;
+        }
+        if (isAdmin === false) {
+          res.status(400).json({ success: false, error: '본인의 관리자 권한은 해제할 수 없습니다.' });
+          return;
+        }
+      }
+
+      // 마지막 활성 관리자 보호
+      if (isAdmin === false || isActive === false) {
+        const adminCount = await services.userAuth.countAdmins();
+        const targetIsAdmin = await services.userAuth.isUserAdmin(targetId);
+        if (targetIsAdmin && adminCount <= 1) {
+          res.status(400).json({
+            success: false,
+            error: '마지막 관리자는 강등하거나 비활성화할 수 없습니다.',
+          });
+          return;
+        }
+      }
+
+      if (isActive !== undefined) {
+        await services.userAuth.setUserActive(targetId, isActive);
+      }
+      if (isAdmin !== undefined) {
+        await services.userAuth.setUserAdmin(targetId, isAdmin);
+      }
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** POST /admin/users/:id/invite — 초대/복구 토큰 재발급 */
+  router.post('/users/:id/invite', adminGuard, async (req, res) => {
+    const idParse = UuidParam.safeParse(req.params['id']);
+    if (!idParse.success) {
+      res.status(400).json({ success: false, error: 'Invalid user id' });
+      return;
+    }
+
+    try {
+      const { adminToken } = await services.userAuth.issueRecoveryToken(idParse.data);
+      res.json({ success: true, data: { inviteToken: adminToken, adminToken, expiresInMinutes: 30 } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** DELETE /admin/users/:id — 사용자 삭제 (PIN 재확인 필수) */
+  router.delete('/users/:id', adminGuard, async (req, res) => {
+    const idParse = UuidParam.safeParse(req.params['id']);
+    if (!idParse.success) {
+      res.status(400).json({ success: false, error: 'Invalid user id' });
+      return;
+    }
+    const parsed = DeleteUserBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.flatten() });
+      return;
+    }
+
+    const targetId = idParse.data;
+    const requesterId = req.auth!.userId;
+
+    try {
+      const pinOk = await services.adminPin.verifyPin(parsed.data.pin);
+      if (!pinOk) {
+        res.status(403).json({ success: false, error: 'PIN이 올바르지 않습니다.' });
+        return;
+      }
+
+      if (targetId === requesterId) {
+        res.status(400).json({ success: false, error: '본인 계정은 삭제할 수 없습니다.' });
+        return;
+      }
+
+      const targetIsAdmin = await services.userAuth.isUserAdmin(targetId);
+      if (targetIsAdmin) {
+        const adminCount = await services.userAuth.countAdmins();
+        if (adminCount <= 1) {
+          res.status(400).json({
+            success: false,
+            error: '마지막 관리자는 삭제할 수 없습니다.',
+          });
+          return;
+        }
+      }
+
+      await services.userAuth.deleteUser(targetId);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  // ── Whitelist 관리 ──────────────────────────────────────────
+
+  /** GET /admin/whitelist — 룰 목록 */
+  router.get('/whitelist', adminGuard, async (_req, res) => {
+    try {
+      const rules = await services.whitelist.listRules();
+      res.json({ success: true, data: { rules } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** POST /admin/whitelist — 룰 추가 */
+  router.post('/whitelist', adminGuard, async (req, res) => {
+    const parsed = WhitelistAddBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.flatten() });
+      return;
+    }
+    try {
+      const rule = await services.whitelist.addRule({
+        type: parsed.data.type,
+        value: parsed.data.value,
+        enabled: parsed.data.enabled ?? true,
+      });
+      res.json({ success: true, data: { rule } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** PATCH /admin/whitelist/:id — enabled 토글 */
+  router.patch('/whitelist/:id', adminGuard, async (req, res) => {
+    const idParse = UuidParam.safeParse(req.params['id']);
+    if (!idParse.success) {
+      res.status(400).json({ success: false, error: 'Invalid rule id' });
+      return;
+    }
+    const parsed = WhitelistPatchBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.flatten() });
+      return;
+    }
+    try {
+      await services.whitelist.setEnabled(idParse.data, parsed.data.enabled);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /** DELETE /admin/whitelist/:id — 룰 삭제 */
+  router.delete('/whitelist/:id', adminGuard, async (req, res) => {
+    const idParse = UuidParam.safeParse(req.params['id']);
+    if (!idParse.success) {
+      res.status(400).json({ success: false, error: 'Invalid rule id' });
+      return;
+    }
+    try {
+      await services.whitelist.removeRule(idParse.data);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
 
   /**
    * POST /admin/change-pin — 관리자 PIN 변경

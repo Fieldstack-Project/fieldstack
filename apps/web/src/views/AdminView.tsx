@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef, type FormEvent } from "react";
+import { useState, useEffect, useCallback, useRef, type ChangeEvent, type FormEvent } from "react";
 
-import { Button, FormField, Input, PinInput, Select } from "@fieldstack/controls";
+import { Button, Checkbox, FormField, Input, Modal, PinInput, Select } from "@fieldstack/controls";
 
 import "../styles/admin.css";
 
@@ -24,6 +24,24 @@ interface ModuleInfo {
   version: string;
   dependencies: string[];
 }
+
+interface AdminUser {
+  id: string;
+  email: string;
+  isAdmin: boolean;
+  isActive: boolean;
+  isTempPassword: boolean;
+  createdAt: string;
+}
+
+interface WhitelistRule {
+  id: string;
+  type: "email" | "domain";
+  value: string;
+  enabled: boolean;
+}
+
+type UsersSubTab = "list" | "whitelist";
 
 interface AdminViewProps {
   isPinVerified: boolean;
@@ -82,6 +100,41 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
   const [reloadMessage, setReloadMessage] = useState<string | null>(null);
   const [reloading, setReloading] = useState(false);
 
+  // 사용자 관리 상태
+  const [usersSubTab, setUsersSubTab] = useState<UsersSubTab>("list");
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [usersNotice, setUsersNotice] = useState<string | null>(null);
+
+  // Whitelist 상태
+  const [wlRules, setWlRules] = useState<WhitelistRule[]>([]);
+  const [wlLoading, setWlLoading] = useState(false);
+  const [wlError, setWlError] = useState<string | null>(null);
+  const [wlAddType, setWlAddType] = useState<"email" | "domain">("email");
+  const [wlAddValue, setWlAddValue] = useState("");
+  const [wlAddSubmitting, setWlAddSubmitting] = useState(false);
+  const [wlAddError, setWlAddError] = useState<string | null>(null);
+
+  // 사용자 추가 모달
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createEmail, setCreateEmail] = useState("");
+  const [createIsAdmin, setCreateIsAdmin] = useState(false);
+  const [createAddToWhitelist, setCreateAddToWhitelist] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  // 초대 토큰 표시 모달
+  const [inviteEmail, setInviteEmail] = useState<string | null>(null);
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  // 사용자 삭제 모달
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+  const [deletePin, setDeletePin] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
   // 감사 로그 필터
   const [auditFilter, setAuditFilter] = useState<AuditFilter>("all");
 
@@ -135,6 +188,53 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
       void fetchModules();
     }
   }, [activeSection, fetchModules]);
+
+  // 사용자 목록 조회
+  const fetchUsers = useCallback(async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const res = await apiFetch("/admin/users");
+      type Resp = { success: boolean; error?: string; data?: { users: AdminUser[] } };
+      const json = await res.json() as Resp;
+      if (!res.ok || !json.success) {
+        setUsersError(json.error ?? "사용자 목록 조회 실패");
+        return;
+      }
+      setUsers(json.data?.users ?? []);
+    } catch {
+      setUsersError("서버 연결 실패");
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
+  // Whitelist 목록 조회
+  const fetchWhitelist = useCallback(async () => {
+    setWlLoading(true);
+    setWlError(null);
+    try {
+      const res = await apiFetch("/admin/whitelist");
+      type Resp = { success: boolean; error?: string; data?: { rules: WhitelistRule[] } };
+      const json = await res.json() as Resp;
+      if (!res.ok || !json.success) {
+        setWlError(json.error ?? "Whitelist 조회 실패");
+        return;
+      }
+      setWlRules(json.data?.rules ?? []);
+    } catch {
+      setWlError("서버 연결 실패");
+    } finally {
+      setWlLoading(false);
+    }
+  }, []);
+
+  // 사용자 섹션 진입 시 + 서브탭 전환 시 데이터 로드
+  useEffect(() => {
+    if (activeSection !== "users") return;
+    if (usersSubTab === "list") void fetchUsers();
+    else void fetchWhitelist();
+  }, [activeSection, usersSubTab, fetchUsers, fetchWhitelist]);
 
   // 터널 섹션 진입 시 상태 로드
   useEffect(() => {
@@ -256,6 +356,264 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
     setResetPhase("idle");
     setResetPin("");
     setResetPinError("");
+  };
+
+  // ── 사용자 관리 핸들러 ─────────────────────────────────────────
+
+  const showInvite = (email: string, token: string) => {
+    setInviteEmail(email);
+    setInviteToken(token);
+    setInviteCopied(false);
+  };
+
+  const closeInvite = () => {
+    setInviteEmail(null);
+    setInviteToken(null);
+    setInviteCopied(false);
+  };
+
+  const closeCreate = () => {
+    setCreateOpen(false);
+    setCreateEmail("");
+    setCreateIsAdmin(false);
+    setCreateAddToWhitelist(false);
+    setCreateError(null);
+  };
+
+  const closeDelete = () => {
+    setDeleteTarget(null);
+    setDeletePin("");
+    setDeleteError(null);
+  };
+
+  const extractInviteToken = (data: unknown): string | null => {
+    if (!data || typeof data !== "object") return null;
+    const record = data as Record<string, unknown>;
+    const tokenCandidate = record["inviteToken"] ?? record["adminToken"] ?? record["token"];
+    if (typeof tokenCandidate !== "string") return null;
+    const token = tokenCandidate.trim();
+    return token.length > 0 ? token : null;
+  };
+
+  const handleCreateSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (createSubmitting) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail)) {
+      setCreateError("유효한 이메일을 입력하세요.");
+      return;
+    }
+    setCreateSubmitting(true);
+    setCreateError(null);
+    try {
+      const res = await apiFetch("/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: createEmail.trim(),
+          isAdmin: createIsAdmin,
+          addToWhitelist: createAddToWhitelist,
+        }),
+      });
+      type Resp = { success: boolean; error?: string; data?: Record<string, unknown> };
+      const json = await res.json() as Resp;
+      if (!res.ok || !json.success || !json.data) {
+        setCreateError(json.error ?? "사용자 생성 실패");
+        return;
+      }
+      const token = extractInviteToken(json.data);
+      if (!token) {
+        setCreateError("토큰 발급 응답 형식이 올바르지 않습니다.");
+        return;
+      }
+      const email = typeof json.data["email"] === "string"
+        ? json.data["email"]
+        : createEmail.trim();
+      closeCreate();
+      showInvite(email, token);
+      void fetchUsers();
+    } catch {
+      setCreateError("서버 연결 실패");
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
+  const handleToggleActive = async (user: AdminUser) => {
+    setUsersNotice(null);
+    try {
+      const res = await apiFetch(`/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !user.isActive }),
+      });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setUsersNotice(json.error ?? "변경 실패");
+        return;
+      }
+      void fetchUsers();
+    } catch {
+      setUsersNotice("서버 연결 실패");
+    }
+  };
+
+  const handleToggleAdmin = async (user: AdminUser) => {
+    setUsersNotice(null);
+    try {
+      const res = await apiFetch(`/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isAdmin: !user.isAdmin }),
+      });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setUsersNotice(json.error ?? "변경 실패");
+        return;
+      }
+      void fetchUsers();
+    } catch {
+      setUsersNotice("서버 연결 실패");
+    }
+  };
+
+  const handleReissueInvite = async (user: AdminUser) => {
+    setUsersNotice(null);
+    try {
+      const res = await apiFetch(`/admin/users/${user.id}/invite`, { method: "POST" });
+      type Resp = { success: boolean; error?: string; data?: Record<string, unknown> };
+      const json = await res.json() as Resp;
+      if (!res.ok || !json.success || !json.data) {
+        setUsersNotice(json.error ?? "토큰 발급 실패");
+        return;
+      }
+      const token = extractInviteToken(json.data);
+      if (!token) {
+        setUsersNotice("토큰 발급 응답 형식이 올바르지 않습니다.");
+        return;
+      }
+      showInvite(user.email, token);
+    } catch {
+      setUsersNotice("서버 연결 실패");
+    }
+  };
+
+  const handleDeleteSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!deleteTarget || deleteSubmitting) return;
+    if (deletePin.length < 4) {
+      setDeleteError("PIN 4자리 이상 입력하세요.");
+      return;
+    }
+    setDeleteSubmitting(true);
+    setDeleteError(null);
+    try {
+      const res = await apiFetch(`/admin/users/${deleteTarget.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: deletePin }),
+      });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setDeleteError(json.error ?? "삭제 실패");
+        setDeletePin("");
+        return;
+      }
+      closeDelete();
+      void fetchUsers();
+    } catch {
+      setDeleteError("서버 연결 실패");
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
+  const handleCopyInvite = () => {
+    if (!inviteToken) return;
+    const doCopy = async () => {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(inviteToken);
+      } else {
+        const el = document.createElement("textarea");
+        el.value = inviteToken;
+        el.style.position = "fixed";
+        el.style.opacity = "0";
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+      setInviteCopied(true);
+    };
+    void doCopy();
+  };
+
+  // ── Whitelist 핸들러 ────────────────────────────────────────────
+
+  const handleWlAddSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (wlAddSubmitting) return;
+    const value = wlAddValue.trim();
+    if (!value) { setWlAddError("값을 입력하세요."); return; }
+    if (wlAddType === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setWlAddError("유효한 이메일을 입력하세요.");
+      return;
+    }
+    if (wlAddType === "domain" && !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(value)) {
+      setWlAddError("유효한 도메인을 입력하세요. (예: example.com)");
+      return;
+    }
+    setWlAddSubmitting(true);
+    setWlAddError(null);
+    try {
+      const res = await apiFetch("/admin/whitelist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: wlAddType, value }),
+      });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setWlAddError(json.error ?? "추가 실패");
+        return;
+      }
+      setWlAddValue("");
+      void fetchWhitelist();
+    } catch {
+      setWlAddError("서버 연결 실패");
+    } finally {
+      setWlAddSubmitting(false);
+    }
+  };
+
+  const handleWlToggle = async (rule: WhitelistRule) => {
+    try {
+      const res = await apiFetch(`/admin/whitelist/${rule.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !rule.enabled }),
+      });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setWlError(json.error ?? "변경 실패");
+        return;
+      }
+      void fetchWhitelist();
+    } catch {
+      setWlError("서버 연결 실패");
+    }
+  };
+
+  const handleWlDelete = async (rule: WhitelistRule) => {
+    try {
+      const res = await apiFetch(`/admin/whitelist/${rule.id}`, { method: "DELETE" });
+      const json = await res.json() as { success: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        setWlError(json.error ?? "삭제 실패");
+        return;
+      }
+      void fetchWhitelist();
+    } catch {
+      setWlError("서버 연결 실패");
+    }
   };
 
   const handleSectionClick = (id: string) => {
@@ -435,12 +793,271 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
           <>
             <div className="admin-content-header">
               <h1 className="admin-content-title">사용자 관리</h1>
+              {usersSubTab === "list" && (
+                <Button size="sm" variant="primary" type="button" onClick={() => setCreateOpen(true)}>
+                  + 사용자 추가
+                </Button>
+              )}
             </div>
-            <div className="admin-panel-placeholder">
-              <p className="admin-panel-placeholder-icon" aria-hidden="true">🚧</p>
-              <p className="admin-panel-placeholder-title">사용자 관리 — 준비 중</p>
-              <p className="admin-panel-placeholder-desc">Phase 2에서 구현 예정입니다.</p>
+
+            {/* 서브탭 */}
+            <div className="admin-subtabs" role="tablist" aria-label="사용자 관리 서브탭">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={usersSubTab === "list"}
+                className="admin-subtab"
+                onClick={() => setUsersSubTab("list")}
+              >
+                사용자
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={usersSubTab === "whitelist"}
+                className="admin-subtab"
+                onClick={() => setUsersSubTab("whitelist")}
+              >
+                Whitelist
+              </button>
             </div>
+
+            {/* 사용자 목록 */}
+            {usersSubTab === "list" && (
+              <>
+                {usersNotice && (
+                  <p className="admin-inline-notice" role="status">{usersNotice}</p>
+                )}
+                {usersLoading && (
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>목록 불러오는 중...</p>
+                )}
+                {usersError && (
+                  <p style={{ fontSize: "13px", color: "var(--err)" }}>{usersError}</p>
+                )}
+                {!usersLoading && !usersError && users.length === 0 && (
+                  <div className="admin-panel-placeholder">
+                    <p className="admin-panel-placeholder-icon" aria-hidden="true">👥</p>
+                    <p className="admin-panel-placeholder-title">사용자 없음</p>
+                    <p className="admin-panel-placeholder-desc">"사용자 추가"로 신규 계정을 발급하세요.</p>
+                  </div>
+                )}
+                {users.length > 0 && (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>이메일</th>
+                          <th>역할</th>
+                          <th>상태</th>
+                          <th>가입일</th>
+                          <th aria-label="액션"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((u) => (
+                          <tr key={u.id}>
+                            <td className="admin-table-email">
+                              {u.email}
+                              {u.isTempPassword && (
+                                <span className="admin-table-pill admin-table-pill-warn">임시</span>
+                              )}
+                            </td>
+                            <td>
+                              <span className={`admin-table-pill ${u.isAdmin ? "admin-table-pill-accent" : ""}`}>
+                                {u.isAdmin ? "관리자" : "사용자"}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`admin-table-pill ${u.isActive ? "admin-table-pill-ok" : "admin-table-pill-err"}`}>
+                                {u.isActive ? "활성" : "비활성"}
+                              </span>
+                            </td>
+                            <td className="admin-table-time">
+                              {new Date(u.createdAt).toLocaleDateString("ko-KR")}
+                            </td>
+                            <td className="admin-table-actions">
+                              <Button size="sm" type="button" onClick={() => void handleToggleActive(u)}>
+                                {u.isActive ? "비활성화" : "활성화"}
+                              </Button>
+                              <Button size="sm" type="button" onClick={() => void handleToggleAdmin(u)}>
+                                {u.isAdmin ? "관리자 해제" : "관리자로"}
+                              </Button>
+                              <Button size="sm" type="button" onClick={() => void handleReissueInvite(u)}>
+                                토큰 재발급
+                              </Button>
+                              <Button size="sm" variant="danger" type="button" onClick={() => setDeleteTarget(u)}>
+                                삭제
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Whitelist */}
+            {usersSubTab === "whitelist" && (
+              <>
+                <p className="admin-help-text">
+                  활성 룰이 하나도 없으면 모든 이메일이 허용됩니다.
+                  룰을 추가하면 화이트리스트에 등록된 이메일/도메인만 로그인할 수 있습니다.
+                </p>
+
+                <form onSubmit={handleWlAddSubmit} className="admin-wl-add-form" noValidate>
+                  <Select
+                    value={wlAddType}
+                    options={[
+                      { value: "email", label: "이메일" },
+                      { value: "domain", label: "도메인" },
+                    ]}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => { setWlAddType(e.target.value as "email" | "domain"); setWlAddError(null); }}
+                  />
+                  <Input
+                    type="text"
+                    value={wlAddValue}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => { setWlAddValue(e.target.value); setWlAddError(null); }}
+                    placeholder={wlAddType === "email" ? "user@example.com" : "example.com"}
+                  />
+                  <Button size="sm" variant="primary" type="submit" disabled={wlAddSubmitting} loading={wlAddSubmitting}>
+                    추가
+                  </Button>
+                </form>
+                {wlAddError && <p className="admin-pin-error" role="alert">{wlAddError}</p>}
+
+                {wlLoading && (
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>목록 불러오는 중...</p>
+                )}
+                {wlError && <p style={{ fontSize: "13px", color: "var(--err)" }}>{wlError}</p>}
+                {!wlLoading && !wlError && wlRules.length === 0 && (
+                  <div className="admin-panel-placeholder">
+                    <p className="admin-panel-placeholder-icon" aria-hidden="true">📋</p>
+                    <p className="admin-panel-placeholder-title">등록된 룰 없음</p>
+                    <p className="admin-panel-placeholder-desc">활성 룰이 없으면 전체 이메일이 허용됩니다.</p>
+                  </div>
+                )}
+                {wlRules.length > 0 && (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>유형</th>
+                          <th>값</th>
+                          <th>상태</th>
+                          <th aria-label="액션"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {wlRules.map((r) => (
+                          <tr key={r.id}>
+                            <td>{r.type === "email" ? "이메일" : "도메인"}</td>
+                            <td className="admin-table-email">{r.value}</td>
+                            <td>
+                              <span className={`admin-table-pill ${r.enabled ? "admin-table-pill-ok" : ""}`}>
+                                {r.enabled ? "활성" : "비활성"}
+                              </span>
+                            </td>
+                            <td className="admin-table-actions">
+                              <Button size="sm" type="button" onClick={() => void handleWlToggle(r)}>
+                                {r.enabled ? "비활성화" : "활성화"}
+                              </Button>
+                              <Button size="sm" variant="danger" type="button" onClick={() => void handleWlDelete(r)}>
+                                삭제
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── 사용자 추가 모달 ───────────────────────────── */}
+            <Modal open={createOpen} onClose={closeCreate} title="사용자 추가" size="sm">
+              <form onSubmit={handleCreateSubmit} noValidate style={{ display: "grid", gap: "12px" }}>
+                <FormField label="이메일">
+                  <Input
+                    type="email"
+                    value={createEmail}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => { setCreateEmail(e.target.value); setCreateError(null); }}
+                    placeholder="user@example.com"
+                    autoFocus
+                  />
+                </FormField>
+                <Checkbox
+                  label="관리자 권한 부여"
+                  checked={createIsAdmin}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setCreateIsAdmin(e.target.checked)}
+                />
+                <Checkbox
+                  label="Whitelist에 이메일 자동 추가"
+                  checked={createAddToWhitelist}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setCreateAddToWhitelist(e.target.checked)}
+                />
+                <p className="admin-help-text" style={{ margin: 0 }}>
+                  생성 후 일회용 초대 토큰이 발급됩니다.
+                  사용자는 받은 토큰으로 로그인 화면 → "비밀번호 분실" → 관리자 토큰 경로에서 비밀번호를 직접 설정합니다.
+                </p>
+                {createError && <p className="admin-pin-error" role="alert">{createError}</p>}
+                <div className="admin-modal-actions">
+                  <Button size="sm" type="button" onClick={closeCreate}>취소</Button>
+                  <Button size="sm" variant="primary" type="submit"
+                    disabled={createSubmitting || !createEmail.trim()} loading={createSubmitting}>
+                    생성 + 토큰 발급
+                  </Button>
+                </div>
+              </form>
+            </Modal>
+
+            {/* ── 초대 토큰 표시 모달 ────────────────────────── */}
+            <Modal open={inviteToken !== null} onClose={closeInvite} title="초대 토큰 발급" size="md">
+              <div style={{ display: "grid", gap: "12px" }}>
+                <p className="admin-help-text" style={{ margin: 0 }}>
+                  사용자({inviteEmail})에게 아래 토큰을 전달하세요.
+                  사용자는 로그인 화면 → "비밀번호 분실" → "관리자 토큰" 경로에서 이메일과 함께 입력합니다.
+                </p>
+                <div className="admin-invite-token-box">
+                  <code className="admin-invite-token">{inviteToken}</code>
+                  <Button size="sm" type="button" onClick={handleCopyInvite}>
+                    {inviteCopied ? "복사됨 ✓" : "복사"}
+                  </Button>
+                </div>
+                <p className="admin-tunnel-notice" style={{ margin: 0 }}>
+                  토큰은 30분간 유효하며, 이 창을 닫으면 다시 볼 수 없습니다.<br />
+                  분실 시 사용자 목록에서 "토큰 재발급"으로 새 토큰을 만들 수 있습니다.
+                </p>
+                <div className="admin-modal-actions">
+                  <Button size="sm" variant="primary" type="button" onClick={closeInvite}>닫기</Button>
+                </div>
+              </div>
+            </Modal>
+
+            {/* ── 삭제 확인 모달 ─────────────────────────────── */}
+            <Modal open={deleteTarget !== null} onClose={closeDelete} title="사용자 삭제" size="sm">
+              <form onSubmit={handleDeleteSubmit} noValidate style={{ display: "grid", gap: "12px" }}>
+                <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)" }}>
+                  <strong style={{ color: "var(--text)" }}>{deleteTarget?.email}</strong> 계정과
+                  관련 세션·TOTP·복구 토큰이 모두 삭제됩니다.<br />
+                  이 작업은 되돌릴 수 없습니다.
+                </p>
+                <FormField label="관리자 PIN 확인">
+                  <PinInput length={4} value={deletePin}
+                    onChange={(v: string) => { setDeletePin(v); setDeleteError(null); }} />
+                </FormField>
+                {deleteError && <p className="admin-pin-error" role="alert">{deleteError}</p>}
+                <div className="admin-modal-actions">
+                  <Button size="sm" type="button" onClick={closeDelete}>취소</Button>
+                  <Button size="sm" variant="danger" type="submit"
+                    disabled={deletePin.length < 4 || deleteSubmitting} loading={deleteSubmitting}>
+                    삭제
+                  </Button>
+                </div>
+              </form>
+            </Modal>
           </>
         )}
 
