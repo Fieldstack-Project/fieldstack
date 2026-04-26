@@ -25,39 +25,42 @@ Fieldstack은 개인 생산성과 재무 관리를 위한 오픈소스 기반의
 
 ## 개발 현황
 
-현재 단계: **개발 진행 중 (로드맵 Phase 1.5)**
+현재 단계: **Phase 2.2 — Subscription 모듈 진행 중**
 
-- ✅ 기획 및 문서화 단계 완료
-- ✅ 로드맵 Phase 1(Core 기반 구축) 완료
-- ✅ 로드맵 Phase 1.9(API 서버 · DB · 인증 백엔드 · 공유 링크) 완료
-- 🚧 로드맵 Phase 1.5(Core Control Plane UI/UX) 마무리 단계
-- 🎯 전체 목표 타임라인은 **2026-2027** 유지
+- Phase 1 · 1.5 · 1.9 · 1.95 — 전 항목 완료
+- Phase 2 사전 작업 (ModuleRegistry · 모듈 관리 API · 유저별 활성화) — 완료
+- Phase 2.1 Ledger (백엔드 + 프론트, CSV import/export, 예산, 영수증 첨부) — 완료
+- Phase 2.x 코어 인프라 (i18n · Event Bus · Core Scheduler · 환율 시스템) — 대부분 완료
+- Phase 2.2 Subscription — 핵심 기능 완료, 잔여: Google Calendar · 캘린더 뷰 · 시간대 전략
+- 전체 목표 타임라인: **2026–2027**
 
 ### Phase 진행 현황
 
 | 단계(Phase) | 범위(로드맵) | 상태 | 진행률 |
-| ----------- | ----------- | --- | ----- |
+| ----------- | ----------- | ---- | ----- |
 | Phase 1 | Core 기반 구축 | 완료 ✅ | 100% |
-| Phase 1.5 | Core Control Plane UI/UX | 진행 중 ⏳ | 90% |
+| Phase 1.5 | Core Control Plane UI/UX | 완료 ✅ | 100% |
 | Phase 1.9 | API 서버 · DB · 인증 백엔드 · 공유 링크 | 완료 ✅ | 100% |
-| Phase 1.95 | Setup 설치 마법사 (모드 전환 · 백엔드 API · UI) | 진행 중 ⏳ | 0% |
-| Phase 2 | 기본 모듈 개발(Ledger, Subscription) | 시작 전 🚧 | 0% |
+| Phase 1.95 | Setup 설치 마법사 (모드 전환 · 백엔드 API · UI · 초기화) | 완료 ✅ | 100% |
+| Phase 2 Pre | ModuleRegistry · 모듈 관리 API · 유저별 활성화 | 완료 ✅ | 100% |
+| Phase 2.1 | Ledger 모듈 (백엔드 + 프론트엔드) | 완료 ✅ | 100% |
+| Phase 2.x | 코어 시스템 보완 (i18n · Event Bus · Scheduler · 환율) | 대부분 완료 ⏳ | ~80% |
+| Phase 2.2 | Subscription 모듈 | 진행 중 ⏳ | ~70% |
 | Phase 3 | 마켓플레이스 및 웹사이트 | 시작 전 🚧 | 0% |
 | Phase 4 | 배포 최적화 | 시작 전 🚧 | 0% |
 | Phase 5 | 확장 및 생태계 | 시작 전 🚧 | 0% |
 | Phase 6 | 커뮤니티 성장(지속) | 시작 전 🚧 | 0% |
 
-#### Phase 1.5 스냅샷 (2026-04-15)
+#### Phase 2.2 Subscription — 잔여 항목
 
-| 서브 페이즈 | 범위 | 상태 |
-| ----------- | ---- | ---- |
-| 1.5.1 | Control UI 컴포넌트 (P0/P0.5 구현 완료, `ready: true`) | 완료 ✅ |
-| 1.5.2 | 설치 마법사 개발용 bypass (`dev:bypass`) | 완료 ✅ |
-| 1.5.3 | 로그인 UX (실패/잠금/세션 만료, 비밀번호 복구, mock 계정 시스템) | 완료 ✅ |
-| 1.5.4 | 메인 홈 (사이드바, 딥 링크, 모바일 Drawer, 온보딩 배너) | 완료 ✅ |
-| 1.5.5 | 관리자 대시보드 / 일반 설정 (PIN step-up, 감사 로그, dirty-state 저장) | 완료 ✅ |
-| 1.5.6 | UX 품질 기준 (반응형 브레이크포인트, QA 체크리스트, 접근성, 톤 가이드) | 완료 ✅ |
-| 게이트 | 접근성/반응형/E2E 통과 · UI 계약 동결 | 진행 중 ⏳ |
+| 항목 | 상태 |
+| ---- | ---- |
+| 핵심 기능 (CRUD · 가격 히스토리 · 통계 · 메모 · Scheduler · Event Bus) | 완료 ✅ |
+| 구독 상태 이력 기반 누적 통계 (해지 기간 제외 계산) | 완료 ✅ |
+| 결제일 캘린더 뷰 | 예정 ⏳ |
+| Ledger 자동 연동 (`subscription:payment` 이벤트 수신) | 예정 ⏳ |
+| 시간대 전략 (표시 시간대 / 결제 계산 시간대 분리) | 예정 ⏳ |
+| Google Calendar 연동 | 예정 ⏳ |
 
 > 참고: 본 Phase 표는 `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md` 기준이며, 구현 진행에 따라 갱신됩니다.
 
@@ -69,18 +72,22 @@ Fieldstack은 개인 생산성과 재무 관리를 위한 오픈소스 기반의
 | ------ | ---- |
 | 프론트엔드 | React 19, Vite, TypeScript (strict) |
 | 백엔드 | Node.js, Express 5, tsx |
-| 데이터베이스 | PostgreSQL (1순위) · SQLite (예정) |
+| 데이터베이스 | PostgreSQL (1순위) · SQLite (`better-sqlite3`) |
 | 인증 | JWT, TOTP 2FA, Argon2id |
+| 국제화 | i18next · react-i18next (ko / en) |
+| 스케줄러 | node-cron (DB 로그 포함 Core Scheduler) |
+| 환율 | Frankfurter API (DB 캐시) |
 | 모노레포 | pnpm workspaces |
 | 테스트 | Vitest |
 | UI 컴포넌트 | `@fieldstack/controls` (내부 패키지), Storybook |
 | 스타일링 | CSS 커스텀 프로퍼티 (디자인 토큰 시스템) |
+| 터널링 | Cloudflare Tunnel (Quick / Named) |
 
 ---
 
 ## 시작하기
 
-> **프로덕션 배포 가이드는 Setup 설치 마법사(Phase 1.95) 완료 시점에 공개됩니다.**<br>
+> **프로덕션 배포 가이드는 Phase 2 완료 시점에 공개됩니다.**<br>
 > 그 전까지는 아래 방법으로 로컬 개발 환경에서 실행할 수 있습니다.
 
 ### 로컬 개발 환경

@@ -109,6 +109,23 @@ class CloudflareTunnelManager {
       });
 
       const url = await new Promise<string>((resolve, reject) => {
+        // Named Tunnel은 url 이벤트를 발생시키지 않으므로 즉시 반환
+        if (cfg.mode === 'named') {
+          tunnelInstance.once('error', (err: Error) => {
+            log.error('tunnel', `tunnel error: ${err.message}`);
+            reject(err);
+          });
+          tunnelInstance.once('exit', (code: number | null) => {
+            reject(new Error(`cloudflared 프로세스가 예상치 못하게 종료되었습니다 (code: ${code}).`));
+          });
+          // 잠시 대기 후 프로세스가 살아있으면 성공으로 간주
+          setTimeout(() => {
+            log.success('tunnel', 'named tunnel active (URL is configured in Cloudflare dashboard)');
+            resolve('named');
+          }, 2_000);
+          return;
+        }
+
         const timeout = setTimeout(() => {
           reject(new Error('터널 URL을 가져오는 데 시간이 초과되었습니다 (60초).'));
         }, 60_000);

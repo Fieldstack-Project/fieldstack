@@ -25,41 +25,44 @@ Fieldstack is an open-source, self-hosted modular framework for personal product
 
 ## Development Status
 
-Current phase: **Development in progress (Roadmap Phase 1.5)**
+Current phase: **Phase 2.2 — Subscription module in progress**
 
-- ✅ Planning and documentation are complete
-- ✅ Roadmap Phase 1 (Core foundation) is complete
-- ✅ Roadmap Phase 1.9 (API server, DB, auth backend, shared links) is complete
-- 🚧 Roadmap Phase 1.5 (Core Control Plane UI/UX) is nearing completion
-- 🎯 Target timeline remains **2026-2027**
+- Phase 1 · 1.5 · 1.9 · 1.95 — all complete
+- Phase 2 pre-work (ModuleRegistry, module management API, per-user activation) — complete
+- Phase 2.1 Ledger (backend + frontend, CSV import/export, budgets, receipt attachments) — complete
+- Phase 2.x core infrastructure (i18n, Event Bus, Core Scheduler, exchange rates) — mostly complete
+- Phase 2.2 Subscription — core features complete, remaining: Google Calendar, calendar view, timezone strategy
+- Target timeline: **2026–2027**
 
 ### Phase Progress
 
-| Phase | Scope (Roadmap) | Status | Progress |
-| ------- | ----------- | ------- | ------- |
+| Phase | Scope | Status | Progress |
+| ----- | ----- | ------ | -------- |
 | Phase 1 | Core foundation setup | Completed ✅ | 100% |
-| Phase 1.5 | Core Control Plane UI/UX | In progress ⏳ | 90% |
+| Phase 1.5 | Core Control Plane UI/UX | Completed ✅ | 100% |
 | Phase 1.9 | API server · DB · auth backend · shared links | Completed ✅ | 100% |
-| Phase 1.95 | Setup install wizard (mode switch · backend API · UI) | In progress ⏳ | 0% |
-| Phase 2 | Core module development (Ledger, Subscription) | Not started 🚧 | 0% |
+| Phase 1.95 | Setup install wizard (mode switch · backend API · UI · reset) | Completed ✅ | 100% |
+| Phase 2 Pre | ModuleRegistry · module management API · per-user activation | Completed ✅ | 100% |
+| Phase 2.1 | Ledger module (backend + frontend) | Completed ✅ | 100% |
+| Phase 2.x | Core systems (i18n · Event Bus · Scheduler · exchange rates) | Mostly complete ⏳ | ~80% |
+| Phase 2.2 | Subscription module | In progress ⏳ | ~70% |
 | Phase 3 | Marketplace and website | Not started 🚧 | 0% |
 | Phase 4 | Deployment optimization | Not started 🚧 | 0% |
 | Phase 5 | Expansion and ecosystem | Not started 🚧 | 0% |
 | Phase 6 | Community growth (continuous) | Not started 🚧 | 0% |
 
-#### Phase 1.5 Snapshot (2026-04-15)
+#### Phase 2.2 Subscription — Remaining
 
-| Sub-phase | Scope | Status |
-| --------- | ----- | ------ |
-| 1.5.1 | Control UI components (P0/P0.5 implemented, `ready: true`) | Done ✅ |
-| 1.5.2 | Install wizard dev bypass (`dev:bypass`) | Done ✅ |
-| 1.5.3 | Login UX (failure/lock/session expiry, password recovery, mock accounts) | Done ✅ |
-| 1.5.4 | Main Home (sidebar, deep link routing, mobile drawer, onboarding banner) | Done ✅ |
-| 1.5.5 | Admin dashboard / general settings (PIN step-up, audit log, dirty-state save) | Done ✅ |
-| 1.5.6 | UX quality baseline (responsive breakpoints, QA checklist, a11y, tone guide) | Done ✅ |
-| Gate | Accessibility / responsive / E2E pass · UI contract freeze | Pending ⏳ |
+| Item | Status |
+| ---- | ------ |
+| Core features (CRUD · price history · stats · notes · scheduler · Event Bus) | Done ✅ |
+| Cumulative stats with status history (pause/resume periods excluded) | Done ✅ |
+| Payment calendar view | Pending ⏳ |
+| Ledger auto-sync (`subscription:payment` event receiver) | Pending ⏳ |
+| Timezone strategy (display vs. billing calculation separation) | Pending ⏳ |
+| Google Calendar integration | Pending ⏳ |
 
-> Note: This phase table follows `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md` and is updated as implementation progresses.
+> Note: This table follows `docs/v2_FINANCIAL-LEDGER/roadmap/01-development-plan.md` and is updated as implementation progresses.
 
 ---
 
@@ -69,18 +72,22 @@ Current phase: **Development in progress (Roadmap Phase 1.5)**
 | ----- | ---------- |
 | Frontend | React 19, Vite, TypeScript (strict) |
 | Backend | Node.js, Express 5, tsx |
-| Database | PostgreSQL (primary) · SQLite (planned) |
+| Database | PostgreSQL (primary) · SQLite via `better-sqlite3` |
 | Auth | JWT, TOTP 2FA, Argon2id |
+| i18n | i18next · react-i18next (ko / en) |
+| Scheduler | node-cron (Core Scheduler with DB logging) |
+| Exchange rates | Frankfurter API (DB-cached) |
 | Monorepo | pnpm workspaces |
 | Testing | Vitest |
 | UI Components | `@fieldstack/controls` (internal), Storybook |
 | Styling | CSS custom properties (design token system) |
+| Tunneling | Cloudflare Tunnel (Quick / Named) |
 
 ---
 
 ## Getting Started
 
-> **Production deployment guide will be published when the Setup install wizard (Phase 1.95) is complete.**<br>
+> **Production deployment guide will be published when Phase 2 is complete.**<br>
 > Until then, you can run the project locally in development mode.
 
 ### Local Development

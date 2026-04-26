@@ -535,12 +535,20 @@ export function AdminView({ isPinVerified, onRequestPin }: AdminViewProps) {
             {tunnelRunning && tunnelUrl && (
               <div className="admin-tunnel-url-box">
                 <span className="admin-tunnel-url-label">접속 URL</span>
-                <div className="admin-tunnel-url-row">
-                  <code className="admin-tunnel-url">{tunnelUrl}</code>
-                  <Button size="sm" type="button" onClick={handleTunnelCopy}>
-                    {tunnelCopied ? "복사됨 ✓" : "복사"}
-                  </Button>
-                </div>
+                {tunnelUrl === 'named' ? (
+                  <div className="admin-tunnel-url-row">
+                    <code className="admin-tunnel-url" style={{ color: 'var(--ok)' }}>
+                      Cloudflare 대시보드에서 설정한 도메인으로 접속 가능
+                    </code>
+                  </div>
+                ) : (
+                  <div className="admin-tunnel-url-row">
+                    <code className="admin-tunnel-url">{tunnelUrl}</code>
+                    <Button size="sm" type="button" onClick={handleTunnelCopy}>
+                      {tunnelCopied ? "복사됨 ✓" : "복사"}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
