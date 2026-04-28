@@ -29,6 +29,7 @@ interface SidebarModule {
   displayName: string;
   basePath: string;
   enabled: boolean;
+  icon?: string;
 }
 
 // nav list 내 ArrowUp/ArrowDown 키보드 탐색
@@ -183,7 +184,7 @@ export function AppShell({
                       aria-current={isActive && !subRoute ? "page" : undefined}
                       onClick={() => { window.location.hash = mod.name; closeMobileMenu(); }}
                     >
-                      <span className="shell-nav-icon" aria-hidden="true">📦</span>
+                      <span className="shell-nav-icon" aria-hidden="true">{mod.icon ?? '📦'}</span>
                       <span className="shell-nav-text">{t(mod.displayName, { defaultValue: mod.name })}</span>
                     </button>
 

@@ -5,6 +5,7 @@
   "description": "subscription:description",
   "enabled": true,
   "dependencies": [],
+  "icon": "💳",
   "routes": {
     "frontend": "/subscription",
     "api": "/api/subscription"

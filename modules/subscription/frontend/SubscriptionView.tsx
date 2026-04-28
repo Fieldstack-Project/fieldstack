@@ -85,6 +85,27 @@ interface CumulativeResult {
   activeDays?: number;
 }
 
+interface ImportPreviewRow {
+  serviceName: string;
+  currentAmount: number;
+  currency: string;
+  billingCycle: string;
+  billingDay: number;
+  startedAt?: string;
+  category?: string;
+  url?: string;
+}
+
+interface ImportPreviewError {
+  row: number;
+  message: string;
+}
+
+interface ImportPreview {
+  rows: ImportPreviewRow[];
+  errors: ImportPreviewError[];
+}
+
 // ── 상수 ──────────────────────────────────────────────────────────
 
 const CURRENCY_OPTIONS = [
@@ -217,8 +238,15 @@ export function SubscriptionView() {
   const [editOpen, setEditOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // 파일 가져오기
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
 
   // 폼 상태
   const [form, setForm] = useState(emptyForm());
@@ -291,6 +319,69 @@ export function SubscriptionView() {
     if (!selected) return;
     await apiCall(`/api/subscription/services/${selected.id}/notes/${noteId}`, { method: "DELETE" });
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
+  }
+
+  // ── 파일 가져오기 ─────────────────────────────────────────────
+
+  function openImport() {
+    setImportFile(null);
+    setImportPreview(null);
+    setImportResult(null);
+    setImportOpen(true);
+  }
+
+  async function handleImportPreview(file: File) {
+    setImportFile(file);
+    setImportPreview(null);
+    setImportResult(null);
+    setImportLoading(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const token = sessionStorage.getItem("fs_auth");
+      const res = await fetch("/api/subscription/import/preview", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-Filename": encodeURIComponent(file.name),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: buf,
+      });
+      const json = await res.json() as { success: boolean; data?: ImportPreview; error?: string };
+      if (json.success && json.data) setImportPreview(json.data);
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
+  async function handleImportCommit() {
+    if (!importFile || !importPreview) return;
+    setImportLoading(true);
+    setImportResult(null);
+    try {
+      const buf = await importFile.arrayBuffer();
+      const token = sessionStorage.getItem("fs_auth");
+      const res = await fetch("/api/subscription/import/commit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-Filename": encodeURIComponent(importFile.name),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: buf,
+      });
+      const json = await res.json() as { success: boolean; data?: { imported: number; skipped: number }; error?: string };
+      if (json.success && json.data) {
+        setImportResult(`${json.data.imported}개 가져오기 완료${json.data.skipped > 0 ? ` (${json.data.skipped}개 건너뜀)` : ""}`);
+        setImportPreview(null);
+        setImportFile(null);
+        await loadAll();
+      } else {
+        setImportResult(`오류: ${json.error ?? "알 수 없는 오류"}`);
+      }
+    } finally {
+      setImportLoading(false);
+    }
   }
 
   // ── 추가 ─────────────────────────────────────────────────────
@@ -488,7 +579,10 @@ export function SubscriptionView() {
       <section className="panel">
         <div className="sub-header">
           <h2>정기 구독</h2>
-          <Button variant="primary" size="sm" onClick={openAdd}>+ 구독 추가</Button>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <Button variant="ghost" size="sm" onClick={openImport}>가져오기</Button>
+            <Button variant="primary" size="sm" onClick={openAdd}>+ 구독 추가</Button>
+          </div>
         </div>
 
         {error && (
@@ -552,7 +646,7 @@ export function SubscriptionView() {
                   <div className="sub-card-meta">
                     {sub.category && <span>{sub.category}</span>}
                     <span className={days <= 3 ? "next-date" : ""}>
-                      다음 결제 {sub.nextPaymentDate} {sub.isActive ? `(D-${days})` : ""}
+                      다음 결제일: {sub.nextPaymentDate} {sub.isActive ? `(D-${days})` : ""}
                     </span>
                   </div>
                 </div>
@@ -902,6 +996,102 @@ export function SubscriptionView() {
           <strong style={{ color: "var(--text)" }}>{selected?.serviceName}</strong> 구독을 삭제하면
           히스토리도 함께 삭제됩니다. 계속하시겠습니까?
         </p>
+      </Modal>
+
+      {/* ── 파일 가져오기 모달 ──────────────────────────── */}
+      <Modal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        title="구독 가져오기"
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setImportOpen(false)} disabled={importLoading}>닫기</Button>
+            {importPreview && importPreview.rows.length > 0 && (
+              <Button variant="primary" onClick={() => void handleImportCommit()} disabled={importLoading}>
+                {importLoading ? <Spinner size="sm" /> : `${importPreview.rows.length}개 가져오기`}
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="sub-form">
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0 0 0.75rem" }}>
+            CSV, XLSX, XLS 파일을 업로드하세요.<br />
+            필수 컬럼: <strong>서비스명</strong>, <strong>금액</strong>, <strong>결제일</strong> (1~31)
+          </p>
+          <input
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            style={{ display: "block", marginBottom: "0.75rem", color: "var(--text)" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleImportPreview(file);
+            }}
+            disabled={importLoading}
+          />
+
+          {importLoading && (
+            <div style={{ display: "flex", justifyContent: "center", padding: "1rem" }}>
+              <Spinner size="md" />
+            </div>
+          )}
+
+          {importResult && (
+            <Alert variant={importResult.startsWith("오류") ? "error" : "success"}>
+              {importResult}
+            </Alert>
+          )}
+
+          {importPreview && !importLoading && (
+            <>
+              {importPreview.errors.length > 0 && (
+                <div style={{ marginBottom: "0.75rem" }}>
+                  <Alert variant="error">
+                    {importPreview.errors.length}개 행 오류:&nbsp;
+                    {importPreview.errors.slice(0, 3).map((e) => `${e.row}행 — ${e.message}`).join(", ")}
+                    {importPreview.errors.length > 3 ? ` 외 ${importPreview.errors.length - 3}개` : ""}
+                  </Alert>
+                </div>
+              )}
+              {importPreview.rows.length > 0 ? (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", fontSize: "0.8rem", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                        <th style={{ padding: "0.3rem 0.5rem", textAlign: "left", color: "var(--text-muted)" }}>서비스명</th>
+                        <th style={{ padding: "0.3rem 0.5rem", textAlign: "right", color: "var(--text-muted)" }}>금액</th>
+                        <th style={{ padding: "0.3rem 0.5rem", textAlign: "left", color: "var(--text-muted)" }}>통화</th>
+                        <th style={{ padding: "0.3rem 0.5rem", textAlign: "left", color: "var(--text-muted)" }}>주기</th>
+                        <th style={{ padding: "0.3rem 0.5rem", textAlign: "left", color: "var(--text-muted)" }}>결제일</th>
+                        <th style={{ padding: "0.3rem 0.5rem", textAlign: "left", color: "var(--text-muted)" }}>시작일</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.rows.slice(0, 10).map((row, i) => (
+                        <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                          <td style={{ padding: "0.3rem 0.5rem", color: "var(--text)" }}>{row.serviceName}</td>
+                          <td style={{ padding: "0.3rem 0.5rem", textAlign: "right", color: "var(--text)" }}>{row.currentAmount.toLocaleString()}</td>
+                          <td style={{ padding: "0.3rem 0.5rem", color: "var(--text-muted)" }}>{row.currency}</td>
+                          <td style={{ padding: "0.3rem 0.5rem", color: "var(--text-muted)" }}>{row.billingCycle === "monthly" ? "월간" : "연간"}</td>
+                          <td style={{ padding: "0.3rem 0.5rem", color: "var(--text-muted)" }}>{row.billingDay}일</td>
+                          <td style={{ padding: "0.3rem 0.5rem", color: "var(--text-muted)" }}>{row.startedAt ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {importPreview.rows.length > 10 && (
+                    <p style={{ fontSize: "0.78rem", color: "var(--text-faint)", marginTop: "0.5rem" }}>
+                      ... 외 {importPreview.rows.length - 10}개 항목
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>가져올 데이터가 없습니다.</p>
+              )}
+            </>
+          )}
+        </div>
       </Modal>
     </>
   );

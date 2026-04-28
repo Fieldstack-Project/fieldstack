@@ -5,6 +5,7 @@
   padding: 9px 32px 9px 11px;
   font-size: 14px;
   font-family: inherit;
+  line-height: 1.5;
   color: var(--text);
   background: var(--bg-elevated);
   appearance: none;

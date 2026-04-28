@@ -20,6 +20,7 @@ export interface ModuleManifest {
   enabled: boolean;
   dependencies: string[];
   routes: ModuleRoutes;
+  icon?: string;
   repository?: string;
   author?: ModuleAuthor | string;
 }
@@ -56,6 +57,7 @@ export function parseModuleJson(content: string): ModuleManifest {
       frontend: parsed.routes?.frontend ?? "",
       api: parsed.routes?.api ?? "",
     },
+    ...(parsed.icon !== undefined && { icon: parsed.icon }),
     ...(parsed.repository !== undefined && { repository: parsed.repository }),
     ...(parsed.author !== undefined && { author: parsed.author }),
   };

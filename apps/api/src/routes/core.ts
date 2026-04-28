@@ -88,6 +88,7 @@ export function createCoreRouter(services: AppServices): Router {
         description: mod.manifest.description,
         basePath: mod.basePath,
         version: mod.manifest.version,
+        icon: mod.manifest.icon,
         // user_modules 레코드 없으면 기본 활성
         enabled: userMap.has(mod.name) ? userMap.get(mod.name) : true,
       }));

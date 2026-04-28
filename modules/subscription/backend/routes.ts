@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import type { NextFunction, Request, Response } from 'express';
 
 import type { SubscriptionService } from './service.js';
@@ -8,6 +8,7 @@ import {
   createSubscriptionSchema,
   updateSubscriptionSchema,
 } from './validation.js';
+import { parseSubscriptionFile } from './file-import.js';
 
 type JwtManager = {
   verifyAccessToken(token: string): Promise<{ userId: string; email: string }>;
@@ -41,6 +42,7 @@ export function createSubscriptionRouter(
 ): Router {
   const router = Router();
   const auth = makeAuth(jwtManager);
+  const rawBody = express.raw({ type: '*/*', limit: '10mb' });
 
   // ── 구독 목록 / 생성 ──────────────────────────────────────────
   router.get('/services', auth, async (req, res) => {
@@ -224,6 +226,69 @@ export function createSubscriptionRouter(
       res.json({ success: true, data: result });
     } catch {
       res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  });
+
+  // ── 파일 가져오기 ─────────────────────────────────────────────
+
+  /**
+   * POST /api/subscription/import/preview
+   * Body: raw file bytes (CSV / XLSX / XLS)
+   * Header: X-Filename — 확장자 판별에 사용 (예: subscriptions.csv)
+   */
+  router.post('/import/preview', auth, rawBody, async (req, res) => {
+    try {
+      const buf = req.body as Buffer;
+      if (!Buffer.isBuffer(buf) || buf.length === 0) {
+        res.status(400).json({ success: false, error: '파일 데이터가 없습니다.' });
+        return;
+      }
+
+      const filename = decodeURIComponent(
+        (req.headers['x-filename'] as string | undefined) ?? 'import.csv',
+      );
+      const ext = filename.split('.').pop()?.toLowerCase() ?? 'csv';
+
+      const result = parseSubscriptionFile(buf, ext);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  /**
+   * POST /api/subscription/import/commit
+   * Body: raw file bytes
+   * Header: X-Filename — 확장자 판별
+   */
+  router.post('/import/commit', auth, rawBody, async (req, res) => {
+    try {
+      const userId = (req as AuthRequest).userId;
+      const buf = req.body as Buffer;
+      if (!Buffer.isBuffer(buf) || buf.length === 0) {
+        res.status(400).json({ success: false, error: '파일 데이터가 없습니다.' });
+        return;
+      }
+
+      const filename = decodeURIComponent(
+        (req.headers['x-filename'] as string | undefined) ?? 'import.csv',
+      );
+      const ext = filename.split('.').pop()?.toLowerCase() ?? 'csv';
+
+      const { rows, errors } = parseSubscriptionFile(buf, ext);
+
+      let imported = 0;
+      for (const row of rows) {
+        const parsed = createSubscriptionSchema.safeParse(row);
+        if (parsed.success) {
+          await service.create(userId, parsed.data);
+          imported++;
+        }
+      }
+
+      res.json({ success: true, data: { imported, skipped: rows.length - imported, errors } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
     }
   });
 

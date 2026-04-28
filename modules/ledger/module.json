@@ -5,6 +5,7 @@
   "description": "ledger:description",
   "enabled": true,
   "dependencies": [],
+  "icon": "📒",
   "repository": "",
   "author": {
     "name": "",
