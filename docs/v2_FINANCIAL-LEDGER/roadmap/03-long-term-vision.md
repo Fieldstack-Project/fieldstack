@@ -77,7 +77,7 @@ SaaS (Managed Cloud)
 
 ### 실제 결제 연동이 붙을 위치
 
-`Project/Outsource 모듈` (`_modules_for-future/02-project-outsource.md`) 이 가장 자연스러운 위치입니다:
+`Project/Outsource 모듈` (`../modules/future/02-project-outsource.md`) 이 가장 자연스러운 위치입니다:
 - 견적서 발행 → 인보이스 생성 → **결제 링크 첨부**
 - 외부 결제 서비스(토스페이먼츠, PayPal 등)를 링크 형태로 연결
 - 결제 완료 웹훅 수신 → 정산 상태 자동 업데이트 → Ledger 수입 자동 기록

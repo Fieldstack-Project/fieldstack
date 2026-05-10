@@ -144,7 +144,12 @@ pnpm start
 
 ### 미래 모듈 (초안)
 > V1 완성 이후 검토 예정인 모듈 아이디어 모음. 확정 스펙 아님.
-- [📁 미래 모듈 목록](_modules_for-future/README.md)
+- [📁 미래 모듈 목록](modules/future/README.md)
+
+### 보존 초안
+> 확정 스펙은 아니지만 향후 설계 판단을 위해 유지하는 초안입니다.
+- [🔐 인증 모드 초안](planning/drafts/authentication_modes_draft.md)
+- [🖥️ 데스크톱 클라이언트 흐름 초안](planning/drafts/desktop_client_flow_draft.md)
 
 ### 📋 미작성 문서 (작성 예정)
 

@@ -1035,7 +1035,7 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 #### 5.3 TODO Module
 **예상 기간: 3주**
 
-> 설계 초안: `docs/_modules_for-future/01-todo-scheduler.md`
+> 설계 초안: `docs/v2_FINANCIAL-LEDGER/modules/future/01-todo-scheduler.md`
 
 - [ ] 할 일 생성/관리
 - [ ] 우선순위 / 마감일
@@ -1045,7 +1045,7 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 #### 5.4 Project Module (프로젝트·외주 관리)
 **예상 기간: 4주**
 
-> 설계 초안: `docs/_modules_for-future/02-project-outsource.md` (Gmail / 위드싸인 연동 포함)
+> 설계 초안: `docs/v2_FINANCIAL-LEDGER/modules/future/02-project-outsource.md` (Gmail / 위드싸인 연동 포함)
 
 - [ ] 프로젝트 생성/관리
 - [ ] 외주 정보 기록 (클라이언트, 계약 금액, 정산 일정)
@@ -1055,7 +1055,7 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 #### 5.5 Planner Module
 **예상 기간: 3주**
 
-> 설계 초안: `docs/_modules_for-future/03-planner.md` (여행 계획 등 목적 특화 계획 관리)
+> 설계 초안: `docs/v2_FINANCIAL-LEDGER/modules/future/03-planner.md` (여행 계획 등 목적 특화 계획 관리)
 
 - [ ] 계획 생성/관리 (여행, 이벤트, 프로젝트 등)
 - [ ] 일정 타임라인 뷰
@@ -1064,7 +1064,7 @@ Chrome 확장 프로그램의 "새로고침" 방식과 동일하게:
 #### 5.6 Video Downloader Module
 **예상 기간: 2주**
 
-> 설계 초안: `docs/_modules_for-future/04-video-downloader.md` (yt-dlp / Streamlink 기반)
+> 설계 초안: `docs/v2_FINANCIAL-LEDGER/modules/future/04-video-downloader.md` (yt-dlp / Streamlink 기반)
 
 - [ ] URL 입력 → yt-dlp 다운로드 실행
 - [ ] 다운로드 큐 관리 및 진행 상태 표시
