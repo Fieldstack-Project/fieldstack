@@ -12,7 +12,7 @@ Fieldstack V1 완성 이후 개발이 검토되는 모듈들을 정리한 공간
 | 문서 | 모듈명 | 우선순위 | 비고 |
 |------|--------|----------|------|
 | [project-outsource.md](./02-project-outsource.md) | 프로젝트·외주 관리 | 높음 | 위드싸인, Gmail 연동 포함 |
-| [event-booth-sales.md](./05-event-booth-sales.md) | 부스 운영·행사 판매 관리 | 중간 | 윗치폼 엑셀 가져오기, 현장 판매·재고·정산 |
+| [event-booth-sales.md](./05-event-booth-sales.md) | 부스 운영·행사 판매 관리 | 중간 | 윗치폼 엑셀 가져오기, 현장 판매·재고·정산, 단독 앱 검토 |
 | [todo-scheduler.md](./01-todo-scheduler.md) | TODO / 스케줄러 | 중간 | TickTick 참고 |
 | [planner.md](./03-planner.md) | 플래너 | 낮음 | 여행 계획 등 |
 
