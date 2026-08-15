@@ -10,7 +10,7 @@ Fieldstack 안에서 모듈로 제공할 수도 있지만, 이 기능만 필요�
 
 > **개발 시점:** Fieldstack V1 완성 이후 검토  
 > **상태:** 아이디어 및 초기 설계 단계  
-> **핵심 방향:** 윗치폼과 경쟁하지 않고, 엑셀 가져오기·현장 판매·재고·정산을 보조  
+> **핵심 방향:** 윗치폼과 경쟁하지 않고, 외부 예약 데이터 입력·현장 판매·재고·정산을 보조  
 > **제공 형태:** Fieldstack 통합 모듈 또는 단독 서버/앱
 
 ---
@@ -31,6 +31,7 @@ Fieldstack 안에서 모듈로 제공할 수도 있지만, 이 기능만 필요�
 ### 이 기능이 담당하는 영역
 
 - 윗치폼 엑셀 파일 가져오기
+- 외부 예약/선입금 주문 수동 등록
 - 외부 예약/선입금 주문의 행사 수령 체크
 - 예약분과 현장 판매분 재고 분리
 - 현장 판매 수기 기록
@@ -99,9 +100,11 @@ Fieldstack 모드는 이 공통 코어를 Fieldstack 모듈 API, Ledger, 세무 
 
 ---
 
-## 윗치폼 연동 방향
+## 외부 예약 데이터 입력 방향
 
-윗치폼에는 API가 없다는 전제로 설계합니다. 주문 데이터는 사용자가 윗치폼에서 엑셀 파일로 내려받은 뒤 가져오는 방식만 고려합니다.
+윗치폼에는 API가 없다는 전제로 설계합니다. 대량 주문 데이터는 사용자가 윗치폼에서 엑셀 파일로 내려받은 뒤 가져오는 방식을 우선 고려합니다.
+
+다만 모든 예약/선입금 데이터가 항상 엑셀 파일로만 들어오는 것은 아니므로, 운영자가 직접 외부 예약 또는 선입금 주문을 수동 등록할 수 있어야 합니다.
 
 ### 엑셀 가져오기 기능 (계획)
 
@@ -115,6 +118,21 @@ Fieldstack 모드는 이 공통 코어를 Fieldstack 모듈 API, Ledger, 세무 
 - 원본 파일명, 가져온 시각, 행 수, 실패 행 수 기록
 
 가져온 윗치폼 데이터는 내부에서 새 주문으로 재생성하지 않고, **외부 주문 원본의 스냅샷**으로 취급합니다.
+
+### 수동 예약 등록 기능 (계획)
+
+엑셀 파일이 없거나, 행사 직전 추가 예약, DM/메일/현장 구두 예약처럼 별도 경로로 들어온 건은 수동으로 등록할 수 있게 합니다.
+
+수동 등록 항목 예시:
+- 출처: 윗치폼 수동 보정, DM, 메일, 현장 예약, 기타
+- 주문자 식별값: 닉네임, 주문번호, 입금자명, 전화번호 뒤 4자리 중 필요한 값
+- 예약 상품 및 옵션
+- 수량
+- 결제 또는 입금 상태
+- 수령 예정 여부
+- 메모
+
+수동 등록 데이터도 엑셀 가져오기 데이터와 동일하게 예약 수령 체크, 재고 배정, 미수령 목록, 행사 후 정산에 포함합니다.
 
 ---
 
@@ -156,7 +174,7 @@ Fieldstack 모드는 이 공통 코어를 Fieldstack 모듈 API, Ledger, 세무 
 
 ### 3. 예약 수령 체크
 
-윗치폼에서 가져온 선입금 또는 행사 당일 예약 구매 데이터를 현장 수령 체크에 사용합니다.
+윗치폼 엑셀로 가져온 데이터와 수동으로 등록한 선입금 또는 행사 당일 예약 구매 데이터를 현장 수령 체크에 사용합니다.
 
 행사 당일 화면에서 필요한 기능:
 - 주문번호 검색
@@ -299,13 +317,13 @@ interface BoothInventoryAllocation {
 interface ExternalOrderSnapshot {
   id: string
   eventId: string
-  source: 'witchform'
+  source: 'witchform_import' | 'witchform_manual' | 'dm' | 'email' | 'onsite_reservation' | 'etc'
   externalOrderId?: string
   buyerAlias?: string
   depositorName?: string
   phoneLast4?: string
-  importedFileName: string
-  importedAt: string
+  importedFileName?: string
+  registeredAt: string
   pickupStatus: 'pending' | 'picked_up' | 'partial' | 'needs_check' | 'not_picked_up'
   notes?: string
 }
@@ -368,6 +386,7 @@ PATCH  /api/booth/events/:id/inventory
 
 POST   /api/booth/events/:id/import/witchform
 GET    /api/booth/events/:id/external-orders
+POST   /api/booth/events/:id/external-orders
 PATCH  /api/booth/external-orders/:id/pickup
 
 POST   /api/booth/events/:id/sales
@@ -380,14 +399,16 @@ POST   /api/booth/events/:id/settle
 ## 검토 필요 항목
 
 1. 윗치폼 엑셀 파일의 실제 컬럼 변형 대응
-2. 행사 당일 모바일/태블릿 입력 UX
-3. 오프라인 또는 네트워크 불안정 상황에서의 임시 저장
-4. 중복 수령 체크 방지 방식
-5. 대리 수령 기록에 필요한 최소 정보
-6. 카드 결제 수수료 또는 간편결제 수수료 입력 여부
-7. 여러 명이 같은 부스를 운영할 때 동시 입력 충돌 처리
-8. 행사 후 미수령/환불 처리 방식
-9. 개인정보 저장 최소화와 가져온 엑셀 원본 보관 정책
+2. 수동 예약 등록 시 필수 입력값 범위
+3. 엑셀 가져오기 데이터와 수동 등록 데이터의 중복 판정 방식
+4. 행사 당일 모바일/태블릿 입력 UX
+5. 오프라인 또는 네트워크 불안정 상황에서의 임시 저장
+6. 중복 수령 체크 방지 방식
+7. 대리 수령 기록에 필요한 최소 정보
+8. 카드 결제 수수료 또는 간편결제 수수료 입력 여부
+9. 여러 명이 같은 부스를 운영할 때 동시 입력 충돌 처리
+10. 행사 후 미수령/환불 처리 방식
+11. 개인정보 저장 최소화와 가져온 엑셀 원본 보관 정책
 
 ---
 
