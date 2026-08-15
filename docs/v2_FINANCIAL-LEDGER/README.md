@@ -112,6 +112,7 @@ pnpm start
 - [🛠️ 개발 가이드](modules/01-development-guide.md)
 - [🔌 통합 서비스](modules/02-integrations.md)
 - [📋 기본 모듈](modules/00-default-modules.md)
+- [🧾 세무 준비 지원](modules/04-tax-management.md)
 
 ### UI/UX
 - [🎨 Core Components](ui/02-core-components.md)
